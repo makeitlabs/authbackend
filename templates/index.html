@@ -1,5 +1,18 @@
 {% extends "layout.html" %}
 {% block body %}
-<a href="{{ url_for('members') }}">View/Edit members</a>
-<a href="{{ url_for('payments') }}">View/Test Payment System integration</a>
+<div>
+Welcome to the Admin interface.
+<p>
+With great power comes great... current? Who knows.    
+</div>
+<div>
+<a href="{{ url_for('members') }}">
+    <img src="/static/members.png" alt="View or Edit members">
+</a>Members and Access
+</div>
+<div>
+<a href="{{ url_for('payments') }}">
+    <img src="/static/payments.png" alt="View or Test Payment System integration">
+</a>Payment System 
+</div>
 {% endblock %}
