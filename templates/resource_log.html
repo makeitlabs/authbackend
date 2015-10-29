@@ -1,0 +1,5 @@
+{% if entries|length > 0 %}
+    {% for entry in entries %}
+        {{ entry.logdatetime }},{{ entry.level }},{{ entry.userid }},{{ entry.msg }}
+    {% endfor %}
+{% endif %}

@@ -7,7 +7,6 @@ import pycurl, sys
 import ConfigParser
 import xml.etree.ElementTree as ET
 from StringIO import StringIO
-from utilities import hash_rfid
 
 # Load general configuration from file
 # TODO: Error handling
@@ -17,14 +16,16 @@ Database = Config.get('General','Database')
 AdminUser = Config.get('General','AdminUser')
 AdminPasswd = Config.get('General','AdminPassword')
 DEBUG = Config.getboolean('General','Debug')
+MEMBERDATA = {}
 
 
 # Load Payment config from file
-payvalid = Config.getboolean('Payments','Valid')
-paymodule = Config.get('Payments','Module')
-payuserid = Config.get('Payments','Userid')
-paytoken = Config.get('Payments','Token')
-payuri = Config.get('Payments','Uri')
+paysystem = {}
+paysystem['valid'] = Config.getboolean('Payments','Valid')
+paysystem['module'] = Config.get('Payments','Module')
+paysystem['userid'] = Config.get('Payments','Userid')
+paysystem['token'] = Config.get('Payments','Token')
+paysystem['uri'] = Config.get('Payments','Uri')
 
 # App setup
 app = Flask(__name__)
@@ -151,8 +152,8 @@ def _get_resources():
 def _call_pinpayments():
    buffer = StringIO()
    c = pycurl.Curl()
-   c.setopt(c.URL, 'https://subs.pinpayments.com/api/v4/makeitlabs/subscribers.xml')
-   c.setopt(c.USERPWD, paytoken + ':X')
+   c.setopt(c.URL, paysystem['uri'])
+   c.setopt(c.USERPWD, paysystem['token'] + ':X')
    c.setopt(c.WRITEDATA,buffer)
    c.perform()
    c.close()
@@ -305,30 +306,28 @@ def logging(resource):
    """Endpoint for a resource to log via API"""
    # TODO - verify resources against global list
    if request.method == 'POST':
-	  print "LOGGING FOR RESOURCE"
-	  # YYYY-MM-DD HH:MM:SS
-	  # TODO: Filter this for safety
-	  logdatetime = request.form['logdatetime']
-	  print "A"
-	  level = _safestr(request.form['level'])
-	  print "B"
-	  # 'system' for resource system, rfid for access messages
-	  userid = _safestr(request.form['userid'])
-	  print "C"
-	  msg = _safestr(request.form['msg'])
-	  print "D"
-	  sqlstr = "INSERT into logs (logdatetime,resource,level,userid,msg) VALUES ('%s','%s','%s','%s','%s')" % (logdatetime,resource,level,userid,msg)
-	  print sqlstr
-	  execute_db(sqlstr)
-	  get_db().commit()
-	  print "Committed"
-	  return render_template('logged.html')
+    print "LOGGING FOR RESOURCE"
+    # YYYY-MM-DD HH:MM:SS
+    # TODO: Filter this for safety
+    logdatetime = request.form['logdatetime']
+    level = _safestr(request.form['level'])
+    # 'system' for resource system, rfid for access messages
+    userid = _safestr(request.form['userid'])
+    msg = _safestr(request.form['msg'])
+    sqlstr = "INSERT into logs (logdatetime,resource,level,userid,msg) VALUES ('%s','%s','%s','%s','%s')" % (logdatetime,resource,level,userid,msg)
+    execute_db(sqlstr)
+    get_db().commit()
+    print "Committed"
+    return render_template('logged.html')
    else:
-	  print "QUERYING LOGS FOR RESOURCE"
-	  if current_user.is_authenticated:
-		 return render_template('logged.html')
-	  else:
-		 abort(401)
+    print "QUERYING LOGS FOR RESOURCE"
+    if current_user.is_authenticated:
+        r = _safestr(resource)
+        sqlstr = "SELECT logdatetime,resource,level,userid,msg from logs where resource = '%s'" % r
+        entries = query_db(sqlstr)
+        return render_template('resource_log.html',entries=entries)
+    else:
+        abort(401)
 
 @app.route('/payments', methods = ['GET'])
 @login_required
@@ -356,7 +355,7 @@ def update_payments():
    if MEMBERDATA == "":
 	  payments['invalid'] = True
 	  payments['membercount'] = 0 
-   return render_template('show_payments.html',payments=payments)
+   return render_template('show_payments.html',payments=payments,paysystem=paysystem)
 
 
 
