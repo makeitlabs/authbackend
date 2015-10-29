@@ -1,0 +1,31 @@
+{% block resources %}
+  {# Generic List of Resources, Supports access list and edit options #}
+  <div class=resources>
+	{% if resources|length > 0 %}
+    <div class="resourcelist">
+	<h2>Resources:  {{ resources |length }} available</h2>
+	<table border=1>
+	  <th>Name</th>
+	  <th>Contact</th>
+	  <th>Description</th>
+	  {% if member is defined %}
+	  <th>Allowed</th>
+	  {% endif %}
+	{% for resource in resources %}
+	  <tr>
+		{% if editable %}
+		<td><a href="{{ url_for('one_resource',resource=resource.name) }}">{{ resource.name }}</a></td>
+		{% else %}
+		<td>{{ resource.name }} </td>
+		{% endif %}
+		<td>{{ resource.owneremail }}</td>
+		<td>{{ resource.description }}</td>
+		{% if access is defined %}
+		<td><input name="access_{{ resource.name }}" type="checkbox" {{ "checked" if access[resource.name] }} /></td>
+		{% endif %}
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+	{% endif %}
+{% endblock %}

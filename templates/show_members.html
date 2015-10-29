@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block body %}
+  <h2>Welcome</h2>
+  <div class=welcometext>
+	This interface allows you to add/edit RFID and access details for members.
+	<p>
+	Type in a portion of the person's name or email to view/edit details.
+  </div>
+  {% include 'search_members.html' %}
+  {# The syntax below is template-specific, a length 'filter' is used in Jinja #}
+  {% if members|length > 0 %}
+    <div class="memberbox">
+	<h2>Matching Members:  {{ members|length }} </h2>
+	<table border=1>
+	{% for member in members %}
+	  <tr>
+		<!--  {# <td><a href="{{ url_for('member_details') }}?firstname={{ member.firstname }}&lastname={{ member.lastname }}&email={{ member.email }}&rfid={{ member.rfidtag }}">Edit</a>
+		  {{ member.firstname }} {{ member.lastname }} ( {{ member.email }} ) </td> #}-->
+		  <td>{{ url_for('member_details') }}?uuid={{ member.rowid }}</td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+  {% endif %}
+{% endblock %}
+

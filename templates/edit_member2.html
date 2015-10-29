@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% block search %}
+  <div class=body>
+	<p>From here you can (sort of):
+    <ul>
+    <li>Add/Change a member's RFID tag</li>
+        <ul>
+        <li>If the new tag number is already in use no changes will be made</li>
+        <li>If you change a member's tag number all access for the old tag will be removed</li>
+        </ul>
+    </li>
+    <li>Change access to any pre-defined resource</li>
+    </ul>
+	<form action="{{ url_for('member',id=member.id) }}" method="post">
+    <p>Member: {{ member.firstname }} {{ member.lastname }}
+	<p>Type: {{ member.membertype }}</p>
+	RFID: <input name="rfid" value="{{ member.rfidtag }}" /></p>
+    {% include 'list_resources.html' %}
+	<p>
+	<input type=submit value="Make changes"/>
+	</form>
+  </div>
+{% endblock %}

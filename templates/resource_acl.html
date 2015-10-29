@@ -1,0 +1,3 @@
+{% if users|length > 0 %}
+    {% for user in users %}{{ user.rfidtag }},{{ user.firstname }},{{ user.lastname }},{{ user.membertype }};{% endfor %}
+{% endif %}

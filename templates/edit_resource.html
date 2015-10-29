@@ -1,0 +1,16 @@
+{% block resources %}
+  {% if session.logged_in %}
+  <form action={{ url_for('one_resource',resource=resource.name) }} method=PUT>
+	<table>
+	  <tr><td>Name: {{ resource.name }}</td></tr>
+	  <tr><td>Description: <input type=text size=25 name=rdescription value="{{ resource.description }}"></td></tr>
+	  <tr><td>Owner Email: <input type=text size=25 name=remail value={{ resource.owneremail }}></td></tr>
+	</table>
+	<input type=submit value="Make changes">
+  </form>
+  <form action={{ url_for('one_resource',resource=resource.name) }} method=DELETE>
+	<input type=submit value="Delete resource">
+  </form>
+ 
+  {% endif %}
+{% endblock %}
