@@ -12,6 +12,8 @@ from StringIO import StringIO
 # TODO: Error handling
 Config = ConfigParser.ConfigParser()
 Config.read('makeit.ini')
+ServerHost = Config.get('General','ServerHost')
+ServerPort = Config.getint('General','ServerPort')
 Database = Config.get('General','Database')
 AdminUser = Config.get('General','AdminUser')
 AdminPasswd = Config.get('General','AdminPassword')
@@ -362,6 +364,6 @@ def update_payments():
 
    
 if __name__ == '__main__':
-    app.run()
+    app.run(ServerHost,ServerPort)
 
 
