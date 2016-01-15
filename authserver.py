@@ -16,12 +16,12 @@ from json import dumps as json_dump
 defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
 Config = ConfigParser.ConfigParser(defaults)
 Config.read('makeit.ini')
+ServerHost = Config.get('General','ServerHost')
+ServerPort = Config.getint('General','ServerPort')
 Database = Config.get('General','Database')
 AdminUser = Config.get('General','AdminUser')
 AdminPasswd = Config.get('General','AdminPassword')
 DEBUG = Config.getboolean('General','Debug')
-ServerHost = Config.get('General','ServerHost')
-ServerPort = Config.getint('General','ServerPort')
 
 # Load Payment config from file
 paysystem = {}
@@ -762,8 +762,6 @@ def api_v1_log_resource_create(id):
     for k in request.form:
         entry[k] = _safestr(request.form[k])
     return "work in progress"
-    
-    
 
 if __name__ == '__main__':
     app.run(host=ServerHost,port=ServerPort)
