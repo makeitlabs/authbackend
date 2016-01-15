@@ -53,8 +53,7 @@ class User(UserMixin):
     '''Simple User class'''
     USERS = {
         # username: password
-        AdminUser: AdminPasswd,
-        'bill': 'bubba'
+        AdminUser: AdminPasswd
     }
 
     def __init__(self, id):
@@ -77,29 +76,20 @@ def load_user(id):
     return User.get(id)
 
 def connect_db():
-   con = sqlite3.connect(Database)
-   con.row_factory = sqlite3.Row
-   return con
+    """Convenience method to connect to the globally-defined database"""
+    con = sqlite3.connect(Database)
+    con.row_factory = sqlite3.Row
+    return con
 
-def _safestr(unsafe_str):
-	keepcharacters = (' ','.','_',',','-',"'")
-	return "".join(c for c in unsafe_str if c.isalnum() or c in keepcharacters).rstrip()
-
-def _safeemail(unsafe_str):
-    keepcharacters = ('.','_','@','-')
+def safestr(unsafe_str):
+    """Sanitize input strings used in some operations"""
+    keepcharacters = (' ','.','_',',','-',"'")
     return "".join(c for c in unsafe_str if c.isalnum() or c in keepcharacters).rstrip()
 
-def _isValidRFID(str):
-   try:
-	  temp = int(str)
-	  sqlstr = "SELECT rfidtag from members where rfidtag = '%s'" % str
-	  tags = query_db(sqlstr)
-	  if len(tags) == 0:
-		return True
-	  else:
-		 return False
-   except:
-	  return False
+def safeemail(unsafe_str):
+    """Sanitize email addresses strings used in some oeprations"""
+    keepcharacters = ('.','_','@','-')
+    return "".join(c for c in unsafe_str if c.isalnum() or c in keepcharacters).rstrip()
 
 def init_db():
 	with closing(connect_db()) as db:
@@ -145,7 +135,7 @@ def _expireMember(memberid):
     """Mark a user inactive due to expiration"""
     # TODO - Determine if we should "disable" user as well
     # TODO- Make a batch operation using a join?
-    m = _safestr(memberid)
+    m = safestr(memberid)
     sqlstr = "update members set active=0 where member='%s'" % m
     execute_db(sqlstr)
     get_db().commit()
@@ -153,7 +143,7 @@ def _expireMember(memberid):
 def _unexpireMember(memberid):
     """Mark a user active due to expiration"""
     # TODO - Make this a batch operation?
-    m = _safestr(memberid)
+    m = safestr(memberid)
     sqlstr = "update members set active=0 where member='%s'" % m
     execute_db(sqlstr)
     get_db().commit()
@@ -186,19 +176,6 @@ def _createResource(r):
     get_db().commit()
     #TODO: Catch errors, etc
     return {'status':'success','message':'Resource successfully added'}
-
-def _setrfid(oldrfid,newrfid,id):
-   if oldrfid == newrfid:
-	  return True
-   if _isValidRFID(newrfid) == False:
-	  flash("Error: You must specify a valid RFID tag")
-	  return False
-   else:
-	  sqlstr = "UPDATE members set rfidtag = '%s' where id = %d" % (newrfid,id)
-	  print sqlstr
-	  execute_db(sqlstr)
-	  get_db().commit()
-	  return True
 
 def _get_resources():
 	sqlstr = "SELECT name, owneremail, description from resources"
@@ -325,9 +302,9 @@ def index():
 @login_required
 def search_members():
    """Takes input of searchstr from form, displays matching member list"""
-   searchstr = _safestr(request.form['searchstr'])
-   safestr = "%" + searchstr + "%"
-   sqlstr = "SELECT member as id, firstname, lastname, alt_email, active, plan, updated_date, access_enabled as enabled from members where firstname LIKE '%s' OR lastname LIKE '%s' OR member LIKE '%s'" % (safestr, safestr, safestr)
+   searchstr = safestr(request.form['searchstr'])
+   sstr = "%" + searchstr + "%"
+   sqlstr = "SELECT member as id, firstname, lastname, alt_email, active, plan, updated_date, access_enabled as enabled from members where firstname LIKE '%s' OR lastname LIKE '%s' OR member LIKE '%s'" % (sstr, sstr, sstr)
    members = query_db(sqlstr)
    return render_template('members.html',members=members,searchstr=searchstr)
 
@@ -376,7 +353,7 @@ def member_add():
 @app.route('/members/<string:id>/edit', methods = ['GET'])
 @login_required
 def member_edit(id):
-    mid = _safestr(id)
+    mid = safestr(id)
     member = {}
     
     return "Show the user editing form now, then call member_update"
@@ -386,7 +363,7 @@ def member_edit(id):
 def member_show(id):
    """Controller method to Display or modify a single user"""
    access = {}
-   mid = _safestr(id)
+   mid = safestr(id)
    sqlstr = """select m.member, m.firstname, m.lastname, m.phone, m.updated_date, m.access_enabled,
             m.access_reason, m.active, m.alt_email, p.expires_date, p.plan, p.updated_date as payment_date
             from members m left join payments p on m.member=p.member where m.member='%s'""" % mid
@@ -401,7 +378,7 @@ def member_show(id):
 @login_required
 def member_editaccess(id):
     """Controller method to display gather current access details for a member and display the editing interface"""
-    mid = _safestr(id)
+    mid = safestr(id)
     sqlstr = "select tagid,tagtype from tagsbymember where member = '%s'" % mid
     tags = query_db(sqlstr)
     sqlstr = """select r.name,r.description,r.owneremail,a.member as id,a.enabled from resources r
@@ -416,7 +393,7 @@ def member_editaccess(id):
 @login_required
 def member_setaccess(id):
     """Controller method to receive POST and update user access"""
-    mid = _safestr(id)
+    mid = safestr(id)
     access = {}
     for key in request.form:
         match = re.search(r"^access_(.+)",key)
@@ -430,7 +407,7 @@ def member_setaccess(id):
 @login_required
 def member_tags(id):
     """Controller method to gather and display tags associated with a memberid"""
-    mid = _safestr(id)
+    mid = safestr(id)
     sqlstr = "select tagid,tagtype,tagname from tagsbymember where member = '%s'" % mid
     tags = query_db(sqlstr)
     return render_template('member_tags.html',mid=mid,tags=tags)
@@ -439,14 +416,14 @@ def member_tags(id):
 @login_required
 def member_tagadd(id):
     """Controller method for POST to add tag for a user, making sure they are not duplicates"""
-    mid = _safestr(id)
-    ntag = _safestr(request.form['newtag'])
+    mid = safestr(id)
+    ntag = safestr(request.form['newtag'])
     htag = authutil.hash_rfid(ntag)
     if htag is None:
         flash("ERROR: The specified RFID tag is invalid, must be all-numeric")
     else:
-        ntagtype = _safestr(request.form['newtagtype'])
-        ntagname = _safestr(request.form['newtagname'])
+        ntagtype = safestr(request.form['newtagtype'])
+        ntagname = safestr(request.form['newtagname'])
         sqlstr = "select tagid from tagsbymember where tagid = '%s' and tagtype = '%s'" % (htag,ntagtype)
         etags = query_db(sqlstr)
         if not etags:
@@ -459,13 +436,12 @@ def member_tagadd(id):
             flash("Error: That tag is already associated with a user")
     return redirect(url_for('member_tags',id=mid))
     
-
 @app.route('/members/<string:id>/tags/delete/<string:tagid>', methods = ['GET'])
 @login_required
 def member_tagdelete(id,tagid):
     """Controller method for a non-API link (eg no HTTP DELETE) to Delete a tag that is associated with a user"""
-    mid = _safestr(id)
-    tid = _safestr(tagid)
+    mid = safestr(id)
+    tid = safestr(tagid)
     sqlstr = "delete from tagsbymember where tagid = '%s' and member = '%s'" % (tid,mid)
     execute_db(sqlstr)
     get_db().commit()
@@ -493,9 +469,9 @@ def resources():
 def resource_create():
    """Controller method to Create (handle POST) a resource"""
    res = {}
-   res['name'] = _safestr(request.form['rname'])
-   res['description'] = _safestr(request.form['rdesc'])
-   res['owneremail'] = _safeemail(request.form['rcontact'])
+   res['name'] = safestr(request.form['rname'])
+   res['description'] = safestr(request.form['rdesc'])
+   res['owneremail'] = safeemail(request.form['rcontact'])
    result = _createResource(res)
    flash(result['message'])
    return redirect(url_for('resources'))
@@ -504,7 +480,7 @@ def resource_create():
 @login_required
 def resource_show(resource):
     print "FOOOOO"
-    rname = _safestr(resource)
+    rname = safestr(resource)
     sqlstr = "SELECT name, owneremail, description from resources where name = '%s'" % rname
     print sqlstr
     r = query_db(sqlstr,(),True)
@@ -515,9 +491,9 @@ def resource_show(resource):
 @login_required
 def resource_update(resource):
     """Controller method to Update an existing resource via HTML form POST"""
-    rname = _safestr(resource)
-    rdesc = _safestr(request.form['rdescription'])
-    remail = _safestr(request.form['remail'])
+    rname = safestr(resource)
+    rdesc = safestr(request.form['rdescription'])
+    remail = safestr(request.form['remail'])
     sqlstr = "update resources set description='%s',owneremail='%s', last_updated=Datetime('now') where name='%s'" % (rdesc,remail,rname)
     execute_db(sqlstr)
     get_db().commit()
@@ -526,7 +502,7 @@ def resource_update(resource):
 
 @app.route('/resources/<string:resource>/delete', methods=['POST'])
 def resource_delete(resource):
-    rname = _safestr(resource)
+    rname = safestr(resource)
     sqlstr = "delete from resources where name='%s'" % rname
     execute_db(sqlstr)
     get_db().commit()
@@ -536,7 +512,7 @@ def resource_delete(resource):
 @app.route('/resources/<string:resource>/list', methods=['GET'])
 def resource_showusers(resource):
     """Display users who are authorized to use this resource"""
-    rid = _safestr(resource)
+    rid = safestr(resource)
     sqlstr = "select member from accessbymember where resource='%s'" % rid
     authusers = query_db(sqlstr)
     return render_template('resource_users.html',resource=rid,users=authusers)
@@ -551,10 +527,10 @@ def logging(resource):
     # YYYY-MM-DD HH:MM:SS
     # TODO: Filter this for safety
     logdatetime = request.form['logdatetime']
-    level = _safestr(request.form['level'])
+    level = safestr(request.form['level'])
     # 'system' for resource system, rfid for access messages
-    userid = _safestr(request.form['userid'])
-    msg = _safestr(request.form['msg'])
+    userid = safestr(request.form['userid'])
+    msg = safestr(request.form['msg'])
     sqlstr = "INSERT into logs (logdatetime,resource,level,userid,msg) VALUES ('%s','%s','%s','%s','%s')" % (logdatetime,resource,level,userid,msg)
     execute_db(sqlstr)
     get_db().commit()
@@ -563,7 +539,7 @@ def logging(resource):
    else:
     print "QUERYING LOGS FOR RESOURCE"
     if current_user.is_authenticated:
-        r = _safestr(resource)
+        r = safestr(resource)
         sqlstr = "SELECT logdatetime,resource,level,userid,msg from logs where resource = '%s'" % r
         entries = query_db(sqlstr)
         return render_template('resource_log.html',entries=entries)
@@ -597,7 +573,7 @@ def manual_payments():
 @app.route('/payments/manual/extend/<member>', methods = ['GET'])
 @login_required
 def payments_manual_extend(member):
-    safe_id = _safestr(member)
+    safe_id = safestr(member)
     sqlstr = "update payments set expires_date=DATETIME(expires_date,'+31 days') where member = '%s' " % safe_id
     print(sqlstr)
     execute_db(sqlstr)
@@ -608,7 +584,7 @@ def payments_manual_extend(member):
 @app.route('/payments/manual/expire/<member>', methods = ['GET'])
 @login_required
 def payments_manual_expire(member):
-    safe_id = _safestr(member)
+    safe_id = safestr(member)
     sqlstr = "update payments set expires_date=datetime('now')  where member = '%s' " % safe_id
     execute_db(sqlstr)
     get_db().commit()
@@ -619,7 +595,7 @@ def payments_manual_expire(member):
 @app.route('/payments/manual/delete/<member>', methods = ['GET'])
 @login_required
 def payments_manual_delete(member):
-    safe_id = _safestr(member)
+    safe_id = safestr(member)
     sqlstr = "delete from payments where member = '%s' " % safe_id
     execute_db(sqlstr)
     get_db().commit()
@@ -687,10 +663,10 @@ def api_v1_members():
     sqlstr = "select m.member,m.plan,m.updated_date,p.expires_date from members m inner join payments p on m.member=p.member"
     outformat = request.args.get('output','json')
     filters = {}
-    filters['active'] = _safestr(request.args.get('active',''))
-    filters['access_enabled'] = _safestr(request.args.get('enabled',''))
-    filters['expired'] = _safestr(request.args.get('expired',''))
-    filters['plan'] = _safestr(request.args.get('plan',''))
+    filters['active'] = safestr(request.args.get('active',''))
+    filters['access_enabled'] = safestr(request.args.get('enabled',''))
+    filters['expired'] = safestr(request.args.get('expired',''))
+    filters['plan'] = safestr(request.args.get('plan',''))
     fstring = ""
     if len(filters) > 0:
         fstrings = []
@@ -728,7 +704,7 @@ def api_v1_members():
 @app.route('/api/v1/members/<string:id>', methods=['GET'])
 @login_required
 def api_v1_showmember(id):
-    mid = _safestr(id)
+    mid = safestr(id)
     outformat = request.args.get('output','json')
     sqlstr = """select m.member, m.plan, m.alt_email, m.firstname, m.lastname, m.phone, p.expires_date
             from members m inner join payments p on m.member=p.member where m.member='%s'""" % mid
@@ -742,7 +718,7 @@ def api_v1_showmember(id):
 @app.route('/api/v1/resources/<string:id>/acl', methods=['GET'])
 @login_required
 def api_v1_show_resource_acl(id):
-    rid = _safestr(id)
+    rid = safestr(id)
     users = _getResourceUsers(rid)
     outformat = request.args.get('output','csv')
     if outformat == 'csv':
@@ -754,13 +730,13 @@ def api_v1_show_resource_acl(id):
 @app.route('/api/v1/logs/<string:id>', methods=['POST'])
 @login_required
 def api_v1_log_resource_create(id):
-    rid = _safestr(id)
+    rid = safestr(id)
     entry = {}
     # Default all to blank, since needed for SQL
     for opt in ['event','timestamp','memberid','message','ip']:
         entry[opt] = ''
     for k in request.form:
-        entry[k] = _safestr(request.form[k])
+        entry[k] = safestr(request.form[k])
     return "work in progress"
 
 if __name__ == '__main__':

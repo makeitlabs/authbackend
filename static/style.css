@@ -27,3 +27,4 @@ h2              { font-size: 1.4em; padding-bottom: 10px;}
 .menubox        { align:center; padding: 1.0em; text-align: center}
 .protip         { font-style: italic;}
 .delete         { background-color: #FF0000; font-size: medium;}
+.warning        { color: #FF0000; font-style: italic;}
