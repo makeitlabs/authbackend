@@ -80,6 +80,7 @@ def getSubscribersJSON(paysystem):
             email = subscriber.find('email').text
             plan = subscriber.find('subscription-plan-name').text
             expires = subscriber.find('active-until').text
+            phone = subscriber.find('billing-phone-number').text
             if plan is None:
                 membertype = None
             elif plan.find('Pro') > -1:
@@ -89,7 +90,7 @@ def getSubscribersJSON(paysystem):
             active = subscriber.find('active').text
             created = subscriber.find('created-at').text
             updated = subscriber.find('updated-at').text
-            sub = {'customerid': customerid, 'firstname': firstname, 'lastname': lastname, 'userid': sname, 'email': email, 'membertype': membertype, 'active': active, 'createdon': created, 'updatedon': updated, 'expires': expires }
+            sub = {'customerid': customerid, 'firstname': firstname, 'lastname': lastname, 'userid': sname, 'email': email, 'membertype': membertype, 'active': active, 'created': created, 'updatedon': updated, 'expires': expires, 'phone': phone }
             subscribers.append(sub)
         return subscribers
     except:

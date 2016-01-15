@@ -1,3 +1,14 @@
+"""
+MakeIt Labs Authorization System, v0.4
+Author: bill.schongar@makeitlabs.com
+
+A simple Flask-based system for managing Users, Resources and the relationships between them
+
+Exposes both a UI as well as a few APIs for further integration.
+
+Note: Currently all coded as procedural, rather than class-based because reasons. Deal.
+"""
+
 import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash
@@ -92,36 +103,40 @@ def safeemail(unsafe_str):
     return "".join(c for c in unsafe_str if c.isalnum() or c in keepcharacters).rstrip()
 
 def init_db():
-	with closing(connect_db()) as db:
+    """Initialize database from SQL schema file if needed"""
+    with closing(connect_db()) as db:
 		with app.open_resource('flaskr.sql', mode='r') as f:
 			db.cursor().executescript(f.read())
 		db.commit()
 		
 def get_db():
+    """Convenience method to get the current DB loaded by Flask, or connect to it if first access"""
     db = getattr(g, '_database', None)
     if db is None:
         db = g._database = connect_db()
     return db
 
 def query_db(query, args=(), one=False):
-	cur = get_db().execute(query, args)
-	rv = cur.fetchall()
-	cur.close()
-	return (rv[0] if rv else None) if one else rv
+    """Convenience method to execute a basic SQL query against the current DB. Returns a dict unless optional args used"""
+    cur = get_db().execute(query, args)
+    rv = cur.fetchall()
+    cur.close()
+    return (rv[0] if rv else None) if one else rv
 
 def execute_db(query):
-	cur = get_db().cursor()
-	cur.execute(query)
-	cur.close()
+    """Convenience method to execute a non-query SQL statement against the current DB."""
+    cur = get_db().cursor()
+    cur.execute(query)
+    cur.close()
 	
-def _clearAccess(mid):
-    """Remove all existing access permissions for a given, safe member id"""
+def clearAccess(mid):
+    """Remove all existing access permissions for a given, known safe member id"""
     sqlstr = "DELETE from accessbymember where member = '%s'" % mid
     execute_db(sqlstr)
     get_db().commit()
 
-def _addAccess(mid,access):
-    """Add access permissions from a list for a given, safe member id"""
+def addAccess(mid,access):
+    """Add access permissions from a list for a given, known safe member id"""
     perms = []
     for resource in access:
         print "Adding %s for %s" % (resource,mid)
@@ -131,26 +146,26 @@ def _addAccess(mid,access):
     cur.executemany('INSERT into accessbymember (resource,member,enabled,updated_date) VALUES (?,?,?,?)', perms)
     get_db().commit()
 
-def _expireMember(memberid):
+def expireMember(memberid):
     """Mark a user inactive due to expiration"""
     # TODO - Determine if we should "disable" user as well
     # TODO- Make a batch operation using a join?
     m = safestr(memberid)
-    sqlstr = "update members set active=0 where member='%s'" % m
+    sqlstr = "update members set active='false' where member='%s'" % m
     execute_db(sqlstr)
     get_db().commit()
     
-def _unexpireMember(memberid):
-    """Mark a user active due to expiration"""
+def unexpireMember(memberid):
+    """Mark a user active"""
     # TODO - Make this a batch operation?
     m = safestr(memberid)
-    sqlstr = "update members set active=0 where member='%s'" % m
+    sqlstr = "update members set active='true' where member='%s'" % m
     execute_db(sqlstr)
     get_db().commit()
     
 def _expirationSync():
     """Make sure all expirations match what's in the Payments database"""
-    sqlstr = "update members set active='1',updated_date=DATETIME('now') where member in (select member from payments where expires_date < date('now'))"
+    sqlstr = "update members set active='true',updated_date=DATETIME('now') where member in (select member from payments where expires_date < date('now'))"
     execute_db(sqlstr)
     get_db().commit()
     
@@ -191,9 +206,9 @@ def _addPaymentData(subs,paytype):
     """From a JSON list of subscribers, add entries to the Payments table"""
     users = []
     for sub in subs:
-        users.append((sub['userid'],'pinpayments',sub['membertype'],sub['customerid'],sub['expires'],sub['updatedon'],time.strftime("%c")))
+        users.append((sub['userid'],'pinpayments',sub['membertype'],sub['customerid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
     cur = get_db().cursor()
-    cur.executemany('INSERT into payments (member,paysystem,plan,customerid,expires_date,updated_date,checked_date) VALUES (?,?,?,?,?,?,?)', users)
+    cur.executemany('INSERT into payments (member,paysystem,plan,customerid,created_date,expires_date,updated_date,checked_date) VALUES (?,?,?,?,?,?,?,?)', users)
     get_db().commit()
     
 def _getResourceUsers(resource):
@@ -207,12 +222,30 @@ def _getResourceUsers(resource):
     users = query_db(sqlstr)
     return users
 
-def _addMissingMembers():
+def addMissingMembers(subs):
     """Add to Members table any members in Payments but not in Members"""
-    sqlstr = """insert into members (member,plan,updated_date) select p.member,p.plan,Datetime('now')
+    # Old - insert, may be missing data but highly efficient
+    sqlstr_old = """insert into members (member,plan,updated_date) select p.member,p.plan,Datetime('now')
             from payments p left outer join members m on p.member=m.member where m.member is null"""
-    execute_db(sqlstr)
-    get_db().commit()
+    # New: find missing entries and filter and add them individually - Slower, but fills all details
+    sqlstr = """select p.member from payments p
+            left outer join members m on p.member=m.member where m.member is null"""
+    members = query_db(sqlstr)
+    missingids = []
+    users = []
+    for m in members:
+        missingids.append(m['member'])
+    for s in subs:
+        if s['userid'] in missingids:
+            print "MEMBER %s is missing... " % s
+            # TODO: Apply blacklist
+            users.append((s['userid'],s['firstname'],s['lastname'],s['membertype'],s['phone'],s['email'],"Datetime('now')"))
+    if len(users) > 0:
+        cur = get_db().cursor()
+        cur.executemany('INSERT into members (member,firstname,lastname,plan,phone,alt_email,updated_date) VALUES (?,?,?,?,?,?,?)', users)
+        get_db().commit()
+    return len(users)    
+        
     
 def _deactivateMembers():
     """Mark all users as inactive, to ensure we catch any that have been removed from Payments table"""
@@ -235,19 +268,34 @@ def _activatePaidMembers():
     execute_db(sqlstr)
     get_db().commit()
     
-def _updateMembersFromPayments():
-    """Bring Members table and up to date with latest user payment information"""
-    _addMissingMembers()
+def _updateMembersFromPayments(subs):
+    """Bring Members table and up to date with latest user payment information. Requires Subscriber dict"""
+    addMissingMembers(subs)
     _deactivateMembers()
     _syncMemberPlans()
     _activatePaidMembers()
+    return True
     
 def _updatePaymentsData():
-    """Get the latest Payment information from the Payment system and update. Note: Members update is separate"""
+    """Get the latest Payment system data and update Payments table. Return subscriber data structure."""
     subs = pay.getSubscribers(paysystem)
     fsubs = pay.filterSubscribers(subs)
     _clearPaymentData('pinpayments')
     _addPaymentData(fsubs['valid'],'pinpayments')
+    return fsubs
+
+def add_member_tag(mid,htag,tagtype,tagname):
+    """Associate a tag with a Member, given a known safe set of values"""
+    sqlstr = "select tagid from tagsbymember where tagid = '%s' and tagtype = '%s'" % (htag,tagtype)
+    etags = query_db(sqlstr)
+    if not etags:
+        sqlstr = """insert into tagsbymember (member,tagid,tagname,tagtype,updated_date)
+                    values ('%s','%s','%s','%s',DATETIME('now'))""" % (mid,htag,tagname,tagtype)
+        execute_db(sqlstr)
+        get_db().commit()
+        return True
+    else:
+        return False
     
 ########
 # Request filters
@@ -399,8 +447,8 @@ def member_setaccess(id):
         match = re.search(r"^access_(.+)",key)
         if match:
             access[match.group(1)] = 1
-    _clearAccess(mid)
-    _addAccess(mid,access)
+    clearAccess(mid)
+    addAccess(mid,access)
     return redirect(url_for('member_editaccess',id=mid))
    
 @app.route('/members/<string:id>/tags', methods = ['GET'])
@@ -415,22 +463,14 @@ def member_tags(id):
 @app.route('/members/<string:id>/tags', methods = ['POST'])
 @login_required
 def member_tagadd(id):
-    """Controller method for POST to add tag for a user, making sure they are not duplicates"""
+    """(Controller) method for POST to add tag for a user, making sure they are not duplicates"""
     mid = safestr(id)
     ntag = safestr(request.form['newtag'])
     htag = authutil.hash_rfid(ntag)
     if htag is None:
         flash("ERROR: The specified RFID tag is invalid, must be all-numeric")
     else:
-        ntagtype = safestr(request.form['newtagtype'])
-        ntagname = safestr(request.form['newtagname'])
-        sqlstr = "select tagid from tagsbymember where tagid = '%s' and tagtype = '%s'" % (htag,ntagtype)
-        etags = query_db(sqlstr)
-        if not etags:
-            sqlstr = """insert into tagsbymember (member,tagid,tagname,tagtype,updated_date)
-                    values ('%s','%s','%s','%s',DATETIME('now'))""" % (mid,htag,ntagname,ntagtype)
-            execute_db(sqlstr)
-            get_db().commit()
+        if add_member_tag(mid,htag,ntagname,ntagname):
             flash("Tag added.")
         else:
             flash("Error: That tag is already associated with a user")
@@ -439,7 +479,7 @@ def member_tagadd(id):
 @app.route('/members/<string:id>/tags/delete/<string:tagid>', methods = ['GET'])
 @login_required
 def member_tagdelete(id,tagid):
-    """Controller method for a non-API link (eg no HTTP DELETE) to Delete a tag that is associated with a user"""
+    """(Controller) Delete a Tag from a Member (HTTP GET, for use from a href link)"""
     mid = safestr(id)
     tid = safestr(tagid)
     sqlstr = "delete from tagsbymember where tagid = '%s' and member = '%s'" % (tid,mid)
@@ -459,7 +499,7 @@ def member_tagdelete(id,tagid):
 @app.route('/resources', methods=['GET'])
 @login_required
 def resources():
-   """Controller method to Display resources"""
+   """(Controller) Display Resources and controls"""
    resources = _get_resources()
    access = {}
    return render_template('resources.html',resources=resources,access=access,editable=True)
@@ -467,7 +507,7 @@ def resources():
 @app.route('/resources', methods=['POST'])
 @login_required
 def resource_create():
-   """Controller method to Create (handle POST) a resource"""
+   """(Controller) Create a resource from an HTML form POST"""
    res = {}
    res['name'] = safestr(request.form['rname'])
    res['description'] = safestr(request.form['rdesc'])
@@ -479,7 +519,7 @@ def resource_create():
 @app.route('/resources/<string:resource>', methods=['GET'])
 @login_required
 def resource_show(resource):
-    print "FOOOOO"
+    """(Controller) Display information about a given resource"""
     rname = safestr(resource)
     sqlstr = "SELECT name, owneremail, description from resources where name = '%s'" % rname
     print sqlstr
@@ -490,7 +530,7 @@ def resource_show(resource):
 @app.route('/resources/<string:resource>', methods=['POST'])
 @login_required
 def resource_update(resource):
-    """Controller method to Update an existing resource via HTML form POST"""
+    """(Controller) Update an existing resource from HTML form POST"""
     rname = safestr(resource)
     rdesc = safestr(request.form['rdescription'])
     remail = safestr(request.form['remail'])
@@ -502,6 +542,7 @@ def resource_update(resource):
 
 @app.route('/resources/<string:resource>/delete', methods=['POST'])
 def resource_delete(resource):
+    """(Controller) Delete a resource. Shocking."""
     rname = safestr(resource)
     sqlstr = "delete from resources where name='%s'" % rname
     execute_db(sqlstr)
@@ -511,7 +552,7 @@ def resource_delete(resource):
 
 @app.route('/resources/<string:resource>/list', methods=['GET'])
 def resource_showusers(resource):
-    """Display users who are authorized to use this resource"""
+    """(Controller) Display users who are authorized to use this resource"""
     rid = safestr(resource)
     sqlstr = "select member from accessbymember where resource='%s'" % rid
     authusers = query_db(sqlstr)
@@ -556,7 +597,7 @@ def logging(resource):
 @app.route('/payments', methods = ['GET'])
 @login_required
 def payments():
-    """Controller method: Show payments options"""
+    """(Controller) Show Payment system controls"""
     payments = {}
     sqlstr = "select MAX(checked_date) as checked from payments"
     cdate = query_db(sqlstr,(),True)
@@ -606,7 +647,7 @@ def payments_manual_delete(member):
 @app.route('/payments/test', methods = ['GET'])
 @login_required
 def test_payments():
-   """Validate the payment system"""
+   """(Controller) Validate the connection to the payment system"""
    payments = {}
    if pay.testSystem(paysystem):
 	  flash("Payment system is reachable.")
@@ -617,15 +658,17 @@ def test_payments():
 @app.route('/payments/update', methods = ['GET'])
 @login_required
 def update_payments():
-    # TODO: return details/status/etc from each call for reporting
-   _updatePaymentsData()
-   _updateMembersFromPayments()
-   flash("Payment data has just been updated, and members adjusted")
-   return redirect(url_for('payments_show'))
+    """(Controller) Sync Payment data and update Member data from Payments (add missing, deactivate, etc)"""
+    # TODO: return details/status/etc from each call for reporting?
+    fsubs = _updatePaymentsData()
+    details = _updateMembersFromPayments(fsubs['valid'])
+    flash("Payment and Member data adjusted, %s valid records processed" % fsubs['valid'])
+    return redirect(url_for('payments'))
 
 @app.route('/payments/reports', methods = ['GET'])
 @login_required
 def payments_reports():
+    """(Controller) View various Payment data attributes"""
     f = request.args.get('filter','')
     sqlstr = "select * from payments"
     if f !='':
@@ -647,6 +690,7 @@ def payments_reports():
 @app.route('/reports', methods=['GET'])
 @login_required
 def reports():
+    """(Controller) Display some pre-defined report options"""
     return render_template('reports.html')
     
 
@@ -660,6 +704,7 @@ def reports():
 @app.route('/api/v1/members', methods=['GET'])
 @login_required
 def api_v1_members():
+    """(API) Return a list of all members. either in CSV or JSON"""
     sqlstr = "select m.member,m.plan,m.updated_date,p.expires_date from members m inner join payments p on m.member=p.member"
     outformat = request.args.get('output','json')
     filters = {}
@@ -704,6 +749,7 @@ def api_v1_members():
 @app.route('/api/v1/members/<string:id>', methods=['GET'])
 @login_required
 def api_v1_showmember(id):
+    """(API) Return details about a member, currently JSON only"""
     mid = safestr(id)
     outformat = request.args.get('output','json')
     sqlstr = """select m.member, m.plan, m.alt_email, m.firstname, m.lastname, m.phone, p.expires_date
@@ -718,7 +764,9 @@ def api_v1_showmember(id):
 @app.route('/api/v1/resources/<string:id>/acl', methods=['GET'])
 @login_required
 def api_v1_show_resource_acl(id):
+    """(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
     rid = safestr(id)
+    # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
     users = _getResourceUsers(rid)
     outformat = request.args.get('output','csv')
     if outformat == 'csv':
