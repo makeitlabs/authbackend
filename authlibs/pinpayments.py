@@ -77,6 +77,9 @@ def getSubscribersJSON(paysystem):
             firstname = subscriber.find('billing-first-name').text
             lastname = subscriber.find('billing-last-name').text
             sname = subscriber.find('screen-name').text
+            # Filter known bad records with 'screen-name-for-<int>' syntax
+            if not sname or sname.find('screen-name-for') > -1:
+               continue
             email = subscriber.find('email').text
             plan = subscriber.find('subscription-plan-name').text
             expires = subscriber.find('active-until').text

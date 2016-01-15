@@ -231,14 +231,20 @@ def addMissingMembers(subs):
     sqlstr = """select p.member from payments p
             left outer join members m on p.member=m.member where m.member is null"""
     members = query_db(sqlstr)
+    sqlstr2 = "select entry,entrytype from blacklist"
+    bl_entries = query_db(sqlstr2)
     missingids = []
     users = []
     for m in members:
         missingids.append(m['member'])
+    ignorelist = []
+    for b in bl_entries:
+        ignorelist.append(b['entry'])
     for s in subs:
         if s['userid'] in missingids:
-            print "MEMBER %s is missing... " % s
-            # TODO: Apply blacklist
+            if s['customerid'] in ignorelist:
+                print("Customer ID is in the ignore list")
+                continue
             users.append((s['userid'],s['firstname'],s['lastname'],s['membertype'],s['phone'],s['email'],"Datetime('now')"))
     if len(users) > 0:
         cur = get_db().cursor()
