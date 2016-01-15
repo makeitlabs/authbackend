@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block body %}
+  <h2>Users in payments table:</h2>
+  <div class=welcometext>
+	<div type="sectionhead">Filter:</div>
+	<form action="{{ url_for('payments_reports') }}" method="get">
+	  <input type="radio" name="filter" value="none" {{ 'checked' if (f == '') }}>No filter</input>
+	  <input type="radio" name="filter" value="expired" {{ 'checked' if (f == 'expired') }}>Show expired users</input>
+	  <input type="radio" name="filter" value="notexpired" {{ 'checked' if (f == 'notexpired') }}>Show unexpired users</input>
+	  <br>
+	  <input type="radio" name="filter" value="recentexpired" {{ 'checked' if (f == 'recentexpired') }}>Show expirations in the last 3 months</input>
+	  <p></p>
+	  <input type="submit" value="Apply filter" />
+	</form>
+	<div></div>
+	<p></p>
+	{% if payments|length > 0 %}
+    <div class="memberbox">
+	<h2>Matching Members:  {{ payments|length }} </h2>
+	  {% for p in payments %}
+	  <li><a href="{{ url_for('member_show',id=p.member) }}">{{ p.member }} (Expiration: {{ p.expires_date }})</a></li>
+	  {% endfor %}
+	  {% endif %}
+  </div>
+{% endblock %}
+

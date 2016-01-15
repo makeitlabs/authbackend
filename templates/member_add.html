@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+{% block body %}
+   <h2>Welcome</h2>
+   <script type="text/javascript">
+	function _nameStr(sname) {
+		var t = sname.replace(/\W+/g, "");
+		return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+	}
+	function setMemberId() {
+	  // Takes Firstname and Lastname to create memberid matching Google ID (hopefully)
+	  var fname = _nameStr(document.getElementById("fname_field").value);
+	  var lname = _nameStr(document.getElementById("lname_field").value);
+	  var mid = fname + "." + lname;
+	  document.getElementById("memberid_field").value = mid;
+	  console.log(mid);
+	}
+   </script>
+  <p></p>
+  <h2> Add new member </h2>
+  <div class="member_add">
+	<form action="{{ url_for('member_add') }}" method="post">
+	  <table>
+		<tr>
+		  <td>Firstname</td>
+		  <td><input name="firstname" id="fname_field" type="text" oninput="setMemberId();"/></td>
+		</tr>
+		<tr>
+		  <td>Lastname</td>
+		  <td><input name="lastname" id="lname_field" type="text" oninput="setMemberId();"/></td>
+		</tr>
+		<tr>
+		  <td>Member ID<br>(Firstname.Lastname)</td>
+		  <td><input name="memberid" id="memberid_field" type="text"></td>
+		</tr>
+		<tr>
+		  <td>Alternate Email (Optional)</td>
+		  <td><input type="alt_email"/></td>
+		</tr>
+		<tr>
+		  <td>Phone (Optional)</td>
+		  <td><input type="phone"/></td>
+		</tr>
+	  </table>
+	  <input type="submit" value="Create new member">
+	</form>
+  </div>
+{% endblock %}

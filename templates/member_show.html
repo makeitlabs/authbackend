@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+{% block search %}
+  <div class=body>
+	<div class="sectionhead">Member Details (<a href="{{ url_for('member_edit',id=member.member) }}">Edit</a>):</div>
+	<table>
+	  <tr>
+		<td><div>Member id: </div></td>
+		<td>{{ member.member }} ({{ member.member }}@makeitlabs.com)</td>
+	  </tr>
+	   <tr>
+		<td><div>Firstname:</div></td>
+		<td>{{ member.firstname }}</td>
+	  </tr>
+	    <tr>
+		<td><div>Lastname:</div></td>
+		<td>{{ member.lastname }}</td>
+	  </tr>
+		<tr>
+		<td><div {{ 'class=errortext' if (member.active != 'true')  }}>Active:</div></td>
+		<td>{{ member.active }} (Expiration: {{ member.expires_date }})</td>
+	  </tr>
+	  <tr>
+		<td><div {{ 'class=errortext' if (member.access_enabled != 'true')  }}>Enabled:</div></td>
+		<td> {{ member.access_enabled }} {{ member.access_reason if (member.access_enabled != 'true') }}</td>
+	  </tr>
+	   <tr>
+		<td><div>Phone</div></td>
+		<td>{{ member.phone }}</td>
+	  </tr>
+	   <tr>
+		<td><div>Alternate email:</div></td>
+		<td>{{ member.alt_email }}</td>
+	  </tr>
+	   <tr>
+		<td><div>Last updated:</div></td>
+		<td>{{ member.updated_date }}</td>
+	  </tr> 
+	</table>
+	<div class="sectionhead">Current Access (<a href="{{ url_for('member_editaccess',id=member.member) }}">Edit</a>):</div>
+	<ul class="entries">
+	{% if not access %}
+	  <i> No current access defined for this user</i>
+	{% else %}
+	  {% for a in access %}
+		<li>{{ a.description }}, Updated: {{ a.updated_date }} </li>
+	  {% endfor %}
+	{% endif %}
+	</ul>
+  </div>
+{% endblock %}

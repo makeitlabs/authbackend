@@ -9,23 +9,13 @@
 	  <li>System: <i>{{ paysystem.module }}</i></li>
 	  <li>User account: <i>{{ paysystem.userid }} </i></li>
 	  <li>Endpoint: <i>{{ paysystem.uri }}</i></li>
-	  <li>Authentication configured? <i>{% if paysystem.paytoken %} Yes {% else %} No {% endif %}</i></li>
+	  <li>Last checked: {{ cdate.checked }}</li>
 	</ul>
-	Payment system functionality:
-	  <ol>
-		{% if payments.valid %}
-		 <li> (Done) Check payment system connection - Working</li>
-		 {% if payments.updated %}
-		  <li> (Done) Member list updated (some values here)</li>
-		 {% else %}
-		  <li> <a href="{{ url_for('update_payments') }}"><button class="paysystem" onclick="this.disabled = true">Process member data (takes 5-30 seconds)</a></li>
-		 {% endif %}
-		{% elif payments.invalid %}
-		  <div class=error>There was an error communicating with the payment system. Check the system logs.</div>
-		{% else %}
-		  <li><a href="{{ url_for('test_payments') }}"><button class="paysystem" onclick="this.disabled = true">Test (takes 5-20 seconds..)</button></a></li>
-		{% endif %}
-	  </ol>
+	<div class="paybuttons"><a href="{{ url_for('test_payments') }}"><button class="paysystem" onclick="this.disabled = true">Test (takes 5-20 seconds..)</button></a></div>
+    <div class="paybuttons"><a href="{{ url_for('update_payments') }}"><button class="paysystem" onclick="this.disabled = true">Process member data (takes 5-30 seconds)</a></div>
+    <p>
+	  
+	</p><a href="{{ url_for('payments_reports') }}">Run reports related to Payments</a>
   </div>
 {% endblock %}
 

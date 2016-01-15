@@ -1,10 +1,25 @@
 {% extends "layout.html" %}
 {% block body %}
    <h2>Welcome</h2>
+   <script type="text/javascript">
+	function _nameStr(sname) {
+		var t = sname.replace(/\W+/g, "");
+		return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+	}
+	function setMemberId() {
+	  // Takes Firstname and Lastname to create memberid matching Google ID (hopefully)
+	  var fname = _nameStr(document.getElementById("fname_field").value);
+	  var lname = _nameStr(document.getElementById("lname_field").value);
+	  var mid = fname + "." + lname;
+	  document.getElementById("memberid_field").value = mid;
+	  console.log(mid);
+	}
+   </script>
+   
   <div class=welcometext>
-	This interface allows you to add/edit RFID and access details for members.
-	<p>
 	Type in a portion of the person's name or email to view/edit details.
+	<p>
+    <div class="protip">Tip: Case-insensitive search, no wildcards needed</div>
   </div>
   <div class=searchbox>
     <form action="{{ url_for('search_members') }}" method=post class=search-users>
@@ -21,13 +36,53 @@
     <div class="memberbox">
 	<h2>Matching Members:  {{ members|length }} </h2>
 	<table border=1>
-	{% for member in members %}
+		<tr>
+		  <th>Member</td>
+		  <th>Access</td>
+		</tr>
+	{% for m in members %}
 	  <tr>
-		  <td><a href="{{ url_for('members') }}/{{ member.id }}">Edit</a> {{ member.firstname }} {{ member.lastname }} ({{ member.email }}) </td>
+		  <td>
+			<img src="/static/create3.png" height="20" width="20" alt="Edit member" />
+			<a href="{{ url_for('member_show',id=m.id) }}">{{ m.firstname }} {{ m.lastname }} ({{ m.id }})
+			</a>
+		  </td>
+		  <td>
+			<a href="{{ url_for('member_editaccess',id=m.id) }}">
+			<img src="/static/create3.png" height="20" width="20" alt="Edit access" />Edit</a>
+		  </td>
 	  </tr>
 	{% endfor %}
 	</table>
 	</div>
   {% endif %}
-  
+  <p></p>
+  <h2> Add new member </h2>
+  <div class="member_add">
+	<form action="{{ url_for('member_add') }}" method="post">
+	  <table>
+		<tr>
+		  <td>Firstname</td>
+		  <td><input name="firstname" id="fname_field" type="text" oninput="setMemberId();"/></td>
+		</tr>
+		<tr>
+		  <td>Lastname</td>
+		  <td><input name="lastname" id="lname_field" type="text" oninput="setMemberId();"/></td>
+		</tr>
+		<tr>
+		  <td>Member ID<br>(Firstname.Lastname)</td>
+		  <td><input name="memberid" id="memberid_field" type="text"></td>
+		</tr>
+		<tr>
+		  <td>Alternate Email (Optional)</td>
+		  <td><input type="alt_email"/></td>
+		</tr>
+		<tr>
+		  <td>Phone (Optional)</td>
+		  <td><input type="phone"/></td>
+		</tr>
+	  </table>
+	  <input type="submit" value="Create new member">
+	</form>
+  </div>
 {% endblock %}
