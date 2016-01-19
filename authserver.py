@@ -21,6 +21,9 @@ from StringIO import StringIO
 from authlibs import utilities as authutil
 from authlibs import payments as pay
 from json import dumps as json_dump
+import logging
+logging.basicConfig(stream=sys.stderr)
+
 
 # Load general configuration from file
 # TODO: Error handling
