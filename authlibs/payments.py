@@ -37,17 +37,21 @@ def filterSubscribers(subscribers):
         valid = True
         if not sub['email']:
             noemail.append(sub)
+            print "No email for: %s" % sub
             valid = False
         if valid and not sub['membertype']:
+            print "No plan for: %s" % sub
             noplan.append(sub)
             valid = False
         if valid and not sub['userid']:
+            print "No userid for: %s" % sub
             nouserid.append(sub)
             valid = False
         if valid:
-            if not _isFutureDate(sub['expires']):
-                notactive.append(sub)
             validsubs.append(sub)
+            if not _isFutureDate(sub['expires']):
+                print "Adding expired member: %s" % sub
+                notactive.append(sub)
     return {'valid': validsubs, 'err_email': noemail, 'err_plan': noplan, 'err_expired': notactive, 'err_userid': nouserid}
 
 def writeSubscribersTextfile(subs,filename):
