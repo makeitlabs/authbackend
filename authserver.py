@@ -206,9 +206,9 @@ def _addPaymentData(subs,paytype):
     """From a JSON list of subscribers, add entries to the Payments table"""
     users = []
     for sub in subs:
-        users.append((sub['userid'],'pinpayments',sub['membertype'],sub['customerid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
+        users.append((sub['userid'],sub['email'],'pinpayments',sub['membertype'],sub['customerid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
     cur = get_db().cursor()
-    cur.executemany('INSERT into payments (member,paysystem,plan,customerid,created_date,expires_date,updated_date,checked_date) VALUES (?,?,?,?,?,?,?,?)', users)
+    cur.executemany('INSERT into payments (member,email,paysystem,plan,customerid,created_date,expires_date,updated_date,checked_date) VALUES (?,?,?,?,?,?,?,?,?)', users)
     get_db().commit()
     
 def _getResourceUsers(resource):
@@ -302,6 +302,34 @@ def add_member_tag(mid,htag,tagtype,tagname):
         return True
     else:
         return False
+    
+def getDataDiscrepancies():
+    """Extract some commonly used statistics about data not matching"""
+    # Note" SQLLIte does not support full outer joins, so we have some duplication of effort...
+    stats = {}
+    sqlstr = """select m.member,m.active,m.plan,p.expires_date,p.updated_date from members m
+            left outer join payments p on p.member=m.member where p.member is null order by m.member"""
+    stats['members_nopayments'] = query_db(sqlstr)
+    sqlstr = """select p.member,a.member from payments p left outer join accessbymember a
+            on p.member=a.member where a.member is null and p.expires_date > Datetime('now') order by p.member"""
+    stats['paid_noaccess'] = query_db(sqlstr)
+    sqlstr = """select p.member,m.member from payments p left outer join members m on p.member=m.member
+        where m.member is null"""
+    stats['payments_nomembers'] = query_db(sqlstr)
+    sqlstr = """select a.member from accessbymember a left outer join members m on a.member=m.member
+            where m.member is null and a.member is not null"""
+    stats['access_nomembers'] = query_db(sqlstr)
+    sqlstr = """select distinct(resource) as resource from accessbymember where resource not in (select name from resources)"""
+    stats['access_noresource'] = query_db(sqlstr)
+    sqlstr = "select DISTINCT(member) from tagsbymember where member not in (select member from members) order by member"
+    stats['tags_nomembers'] = query_db(sqlstr)
+    sqlstr = """select DISTINCT(a.member), p.expires_date from accessbymember a join payments p on a.member=p.member where
+            p.expires_date < Datetime('now')"""
+    stats['access_expired'] = query_db(sqlstr)
+    sqlstr = """select member,expires_date from payments where expires_date > Datetime('now','-60 days')
+                and expires_date < Datetime('now')"""
+    stats['recently_expired'] = query_db(sqlstr)
+    return stats
     
 ########
 # Request filters
@@ -433,7 +461,7 @@ def member_show(id):
 def member_editaccess(id):
     """Controller method to display gather current access details for a member and display the editing interface"""
     mid = safestr(id)
-    sqlstr = "select tagid,tagtype from tagsbymember where member = '%s'" % mid
+    sqlstr = "select tagid,tagtype,tagname from tagsbymember where member = '%s'" % mid
     tags = query_db(sqlstr)
     sqlstr = """select r.name,r.description,r.owneremail,a.member as id,a.enabled from resources r
             left join accessbymember a on r.name = a.resource AND a.member = '%s'""" % mid
@@ -668,8 +696,18 @@ def update_payments():
     # TODO: return details/status/etc from each call for reporting?
     fsubs = _updatePaymentsData()
     details = _updateMembersFromPayments(fsubs['valid'])
-    flash("Payment and Member data adjusted, %s valid records processed" % fsubs['valid'])
+    flash("Payment and Member data adjusted")
     return redirect(url_for('payments'))
+
+@app.route('/payments/<string:id>', methods=['GET'])
+@login_required
+def payments_member(id):
+    pid = safestr(id)
+    sqlstr = """select p.member, m.firstname, m.lastname, p.email, p.paysystem, p.plan, p.customerid,
+            p.expires_date, p.updated_date, p.checked_date, p.created_date from payments p join
+            members m on m.member=p.member where p.member='%s'""" % pid
+    user = query_db(sqlstr,(),True)
+    return render_template('payments_member.html',user=user)
 
 @app.route('/payments/reports', methods = ['GET'])
 @login_required
@@ -697,7 +735,8 @@ def payments_reports():
 @login_required
 def reports():
     """(Controller) Display some pre-defined report options"""
-    return render_template('reports.html')
+    stats = getDataDiscrepancies()
+    return render_template('reports.html',stats=stats)
     
 
 # ------------------------------------------------------------

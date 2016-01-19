@@ -2,6 +2,8 @@
 # Utilities for MakeIt Labs
 
 import hashlib
+import string
+import sqlite3
     
 def hash_rfid(rfid):
     "Given an integer RFID, create a hashed value for storage"
@@ -15,4 +17,6 @@ def hash_rfid(rfid):
             return m.hexdigest()
         except:
             return None
+
+            
 

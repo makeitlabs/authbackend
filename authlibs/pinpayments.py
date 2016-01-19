@@ -85,11 +85,13 @@ def getSubscribersJSON(paysystem):
             expires = subscriber.find('active-until').text
             phone = subscriber.find('billing-phone-number').text
             if plan is None:
-                membertype = None
+               membertype = 'unknown';
             elif plan.find('Pro') > -1:
                 membertype = 'pro'
-            else:
+            elif plan.find('Hobby') > -1:
                 membertype = 'hobbyist'
+            else:
+                membertype = 'unknown'
             active = subscriber.find('active').text
             created = subscriber.find('created-at').text
             updated = subscriber.find('updated-at').text
@@ -98,9 +100,7 @@ def getSubscribersJSON(paysystem):
         return subscribers
     except:
         raise
-
-
-
+      # TODO: Make payment-system independent
 
 def _selfTest():
    # TEMP
