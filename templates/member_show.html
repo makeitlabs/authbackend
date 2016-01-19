@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 {% block search %}
   <div class=body>
+	<div><a href="{{ url_for('members') }}">(Back to Members list)</a></div>
 	<div class="sectionhead">Member Details (<a href="{{ url_for('member_edit',id=member.member) }}">Edit</a>):</div>
 	<table>
 	  <tr>

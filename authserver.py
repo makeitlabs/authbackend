@@ -429,10 +429,10 @@ def member_add():
         if f in request.form:
             member[f] = request.form[f]
     result = _createMember(member)
+    flash(result['message'])
     if result['status'] == "success":
         return redirect(url_for('member_show',id=member['memberid']))
     else:
-        flash(result['message'])
         return redirect(url_for('members'))
 
 @app.route('/members/<string:id>/edit', methods = ['GET'])
