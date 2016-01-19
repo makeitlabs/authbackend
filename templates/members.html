@@ -43,13 +43,13 @@
 	{% for m in members %}
 	  <tr>
 		  <td>
-			<img src="/static/create3.png" height="20" width="20" alt="Edit member" />
+			<img src="static/create3.png" height="20" width="20" alt="Edit member" />
 			<a href="{{ url_for('member_show',id=m.id) }}">{{ m.firstname }} {{ m.lastname }} ({{ m.id }})
 			</a>
 		  </td>
 		  <td>
 			<a href="{{ url_for('member_editaccess',id=m.id) }}">
-			<img src="/static/create3.png" height="20" width="20" alt="Edit access" />Edit</a>
+			<img src="static/create3.png" height="20" width="20" alt="Edit access" />Edit</a>
 		  </td>
 	  </tr>
 	{% endfor %}
