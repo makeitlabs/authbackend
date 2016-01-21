@@ -11,7 +11,7 @@ Note: Currently all coded as procedural, rather than class-based because reasons
 
 import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
-	abort, render_template, flash
+	abort, render_template, flash, Response
 from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from contextlib import closing
 import pycurl, sys
@@ -94,7 +94,7 @@ def check_auth(username, password):
     """This function is called to check if a username /
     password combination is valid.
     """
-    return username == 'api' and password == 'secret'
+    return username == 'api' and password == 's33krit'
 
 def authenticate():
     """Sends a 401 response that enables basic auth"""
@@ -833,7 +833,7 @@ def api_v1_showmember(id):
         return json_dump(output), 200, {'Content-type': 'application/json'}
     
 @app.route('/api/v1/resources/<string:id>/acl', methods=['GET'])
-@login_required
+@requires_auth
 def api_v1_show_resource_acl(id):
     """(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
     rid = safestr(id)
@@ -847,7 +847,7 @@ def api_v1_show_resource_acl(id):
         return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
    
 @app.route('/api/v1/logs/<string:id>', methods=['POST'])
-@login_required
+@requires_auth
 def api_v1_log_resource_create(id):
     rid = safestr(id)
     entry = {}
