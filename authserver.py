@@ -21,6 +21,7 @@ from StringIO import StringIO
 from authlibs import utilities as authutil
 from authlibs import payments as pay
 from json import dumps as json_dump
+from functools import wraps
 import logging
 logging.basicConfig(stream=sys.stderr)
 
@@ -88,6 +89,28 @@ class User(UserMixin):
 @login_manager.user_loader
 def load_user(id):
     return User.get(id)
+
+def check_auth(username, password):
+    """This function is called to check if a username /
+    password combination is valid.
+    """
+    return username == 'api' and password == 'secret'
+
+def authenticate():
+    """Sends a 401 response that enables basic auth"""
+    return Response(
+    'Could not verify your access level for that URL.\n'
+    'You have to login with proper credentials', 401,
+    {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return authenticate()
+        return f(*args, **kwargs)
+    return decorated
 
 def connect_db():
     """Convenience method to connect to the globally-defined database"""
@@ -834,6 +857,12 @@ def api_v1_log_resource_create(id):
     for k in request.form:
         entry[k] = safestr(request.form[k])
     return "work in progress"
+
+@app.route('/api/v1/test', methods=['GET'])
+@requires_auth
+def api_test():
+    return "Hello world"
+
 
 if __name__ == '__main__':
     app.run(host=ServerHost,port=ServerPort)

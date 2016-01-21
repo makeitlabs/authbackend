@@ -13,8 +13,8 @@
 	{% for resource in resources %}
 	  <tr>
 		<td><a href="{{ url_for('resource_show',resource=resource.name) }}">{{ resource.name }}</a></td>
-		<td>{{ resource.owneremail }}</td>
 		<td>{{ resource.description }}</td>
+		<td>{{ resource.owneremail }}</td>
 		<td><a href="{{ url_for('resource_showusers',resource=resource.name) }}">See users</a></td>
 	  </tr>
 	{% endfor %}
