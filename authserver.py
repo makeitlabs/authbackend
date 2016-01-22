@@ -252,7 +252,7 @@ def _getResourceUsers(resource):
     sqlstr = """select m.member,t.tagid,t.tagname,m.plan,
             (case when coalesce(a.resource,'denied') != 'denied' then 'allowed' else 'denied' end) as allowed 
             from members m left outer join tagsbymember t on t.member=m.member left outer join accessbymember a
-            on m.member=a.member and a.resource='%s' group by t.tagid""" % resource
+            on m.member=a.member and a.resource='%s' group by m.member""" % resource
     print(sqlstr)
     users = query_db(sqlstr)
     return users
