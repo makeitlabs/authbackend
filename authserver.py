@@ -251,7 +251,7 @@ def _getResourceUsers(resource):
     # Change to left join fo including ALL members and their tag ids, but iondicate allowed|notallowed by resoiurce
     sqlstr = """select m.member,t.tagid,t.tagname,m.plan,
             (case when coalesce(a.resource,'denied') != 'denied' then 'allowed' else 'denied' end) as allowed 
-            from members m join tagsbymember t on t.member=m.member left outer join accessbymember a
+            from members m left outer join tagsbymember t on t.member=m.member left outer join accessbymember a
             on m.member=a.member and a.resource='%s' group by t.tagid""" % resource
     print(sqlstr)
     users = query_db(sqlstr)
