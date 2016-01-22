@@ -866,7 +866,7 @@ def api_v0_show_resource_acl(id):
     if outformat == 'csv':
         outstr = "username,key,value,allowed,hashedCard,lastAccessed"
         for u in users:
-            outstr += "\n%s,%s,%s,%s,%s" % (u['member'],'0','0',u['allowed'],u['tagid'],'2011-06-21T05:12:25')
+            outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0','0',u['allowed'],u['tagid'],'2011-06-21T05:12:25')
         return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
    
 @app.route('/api/v1/logs/<string:id>', methods=['POST'])
