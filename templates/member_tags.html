@@ -28,14 +28,15 @@
   <div class="sectionhead">Add tag:</div>
   <form action="{{ url_for('member_tagadd',id=mid) }}" method="post">
   <table>
-	<tr>
-	  <td>Tag ID: <input name="newtag" type="text" value="" /></td>
-	</tr>
+	
 	<tr>
 	  <td>Tag Name: <input name="newtagname" type="Text" value="" /></td>
 	</tr>
 	<tr>
 	  <td>Tag Type: <select name="newtagtype"><option value="rfid">RFID</option><option value="nfc">NFC</option></select></td>
+	</tr>
+	<tr>
+	  <td>Tag ID: <input name="newtag" type="text" value="" /></td>
 	</tr>
     <tr>
 	  <td><input type="submit" value="Add new tag"></td>

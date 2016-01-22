@@ -536,6 +536,7 @@ def member_tagadd(id):
     mid = safestr(id)
     ntag = safestr(request.form['newtag'])
     htag = authutil.hash_rfid(ntag)
+    ntagname = safestr(request.form['newtagname'])
     if htag is None:
         flash("ERROR: The specified RFID tag is invalid, must be all-numeric")
     else:
