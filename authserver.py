@@ -854,6 +854,20 @@ def api_v1_show_resource_acl(id):
         for u in users:
             outstr += "\n%s,%s,%s,%s,%s" % (u['member'],u['allowed'],u['tagid'],u['tagname'],u['plan'])
         return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
+    
+@app.route('/api/v0/resources/<string:id>/acl', methods=['GET'])
+@requires_auth
+def api_v0_show_resource_acl(id):
+    """(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
+    rid = safestr(id)
+    # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+    users = _getResourceUsers(rid)
+    outformat = request.args.get('output','csv')
+    if outformat == 'csv':
+        outstr = "username,key,value,allowed,hashedCard,lastAccessed"
+        for u in users:
+            outstr += "\n%s,%s,%s,%s,%s" % (u['member'],'0','0',u['allowed'],u['tagid'],'2011-06-21T05:12:25')
+        return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
    
 @app.route('/api/v1/logs/<string:id>', methods=['POST'])
 @requires_auth
