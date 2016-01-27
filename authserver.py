@@ -281,17 +281,20 @@ def getAccessControlList(resource):
     # Now that we know explicit allowed/denied per resource, provide an message
     for u in users:
         warning = ""
+        allowed = u['allowed']
         if u['past_due'] == 'true':
             warning = "Your membership expired (%s) and the grace period for access has ended. %s" % (u['expires_date'],c['board'])
+            allowed = 'false'
         elif u['enabled'] == 'false':
             # This indicates an authorized admin has a specific reason for denying access to ALL resources
             warning = "This account has been disabled: %s. %s" % (u['reason'],c['board'])
+            allowed = 'false'
         elif u['allowed'] == 'denied':
             warning = "You do not have access to this resource. %s" % c['resource']
         elif u['grace_period'] == 'true':
             warning = """Your membership expired (%s) and you are in the temporary grace period. Correct this
                         as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
-        jsonarr.append({'tagid':u['tagid'],'allowed':u['allowed'],'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan']})
+        jsonarr.append({'tagid':u['tagid'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan']})
     return json_dump(jsonarr)
     
 
