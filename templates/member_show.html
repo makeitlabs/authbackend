@@ -6,7 +6,7 @@
 	<table>
 	  <tr>
 		<td><div>Member id: </div></td>
-		<td>{{ member.member }} ({{ member.member }}@makeitlabs.com)</td>
+		<td>{{ member.member }}</td>
 	  </tr>
 	   <tr>
 		<td><div>Firstname:</div></td>
@@ -18,11 +18,15 @@
 	  </tr>
 		<tr>
 		<td><div {{ 'class=errortext' if (member.active != 'true')  }}>Active:</div></td>
-		<td>{{ member.active }} (Expiration: {{ member.expires_date }})</td>
+		<td>{{ member.active }} (<a href="{{ url_for('payments_member',id=member.member) }}">Expiration: {{ member.expires_date }})</a></td>
 	  </tr>
 	  <tr>
 		<td><div {{ 'class=errortext' if (member.access_enabled != 'true')  }}>Enabled:</div></td>
 		<td> {{ member.access_enabled }} {{ member.access_reason if (member.access_enabled != 'true') }}</td>
+	  </tr>
+	  <tr>
+		<td><div>Plan</div></td>
+		<td>{{ member.plan }}</td>
 	  </tr>
 	   <tr>
 		<td><div>Phone</div></td>

@@ -4,7 +4,7 @@
   <div class=welcometext>
 	Add or remove tags (NFC, RFID, etc) used to authenticate a user
   </div>
-  <div class="sectionhead">Tags for {{ mid }}:</div>
+  <div class="sectionhead">Tags for <a href="{{ url_for('member_show',id=mid) }}">{{ mid }}</a>:</div>
   {% if tags|length > 0 %}
   <table>
     <tr>

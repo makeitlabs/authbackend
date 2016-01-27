@@ -246,16 +246,54 @@ def _addPaymentData(subs,paytype):
     cur.executemany('INSERT into payments (member,email,paysystem,plan,customerid,created_date,expires_date,updated_date,checked_date) VALUES (?,?,?,?,?,?,?,?,?)', users)
     get_db().commit()
     
-def _getResourceUsers(resource):
+def _getResourceUsers_old(resource):
     """Given a Resource, return all users, their tags, and whether they are allowed or denied for the resource"""
     # Change to left join fo including ALL members and their tag ids, but iondicate allowed|notallowed by resoiurce
     sqlstr = """select m.member,t.tagid,t.tagname,m.plan,
             (case when coalesce(a.resource,'denied') != 'denied' then 'allowed' else 'denied' end) as allowed 
             from members m left outer join tagsbymember t on t.member=m.member left outer join accessbymember a
-            on m.member=a.member and a.resource='%s' group by m.member""" % resource
-    print(sqlstr)
+            on m.member=a.member and a.resource='%s' group by t.tagid""" % resource
     users = query_db(sqlstr)
     return users
+
+def _getResourceUsers(resource):
+    """Given a Resource, return all users, their tags, and whether they are allowed or denied for the resource"""
+    # Also provides some basic logic on various date fields to simplify later processing
+    # - this could be done with raw calcs on the dates, if future editors are less comfortable with the SQL syntaxes used
+    sqlstr = """select t.member,t.tagid,m.plan,m.nickname,m.access_enabled as enabled, m.access_reason as reason,p.expires_date,a.resource,
+        (case when a.resource is not null then 'allowed' else 'denied' end) as allowed,
+        (case when p.expires_date < Datetime('now','-14 day') then 'true' else 'false' end) as past_due,
+        (case when p.expires_date < Datetime('now') AND p.expires_date > Datetime('now','-13 day') then 'true' else 'false' end) as grace_period,
+        (case when p.expires_date < Datetime('now','+2 day') then 'true' else 'false' end) as expires_soon
+        from tagsbymember t join members m on t.member=m.member
+        left outer join accessbymember a on a.member=t.member and a.resource='%s'
+        left outer join payments p on p.member=t.member group by t.tagid""" % resource
+    users = query_db(sqlstr)
+    return users
+
+def getAccessControlList(resource):
+    """Given a Resource, return what tags/users can/cannot access a reource and why as a JSON structure"""
+    users = _getResourceUsers(resource)
+    jsonarr = []
+    c = {'board': "Contact board@makeitlabs.com with any questions.",
+         'resource': "See the Wiki for training information and resource manager contact info."}
+    # TODO: Resource-specific contacts?
+    # Now that we know explicit allowed/denied per resource, provide an message
+    for u in users:
+        warning = ""
+        if u['past_due'] == 'true':
+            warning = "Your membership expired (%s) and the grace period for access has ended. %s" % (u['expires_date'],c['board'])
+        elif u['enabled'] == 'false':
+            # This indicates an authorized admin has a specific reason for denying access to ALL resources
+            warning = "This account has been disabled: %s. %s" % (u['reason'],c['board'])
+        elif u['allowed'] == 'denied':
+            warning = "You do not have access to this resource. %s" % c['resource']
+        elif u['grace_period'] == 'true':
+            warning = """Your membership expired (%s) and you are in the temporary grace period. Correct this
+                        as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
+        jsonarr.append({'tagid':u['tagid'],'allowed':u['allowed'],'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan']})
+    return json_dump(jsonarr)
+    
 
 def addMissingMembers(subs):
     """Add to Members table any members in Payments but not in Members"""
@@ -518,6 +556,7 @@ def member_setaccess(id):
             access[match.group(1)] = 1
     clearAccess(mid)
     addAccess(mid,access)
+    flash("Member access updated")
     return redirect(url_for('member_editaccess',id=mid))
    
 @app.route('/members/<string:id>/tags', methods = ['GET'])
@@ -535,12 +574,17 @@ def member_tagadd(id):
     """(Controller) method for POST to add tag for a user, making sure they are not duplicates"""
     mid = safestr(id)
     ntag = safestr(request.form['newtag'])
-    htag = authutil.hash_rfid(ntag)
+    ntagtype = safestr(request.form['newtagtype'])
+    if len(ntag) > 10:
+        flash("Not hashing tag, looks like it's pre-hashed")
+        htag = ntag
+    else:
+        htag = authutil.hash_rfid(ntag)
     ntagname = safestr(request.form['newtagname'])
     if htag is None:
         flash("ERROR: The specified RFID tag is invalid, must be all-numeric")
     else:
-        if add_member_tag(mid,htag,ntagname,ntagname):
+        if add_member_tag(mid,htag,ntagtype,ntagname):
             flash("Tag added.")
         else:
             flash("Error: That tag is already associated with a user")
@@ -848,13 +892,8 @@ def api_v1_show_resource_acl(id):
     """(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
     rid = safestr(id)
     # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
-    users = _getResourceUsers(rid)
-    outformat = request.args.get('output','csv')
-    if outformat == 'csv':
-        outstr = "member,allowed,tagid,tagname,plan"
-        for u in users:
-            outstr += "\n%s,%s,%s,%s,%s" % (u['member'],u['allowed'],u['tagid'],u['tagname'],u['plan'])
-        return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
+    output = getAccessControlList(rid)
+    return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
     
 @app.route('/api/v0/resources/<string:id>/acl', methods=['GET'])
 @requires_auth
@@ -881,6 +920,16 @@ def api_v1_log_resource_create(id):
     for k in request.form:
         entry[k] = safestr(request.form[k])
     return "work in progress"
+
+@app.route('/api/v1/payments/update', methods=['GET'])
+@requires_auth
+def api_v1_payments_update():
+    fsubs = _updatePaymentsData()
+    details = _updateMembersFromPayments(fsubs['valid'])
+    msg = """Details: Valid: %d, err_email: %d, err_plan: %d, err_userid: %d,
+        err_expired: %d """ % (len(fsubs['valid']),len(fsubs['err_email']),len(fsubs['err_plan']),len(fsubs['err_userid']),
+        len(fsubs['err_expired']))
+    return msg + "\n"
 
 @app.route('/api/v1/test', methods=['GET'])
 @requires_auth

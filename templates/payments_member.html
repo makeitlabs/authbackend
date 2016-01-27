@@ -5,7 +5,7 @@
 	<table>
 	  <tr>
 		<td><div>Member id: </div></td>
-		<td>{{ user.member }} {{ user.firstname }} {{ user.lastname }}</td>
+		<td><a href="{{ url_for('member_show',id=user.member) }}">{{ user.member }}</a> {{ user.firstname }} {{ user.lastname }}</td>
 	  </tr>
 	   <tr>
 		<td><div>Email: </div></td>
