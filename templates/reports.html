@@ -4,6 +4,15 @@
 <div class="resourcelist">
 	<h2>Reports</h2>
 	<div class="sectionhead">Data in need of manual review and correction</div>
+	{% if stats.duplicate_payments|length > 0 %}
+		<div class="error">ERROR - {{ stats.duplicate_payments|length }} Duplicate Member IDs in Payments table</div>
+		<div class="protip">Fix this first! Manually review their data and add old, invalid customer ids to Blacklist table</div>
+		{% for u in stats.duplicate_payments %}
+		<li><a href="{{ url_for('payments_member',id=u.member) }}">{{ u.member }} {{ u.customerid }} (Exp: {{ u.expires_date }})</a></li>
+		{% endfor %}
+	{% else %}
+		<div class="okay">OKAY - No duplicate Member IDs in Payments table</div>
+	{% endif %}
 	{% if stats.payments_nomembers|length > 0 %}
 		<div class="error">FAIL - {{ stats.payments_nomembers|length }} User(s) in Payments table but not in Members table</div>
 		<div class="protip">This is a BAD thing, it means someone may not get what they pay for.</div>
@@ -32,6 +41,7 @@
 	{% else %}
 		<div class="okay">OKAY - All Resources in Accessbymember are in Resources table</div>
 	{% endif %}
+	
 	{% if stats.members_nopayments|length > 0 %}
 		<div class="warning">WARNING - {{ stats.members_nopayments|length }} Users in Members table but not in Payments table</div>
 		<div class="protip">This normally means someone was entered manually, it may be okay.</div>
@@ -63,7 +73,7 @@
 		<div class="warning">WARNING - {{ stats.access_expired|length }}  Expired members are in the Accessbymember table</div>
 		<div class="protip">This may be okay, but check in here for people you see around frequently..</div>
 		{% for u in stats.access_expired %}
-		<li><a href="{{ url_for('payments_member',id=u.member) }}">{{ u.member }}</a></li>
+		<li><a href="{{ url_for('payments_member',id=u.member) }}">{{ u.member }} (Expiration: {{ u.expires_date }})</a></li>
 		{% endfor %}
 	{% else %}
 		<div class="okay">Pretty amazing... No one in the accessbymember table is expired..</div>
@@ -77,6 +87,7 @@
 	{% else %}
 		<div class="okay">Awesome! No one has expired in the last 60 days</div>
 	{% endif %}
+	
 	
 	
 	<div class="sectionhead">Quick links - Predefined Reports</div>

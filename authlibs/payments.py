@@ -50,7 +50,6 @@ def filterSubscribers(subscribers):
         if valid:
             validsubs.append(sub)
             if not _isFutureDate(sub['expires']):
-                print "Adding expired member: %s" % sub
                 notactive.append(sub)
     return {'valid': validsubs, 'err_email': noemail, 'err_plan': noplan, 'err_expired': notactive, 'err_userid': nouserid}
 

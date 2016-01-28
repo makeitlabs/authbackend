@@ -211,9 +211,9 @@ def _createMember(m):
     if members:
         return {'status': 'error','message':'That User ID already exists'}
     else:
-        sqlstr = """insert into members (member,firstname,lastname,phone,plan,updated_date,access_enabled,active)
-                    VALUES ('%s','%s','%s','%s','',DATETIME('now'),'0','0')
-                 """ % (m['memberid'],m['firstname'],m['lastname'],m['phone'])
+        sqlstr = """insert into members (member,firstname,lastname,phone,plan,nickname,updated_date,access_enabled,active)
+                    VALUES ('%s','%s','%s','%s','','%s',DATETIME('now'),'0','0')
+                 """ % (m['memberid'],m['firstname'],m['lastname'],m['phone'],m['nickname'])
         execute_db(sqlstr)
         get_db().commit()
     return {'status':'success','message':'Member %s was created' % m['memberid']}
@@ -240,8 +240,17 @@ def _clearPaymentData(paytype):
 def _addPaymentData(subs,paytype):
     """From a JSON list of subscribers, add entries to the Payments table"""
     users = []
+    # TEMP - only blacklisting old, unpurgeable records for now
+    blacklist = query_db("select entry from blacklist")
+    bad = []
+    for b in blacklist:
+        bad.append(b['entry'])
+    print "BLACKLIST: %s" % bad
     for sub in subs:
-        users.append((sub['userid'],sub['email'],'pinpayments',sub['membertype'],sub['customerid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
+        if sub['customerid'] in bad:
+            print "BLACKLIST: IGNORING CUSTOMERID %s for %s" % (sub['customerid'],sub['userid'])
+        else:
+            users.append((sub['userid'],sub['email'],'pinpayments',sub['membertype'],sub['customerid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
     cur = get_db().cursor()
     cur.executemany('INSERT into payments (member,email,paysystem,plan,customerid,created_date,expires_date,updated_date,checked_date) VALUES (?,?,?,?,?,?,?,?,?)', users)
     get_db().commit()
@@ -285,15 +294,18 @@ def getAccessControlList(resource):
         if u['past_due'] == 'true':
             warning = "Your membership expired (%s) and the grace period for access has ended. %s" % (u['expires_date'],c['board'])
             allowed = 'false'
-        elif u['enabled'] == 'false':
-            # This indicates an authorized admin has a specific reason for denying access to ALL resources
-            warning = "This account has been disabled: %s. %s" % (u['reason'],c['board'])
+        elif u['enabled'] == 0:
+            if u['reason'] is not None:
+                # This indicates an authorized admin has a specific reason for denying access to ALL resources
+                warning = "This account has been disabled for a specific reason: %s. %s" % (u['reason'],c['board'])
+            else:
+                warning = "This account is not enabled. It may be newly added and not have a waiver on file. %s" % c['board']
             allowed = 'false'
         elif u['allowed'] == 'denied':
             warning = "You do not have access to this resource. %s" % c['resource']
         elif u['grace_period'] == 'true':
             warning = """Your membership expired (%s) and you are in the temporary grace period. Correct this
-                        as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
+            as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
         jsonarr.append({'tagid':u['tagid'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan']})
     return json_dump(jsonarr)
     
@@ -393,7 +405,7 @@ def getDataDiscrepancies():
         where m.member is null"""
     stats['payments_nomembers'] = query_db(sqlstr)
     sqlstr = """select a.member from accessbymember a left outer join members m on a.member=m.member
-            where m.member is null and a.member is not null"""
+            where m.member is null and a.member is not null group by a.member"""
     stats['access_nomembers'] = query_db(sqlstr)
     sqlstr = """select distinct(resource) as resource from accessbymember where resource not in (select name from resources)"""
     stats['access_noresource'] = query_db(sqlstr)
@@ -405,6 +417,8 @@ def getDataDiscrepancies():
     sqlstr = """select member,expires_date from payments where expires_date > Datetime('now','-60 days')
                 and expires_date < Datetime('now')"""
     stats['recently_expired'] = query_db(sqlstr)
+    sqlstr = "select member,expires_date,customerid,count(*) from payments group by member having count(*) > 1"
+    stats['duplicate_payments'] = query_db(sqlstr)
     return stats
     
 ########
@@ -488,7 +502,7 @@ def member_add():
     """Controller method for POST requests to add a user"""
     member = {}
     mandatory_fields = ['firstname','lastname','memberid']
-    optional_fields = ['alt_email','phone']
+    optional_fields = ['alt_email','phone','nickname']
     print request
     for f in mandatory_fields:
         member[f] = ''
@@ -786,10 +800,12 @@ def update_payments():
 @login_required
 def payments_member(id):
     pid = safestr(id)
+    # Note: When debugging Payments system duplication, there may be multiple records
+    #  Display template is set up to handle that scenario
     sqlstr = """select p.member, m.firstname, m.lastname, p.email, p.paysystem, p.plan, p.customerid,
             p.expires_date, p.updated_date, p.checked_date, p.created_date from payments p join
             members m on m.member=p.member where p.member='%s'""" % pid
-    user = query_db(sqlstr,(),True)
+    user = query_db(sqlstr)
     return render_template('payments_member.html',user=user)
 
 @app.route('/payments/reports', methods = ['GET'])
@@ -809,6 +825,21 @@ def payments_reports():
             sqlstr = sqlstr + " where expires_date > Datetime('now','-180 days') AND expires_date < Datetime('now')"
     payments = query_db(sqlstr)
     return render_template('payments_reports.html',f=f,payments=payments)
+
+
+# ------------------------------------------------------------
+# Blacklist entries
+# - Ignore bad pinpayments records, mainly
+# ------------------------------------------------------------
+
+@app.route('/blacklist', methods=['GET'])
+@login_required
+def blacklist_show():
+    """(Controller) Show all the Blacklist entries"""
+    sqlstr = "select entry,entrytype,reason,updated_date from blacklist"
+    blacklist = query_db(sqlstr)
+    return render_template('blacklist.html',blacklist=blacklist)
+
 
 # ------------------------------------------------------------
 # Reporting controllers

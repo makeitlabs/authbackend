@@ -3,30 +3,39 @@
   <div class=body>
 	<div class="sectionhead">Payment Details for {{ user.member }}:</div>
 	<table>
+	  {% for u in user %}
 	  <tr>
 		<td><div>Member id: </div></td>
-		<td><a href="{{ url_for('member_show',id=user.member) }}">{{ user.member }}</a> {{ user.firstname }} {{ user.lastname }}</td>
+		<td><a href="{{ url_for('member_show',id=u.member) }}">{{ u.member }}</a> {{ u.firstname }} {{ u.lastname }}</td>
 	  </tr>
 	   <tr>
 		<td><div>Email: </div></td>
-		<td>{{ user.email }}</td>
+		<td>{{ u.email }}</td>
 	  </tr>
 	   <tr>
 		<td><div>Expires:</div></td>
-		<td>{{ user.expires_date }}</td>
+		<td>{{ u.expires_date }}</td>
+	  </tr>
+	  <tr>
+		<td><div>Customer ID:</div></td>
+		<td>{{ u.customerid }}</td>
 	  </tr>
 	    <tr>
 		<td><div>Created:</div></td>
-		<td>{{ user.created_date }}</td>
+		<td>{{ u.created_date }}</td>
 	  </tr>
 	  <tr>
 		<td><div>Paysystem:</div></td>
-		<td>{{ user.paysystem }}</td>
+		<td>{{ u.paysystem }}</td>
 	  </tr>
 	  <tr>
 		<td><div>Last updated:</div></td>
-		<td>{{ user.updated_date }}</td>
+		<td>{{ u.updated_date }}</td>
 	  </tr>
+	  <tr>
+		<td colspan=2>======================================</td>
+	  </tr>
+	  {% endfor %}
 	</table>
   </div>
 {% endblock %}
