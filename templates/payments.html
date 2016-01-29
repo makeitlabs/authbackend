@@ -32,7 +32,7 @@
 	</ol>
 	If after running this update someone is still incorrectly set, seek help.
 	<p></p>
-    <div class="paybuttons"><button class="paysystem" onclick="this.disabled = true">Process member data (takes 5-30 seconds)</div>
+    <div class="paybuttons"><a href="{{ url_for('update_payments') }}"><button class="paysystem" onclick="this.disabled = true">Process member data (takes 5-30 seconds)</button></a></div>
     <p>
 	  
 	</p><a href="{{ url_for('payments_reports') }}">Run reports related to Payments</a>
