@@ -64,7 +64,7 @@
 		<div class="warning">WARNING - {{ stats.paid_noaccess|length }}  Unexpired members in Payments table but not in Accessbymember table</div>
 		<div class="protip">This could be bad, but may just mean the person hasn't had orientation for 25 Crown. </div>
 		{% for u in stats.paid_noaccess %}
-		<li><a href="{{ url_for('payments_member',id=u.member) }}">{{ u.member }}</a></li>
+		<li><a href="{{ url_for('payments_member',id=u.member) }}">{{ u.member }} (Email: {{ u.email }})</a></li>
 		{% endfor %}
 	{% else %}
 		<div class="okay">OKAY - All paid in Payments table are in Accessbymember table. Huzzah.</div>

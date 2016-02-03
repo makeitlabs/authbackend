@@ -81,17 +81,20 @@ def getSubscribersJSON(paysystem):
             if not sname or sname.find('screen-name-for') > -1:
                continue
             email = subscriber.find('email').text
-            plan = subscriber.find('subscription-plan-name').text
+            
             expires = subscriber.find('active-until').text
             phone = subscriber.find('billing-phone-number').text
+            #plan = subscriber.find('subscription-plan-name').text
+            # Feature level of plan determines membership level - Pro/Hobbyist
+            plan = subscriber.find('feature-level').text
             if plan is None:
-               membertype = 'unknown';
-            elif plan.find('Pro') > -1:
-                membertype = 'pro'
-            elif plan.find('Hobby') > -1:
-                membertype = 'hobbyist'
+               membertype = "none"
+            elif plan == '1':
+               membertype = 'pro'
+            elif plan == '2':
+               membertype = "hobbyist"
             else:
-                membertype = 'unknown'
+                  membertype = 'unknown'
             active = subscriber.find('active').text
             created = subscriber.find('created-at').text
             updated = subscriber.find('updated-at').text

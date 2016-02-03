@@ -398,7 +398,7 @@ def getDataDiscrepancies():
     sqlstr = """select m.member,m.active,m.plan,p.expires_date,p.updated_date from members m
             left outer join payments p on p.member=m.member where p.member is null order by m.member"""
     stats['members_nopayments'] = query_db(sqlstr)
-    sqlstr = """select p.member,a.member from payments p left outer join accessbymember a
+    sqlstr = """select p.member,p.email,a.member from payments p left outer join accessbymember a
             on p.member=a.member where a.member is null and p.expires_date > Datetime('now') order by p.member"""
     stats['paid_noaccess'] = query_db(sqlstr)
     sqlstr = """select p.member,m.member from payments p left outer join members m on p.member=m.member
