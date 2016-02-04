@@ -20,6 +20,7 @@ import xml.etree.ElementTree as ET
 from StringIO import StringIO
 from authlibs import utilities as authutil
 from authlibs import payments as pay
+from authlibs import smartwaiver as waiver
 from json import dumps as json_dump
 from functools import wraps
 import logging
@@ -47,6 +48,9 @@ paysystem['token'] = Config.get('Pinpayments','Token')
 paysystem['uri'] = Config.get('Pinpayments','Uri')
 paysystem['rooturi'] = Config.get('Pinpayments','RootURI')
 
+# Load Waiver system data from file
+waiversystem = {}
+waiversystem['Apikey'] = Config.get('Smartwaiver','Apikey')
 
 # App setup
 app = Flask(__name__)
@@ -269,14 +273,15 @@ def _getResourceUsers(resource):
     """Given a Resource, return all users, their tags, and whether they are allowed or denied for the resource"""
     # Also provides some basic logic on various date fields to simplify later processing
     # - this could be done with raw calcs on the dates, if future editors are less comfortable with the SQL syntaxes used
-    sqlstr = """select t.member,t.tagid,m.plan,m.nickname,m.access_enabled as enabled, m.access_reason as reason,p.expires_date,a.resource,
+    sqlstr = """select t.member,t.tagid,m.plan,m.nickname,l.last_accessed,m.access_enabled as enabled, m.access_reason as reason,p.expires_date,a.resource,
         (case when a.resource is not null then 'allowed' else 'denied' end) as allowed,
         (case when p.expires_date < Datetime('now','-14 day') then 'true' else 'false' end) as past_due,
         (case when p.expires_date < Datetime('now') AND p.expires_date > Datetime('now','-13 day') then 'true' else 'false' end) as grace_period,
         (case when p.expires_date < Datetime('now','+2 day') then 'true' else 'false' end) as expires_soon
         from tagsbymember t join members m on t.member=m.member
         left outer join accessbymember a on a.member=t.member and a.resource='%s'
-        left outer join payments p on p.member=t.member group by t.tagid""" % resource
+        left outer join (select member,MAX(event_date) as last_accessed from logs where resource='%s' group by member) l on t.member = l.member
+        left outer join payments p on p.member=t.member group by t.tagid""" % (resource,resource)
     users = query_db(sqlstr)
     return users
 
@@ -306,7 +311,7 @@ def getAccessControlList(resource):
         elif u['grace_period'] == 'true':
             warning = """Your membership expired (%s) and you are in the temporary grace period. Correct this
             as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
-        jsonarr.append({'tagid':u['tagid'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan']})
+        jsonarr.append({'tagid':u['tagid'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed']})
     return json_dump(jsonarr)
     
 
@@ -420,7 +425,32 @@ def getDataDiscrepancies():
     sqlstr = "select member,expires_date,customerid,count(*) from payments group by member having count(*) > 1"
     stats['duplicate_payments'] = query_db(sqlstr)
     return stats
-    
+
+def getLastWaiverId():
+    """Retrieve the most recently created (last) waiver from the database"""
+    sqlstr = "select waiverid from waivers order by created_date desc limit 1"
+    waiverid = query_db(sqlstr,"",True)
+    return waiverid
+
+def _addWaivers(waiver_list):
+    """Add list-based Waiver data into the waiver table in the database"""
+    new_waivers = []
+    for w in waiver_list:
+        new_waivers.append((w['waiver_id'],w['email'],w['firstname'],w['lastname'],w['created_date']))
+    if len(new_waivers) > 0:
+        cur = get_db().cursor()
+        cur.executemany('INSERT into waivers (waiverid,email,firstname,lastname,created_date) VALUES (?,?,?,?,?)', new_waivers)
+        get_db().commit()
+    return len(new_waivers)
+
+def addNewWaivers():
+    """Check the DB to get the most recent waiver, add any new ones, return count added"""
+    last_waiverid = getLastWaiverId()
+    waiver_dict = {'api_key': waiversystem['Apikey'],'waiver_id': last_waiverid}
+    waivers = waiver.getWaivers(waiver_dict)
+    return _addWaivers(waivers)
+
+
 ########
 # Request filters
 ########
@@ -851,6 +881,25 @@ def reports():
     """(Controller) Display some pre-defined report options"""
     stats = getDataDiscrepancies()
     return render_template('reports.html',stats=stats)
+    
+# ------------------------------------------------------------
+# Waiver controllers
+# ------------------------------------------------------------
+
+@app.route('/waivers', methods=['GET'])
+@login_required
+def waivers():
+    sqlstr = "select waiverid,email,firstname,lastname,created_date from waivers"
+    waivers = query_db(sqlstr)
+    return render_template('waivers.html',waivers=waivers)
+    
+@app.route('/waivers/update', methods=['GET'])
+@login_required
+def waivers_update():
+    """(Controller) Update list of waivers in the database. Can take a while."""
+    updated = addNewWaivers()
+    flash("Waivers added: %s" % updated)
+    return redirect(url_for('waivers'))
     
 
 # ------------------------------------------------------------
