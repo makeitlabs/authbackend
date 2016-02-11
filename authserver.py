@@ -25,6 +25,7 @@ from json import dumps as json_dump
 from functools import wraps
 import logging
 logging.basicConfig(stream=sys.stderr)
+import pprint
 
 
 # Load general configuration from file
@@ -1005,21 +1006,34 @@ def api_v1_log_resource_create(id):
     return "work in progress"
 
 @app.route('/api/v1/payments/update', methods=['GET'])
-@requires_auth
 def api_v1_payments_update():
-    fsubs = _updatePaymentsData()
-    details = _updateMembersFromPayments(fsubs['valid'])
-    msg = """Details: Valid: %d, err_email: %d, err_plan: %d, err_userid: %d,
+    """(API) Local host-only API for forcing payment data updates via cron. Not ideal, but avoiding other schedulers"""
+    # Simplistic, and not incredibly secure, host-only filter
+    host_addr = str.split(request.environ['HTTP_HOST'],':')
+    if request.environ['REMOTE_ADDR'] == host_addr[0]:
+        fsubs = _updatePaymentsData()
+        details = _updateMembersFromPayments(fsubs['valid'])
+        msg = """Details: Valid: %d, err_email: %d, err_plan: %d, err_userid: %d,
         err_expired: %d """ % (len(fsubs['valid']),len(fsubs['err_email']),len(fsubs['err_plan']),len(fsubs['err_userid']),
         len(fsubs['err_expired']))
-    return msg + "\n"
+        return msg + "\n"
+    else:
+        return "API not available"
 
 @app.route('/api/v1/test', methods=['GET'])
-@requires_auth
 def api_test():
-    return "Hello world"
+    host_addr = str.split(request.environ['HTTP_HOST'],':')
+    print host_addr
+    str1 = pprint.pformat(request.environ,depth=5)
+    print(str1)
+    if request.environ['REMOTE_ADDR'] == host_addr[0]:
+        return "Yay, right host"
+    else:
+        return "Boo, wrong host"
+
 
 
 if __name__ == '__main__':
     app.run(host=ServerHost,port=ServerPort)
+
 
