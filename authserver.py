@@ -430,8 +430,8 @@ def getDataDiscrepancies():
 def getLastWaiverId():
     """Retrieve the most recently created (last) waiver from the database"""
     sqlstr = "select waiverid from waivers order by created_date desc limit 1"
-    waiverid = query_db(sqlstr,"",True)
-    return waiverid
+    w = query_db(sqlstr,"",True)
+    return w['waiverid']
 
 def _addWaivers(waiver_list):
     """Add list-based Waiver data into the waiver table in the database"""
