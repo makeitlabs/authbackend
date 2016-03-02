@@ -291,6 +291,7 @@ def getAccessControlList(resource):
     users = _getResourceUsers(resource)
     jsonarr = []
     c = {'board': "Contact board@makeitlabs.com with any questions.",
+         'orientation': 'Orientation is every Thursday at 7pm, or contact board@makeitlabs to schedule a convenient time',
          'resource': "See the Wiki for training information and resource manager contact info."}
     # TODO: Resource-specific contacts?
     # Now that we know explicit allowed/denied per resource, provide an message
@@ -308,7 +309,11 @@ def getAccessControlList(resource):
                 warning = "This account is not enabled. It may be newly added and not have a waiver on file. %s" % c['board']
             allowed = 'false'
         elif u['allowed'] == 'denied':
-            warning = "You do not have access to this resource. %s" % c['resource']
+            # Special 'are you oriented' check
+            if resource == 'frontdoor':
+                warning = "You have a valid membership, but you must complete orientation for access. %s" % c['orientation']
+            else:
+                warning = "You do not have access to this resource. %s" % c['resource']
         elif u['grace_period'] == 'true':
             warning = """Your membership expired (%s) and you are in the temporary grace period. Correct this
             as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
