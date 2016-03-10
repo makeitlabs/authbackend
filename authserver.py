@@ -7,6 +7,15 @@ A simple Flask-based system for managing Users, Resources and the relationships 
 Exposes both a UI as well as a few APIs for further integration.
 
 Note: Currently all coded as procedural, rather than class-based because reasons. Deal.
+
+TODO:
+- Improved logging and error handling
+- More input validation
+- Check for any strings that need to be moved to INI file
+- Consider Class-based approach
+- Make more modular/streamlined
+- Harden API security model (Allow OAuth, other?)
+- More documentation
 """
 
 import sqlite3, re, time
@@ -21,6 +30,7 @@ from StringIO import StringIO
 from authlibs import utilities as authutil
 from authlibs import payments as pay
 from authlibs import smartwaiver as waiver
+from authlibs import google_admin as google
 from json import dumps as json_dump
 from functools import wraps
 import logging
@@ -89,7 +99,7 @@ class User(UserMixin):
             return self_class(id)
         except UserNotFoundError:
             return None
-		 
+
 # Flask-Login use this to reload the user object from the user ID stored in the session
 @login_manager.user_loader
 def load_user(id):
@@ -145,10 +155,10 @@ def safeemail(unsafe_str):
 def init_db():
     """Initialize database from SQL schema file if needed"""
     with closing(connect_db()) as db:
-		with app.open_resource('flaskr.sql', mode='r') as f:
-			db.cursor().executescript(f.read())
-		db.commit()
-		
+        with app.open_resource('flaskr.sql', mode='r') as f:
+            db.cursor().executescript(f.read())
+        db.commit()
+
 def get_db():
     """Convenience method to get the current DB loaded by Flask, or connect to it if first access"""
     db = getattr(g, '_database', None)
@@ -168,7 +178,7 @@ def execute_db(query):
     cur = get_db().cursor()
     cur.execute(query)
     cur.close()
-	
+
 def clearAccess(mid):
     """Remove all existing access permissions for a given, known safe member id"""
     sqlstr = "DELETE from accessbymember where member = '%s'" % mid
@@ -829,6 +839,7 @@ def update_payments():
     # TODO: return details/status/etc from each call for reporting?
     fsubs = _updatePaymentsData()
     details = _updateMembersFromPayments(fsubs['valid'])
+    emails = _createNewGoogleAccounts()
     flash("Payment and Member data adjusted")
     return redirect(url_for('payments'))
 
@@ -907,7 +918,30 @@ def waivers_update():
     flash("Waivers added: %s" % updated)
     return redirect(url_for('waivers'))
     
+# ------------------------------------------------------------
+# Google Accounts and Welcome Letters
+# -----------------------------------------------------------
 
+def _createNewGoogleAccounts():
+    """Check for any user created in the last 3 days who does not have a firstname.lastname@makeitlabs.com account"""
+    sqlstr = "select m.member,m.firstname,m.lastname,p.email from members m inner join payments p on m.member=p.member where p.created_date >= Datetime('now','-3 day') and p.expires_date >= Datetime('now')"
+    newusers = query_db(sqlstr)
+    for n in newusers:
+        # Using emailstr search to get around wierd hierarchical name mismatch
+        emailstr = "%s.%s@makeitlabs.com" % (n['firstname'],n['lastname'])
+        users = google.searchEmail(emailstr)
+        if users == []:
+            # TODO: Change this to logging
+            print "Member %s may need an account (%s.%s)" % (n['member'],n['firstname'],n['lastname'])
+            ts = time.time()
+            password = "%s-%d" % (n['lastname'],ts - (len(n['email']) * 314))
+            print "Create with password %s and email to %s" % (password,n['email'])
+            user = google.createUser(n['firstname'],n['lastname'],n['email'],password)
+            google.sendWelcomeEmail(user,password,n['email'])
+            print("Welcome email sent")
+        else:
+            print "Member appears to have an account: %s" % users
+    
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
 # Version 1:
@@ -1018,6 +1052,7 @@ def api_v1_payments_update():
     if request.environ['REMOTE_ADDR'] == host_addr[0]:
         fsubs = _updatePaymentsData()
         details = _updateMembersFromPayments(fsubs['valid'])
+        emails = _createNewGoogleAccounts()
         msg = """Details: Valid: %d, err_email: %d, err_plan: %d, err_userid: %d,
         err_expired: %d """ % (len(fsubs['valid']),len(fsubs['err_email']),len(fsubs['err_plan']),len(fsubs['err_userid']),
         len(fsubs['err_expired']))
