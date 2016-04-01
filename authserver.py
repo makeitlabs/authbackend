@@ -936,7 +936,9 @@ def _createNewGoogleAccounts():
             ts = time.time()
             password = "%s-%d" % (n['lastname'],ts - (len(n['email']) * 314))
             print "Create with password %s and email to %s" % (password,n['email'])
-            user = google.createUser(n['firstname'],n['lastname'],n['email'],password)
+            fname = safestr(n['firstname'])
+	    lname = safestr(n['lastname'])
+            user = google.createUser(fname,lname,n['email'],password)
             google.sendWelcomeEmail(user,password,n['email'])
             print("Welcome email sent")
         else:
