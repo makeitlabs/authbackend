@@ -41,7 +41,7 @@ def _getWaiversXML(api_key,waiverid):
         uri = "%s?rest_request=%s&rest_asc&rest_since_waiverid=%s" % (baseuri,api_key,waiverid)
     else:
         uri = "%s?rest_request=%s&rest_asc" % (baseuri,api_key)
-    print uri
+    #print uri
     c.setopt(c.URL, uri)
     c.setopt(c.WRITEDATA,buffer)
     c.perform()
@@ -54,10 +54,9 @@ def getWaivers(waiver_dict):
     more_members = True
     waiver_id = waiver_dict.get('waiver_id',None)
     xmlwaivers = _getWaiversXML(waiver_dict['api_key'],waiver_id)
+    f = open("/tmp/waivers.xml","w")
     while more_members:
-        f = open('/tmp/waivers.xml','w')
         f.write(xmlwaivers)
-        f.close
         root = ET.fromstring(xmlwaivers)
         for child in root.iter('participant'):
             email = child.find('primary_email').text
@@ -68,12 +67,15 @@ def getWaivers(waiver_dict):
             m = {'email': email, 'waiver_id': waiver_id, 'firstname': firstname,
                  'lastname': lastname, 'created_date': created_date}
             members.append(m)
+            # TEMP
+            print("%s %s" % (firstname,lastname))
         more = root.find('more_participants_exist')
         if more is None:
             more_members = False
         else:
             print "More members... getting those after %s" % waiver_id
             xmlwaivers = _getWaiversXML(waiver_dict['api_key'],waiver_id)
+    f.close()
     return members
     
 def waiverXML():
@@ -90,6 +92,6 @@ def waiverXML():
 if __name__ == "__main__":
     waiver_dict = {'api_key': '6acf8d5fd250853bff297078cfa7f9dc-292286'}
     waivers = getWaivers(waiver_dict)
-    print waivers
+    #print waivers
     #waiverXML()
 

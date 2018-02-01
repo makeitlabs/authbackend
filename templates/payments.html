@@ -1,27 +1,31 @@
 {% extends "layout.html" %}
 {% block body %}
+<div>
   <h2>Payment System Management</h2>
-  <div class=welcometext>
-	This interface alows you to sync member records with the payment system 
-	<p>
+	<table>
+    <tr>
+        <td><div class="menubox">
+        <a href="{{ url_for('test_payments') }}"><img class="menuimg" src="static/data-analytics.png" alt="Test Payment System Connection"></a>
+        <br>
+        Test Connection<br>(10-15 seconds)</div>
+        </td>
+        <td><div class="menubox"><a href="{{ url_for('update_payments') }}"><img class="menuimg" src="static/refresh2.png" alt="Update paysystem information"></a>
+        <br>
+        Update Payment Data<br>(10-30 Seconds)</div>
+        </td>
+        <td><div class="menubox"><a href="{{ url_for('payments_fees') }}"><img class="menuimg" src="static/currency-symbol.png" alt="Schedule payment"></a>
+        <br>
+        Add Fee<br>(Manual entry)</div>
+        </td>
+    </tr>
+	</table>
 	<div class="sectionhead">Payment system configuration</div>
 	<ul>
-	  <li>System: <i>{{ paysystem.module }}</i></li>
-	  <li>User account: <i>{{ paysystem.userid }} </i></li>
-	  <li>Endpoint: <i>{{ paysystem.uri }}</i></li>
-	  <li>Last sync: {{ cdate.checked }}</li>
+	  <li>Modules active: {{ modules  }}</li>
 	</ul>
-	<div class="sectionhead">Test Payment system connectivity</div>
-	This test validates connectivity and access to the configured automated payment system. It should always be run before the ""synchronize" option below, just to be sure.
-	<p>
-	  
-	</p><div class="paybuttons"><a href="{{ url_for('test_payments') }}"><button class="paysystem" onclick="this.disabled = true">Test (takes 5-20 seconds..)</button></a></div>
-    <p>
-	  
-	</p><div class="sectionhead">Synchronize data with payment system</div>
-	<div class="warning">Only do this if you suspect data is out of sync. Just sayin'.</div>
-	<p></p>
-	This action will:
+	<div class="sectionhead">Test Connection</div>
+	Validates connectivity and access to the configured automated payment system. Run the test before trying to manually force an update.
+    <div class="sectionhead">Update Payment Data</div>
 	<ol>
 	  <li>Extract a list of all subscribers and their attributes from the Payment system</li>
 	  <li>Filter that list against known bad data</li>
@@ -31,11 +35,8 @@
 	  <li>Not explode. Hopefully.</li>
 	</ol>
 	If after running this update someone is still incorrectly set, seek help.
-	<p></p>
-    <div class="paybuttons"><a href="{{ url_for('update_payments') }}"><button class="paysystem" onclick="this.disabled = true">Process member data (takes 5-30 seconds)</button></a></div>
-    <p>
-	  
-	</p><a href="{{ url_for('payments_reports') }}">Run reports related to Payments</a>
+	<div class="sectionhead">Fees</div>
+	View previously charged fees, create one-time fee or schedule recurring fees.
   </div>
 {% endblock %}
 

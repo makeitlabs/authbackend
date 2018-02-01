@@ -44,7 +44,7 @@
 	  <tr>
 		  <td>
 			<img src="static/create3.png" height="20" width="20" alt="Edit member" />
-			<a href="{{ url_for('member_show',id=m.id) }}">{{ m.firstname }} {{ m.lastname }} ({{ m.id }})
+			<a href="{{ url_for('member_show',id=m.id) }}">{{ m.name }} ({{ m.id }})
 			</a>
 		  </td>
 		  <td>
@@ -62,20 +62,27 @@
 	<form action="{{ url_for('member_add') }}" method="post">
 	  <table>
 		<tr>
-		  <td>Firstname</td>
-		  <td><input name="firstname" id="fname_field" type="text" oninput="setMemberId();"/></td>
+		  <td>First name</td>
+		  <td><input name="firstname" id="firstname_field" type="text"></td>
 		</tr>
 		<tr>
-		  <td>Lastname</td>
-		  <td><input name="lastname" id="lname_field" type="text" oninput="setMemberId();"/></td>
+		  <td>Last name</td>
+		  <td><input name="lastname" id="lastname_field" type="text"></td>
 		</tr>
 		<tr>
-		  <td>Member ID<br>(Firstname.Lastname)</td>
+		  <td>Member ID <br>(If different than Firstname Lastname)</td>
 		  <td><input name="memberid" id="memberid_field" type="text"></td>
 		</tr>
 		<tr>
-		  <td>Display Name<br>(If different than Firstname Lastname)</td>
-		  <td><input name="nickname" id="nickname_field" type="text"></td>
+		 <td>Plan:</td>
+		 <td><select name="plan"><option value="hobbyist" selected="true">Hobbyist</option><option value="pro">Pro</option></select></td>
+		</tr>
+		<tr>
+		  <td>Payment system:</td>
+		  <td><select name="payment">
+		  <option value="manual">Manual</option>
+		  <option value="pinpayments">Pinpayments</option>
+		  <option value="stripe">Stripe</option></select></td>
 		</tr>
 		<tr>
 		  <td>Alternate Email (Optional)</td>

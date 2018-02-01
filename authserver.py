@@ -31,7 +31,9 @@ from authlibs import utilities as authutil
 from authlibs import payments as pay
 from authlibs import smartwaiver as waiver
 from authlibs import google_admin as google
+from authlibs import membership as membership
 from json import dumps as json_dump
+from json import loads as json_loads
 from functools import wraps
 import logging
 logging.basicConfig(stream=sys.stderr)
@@ -39,7 +41,6 @@ import pprint
 
 
 # Load general configuration from file
-# TODO: Error handling
 defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
 Config = ConfigParser.ConfigParser(defaults)
 Config.read('makeit.ini')
@@ -49,15 +50,6 @@ Database = Config.get('General','Database')
 AdminUser = Config.get('General','AdminUser')
 AdminPasswd = Config.get('General','AdminPassword')
 DEBUG = Config.getboolean('General','Debug')
-
-# Load Payment config from file
-paysystem = {}
-paysystem['module'] = Config.get('Payments','Module')
-paysystem['valid'] = Config.getboolean('Pinpayments','Valid')
-paysystem['userid'] = Config.get('Pinpayments','Userid')
-paysystem['token'] = Config.get('Pinpayments','Token')
-paysystem['uri'] = Config.get('Pinpayments','Uri')
-paysystem['rooturi'] = Config.get('Pinpayments','RootURI')
 
 # Load Waiver system data from file
 waiversystem = {}
@@ -129,7 +121,7 @@ def requires_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         auth = request.authorization
-        if not auth: 
+        if not auth:
             return argh()
         if not check_auth(auth.username, auth.password):
             return authenticate()
@@ -138,13 +130,13 @@ def requires_auth(f):
 
 def connect_db():
     """Convenience method to connect to the globally-defined database"""
-    con = sqlite3.connect(Database)
+    con = sqlite3.connect(Database,check_same_thread=False)
     con.row_factory = sqlite3.Row
     return con
 
 def safestr(unsafe_str):
     """Sanitize input strings used in some operations"""
-    keepcharacters = (' ','.','_',',','-',"'")
+    keepcharacters = ('_','-','.')
     return "".join(c for c in unsafe_str if c.isalnum() or c in keepcharacters).rstrip()
 
 def safeemail(unsafe_str):
@@ -189,7 +181,7 @@ def addAccess(mid,access):
     """Add access permissions from a list for a given, known safe member id"""
     perms = []
     for resource in access:
-        print "Adding %s for %s" % (resource,mid)
+        print("Adding %s for %s" % (resource,mid))
         perms.append((resource, mid, '1', time.strftime("%c")))
     print perms
     cur = get_db().cursor()
@@ -204,7 +196,7 @@ def expireMember(memberid):
     sqlstr = "update members set active='false' where member='%s'" % m
     execute_db(sqlstr)
     get_db().commit()
-    
+
 def unexpireMember(memberid):
     """Mark a user active"""
     # TODO - Make this a batch operation?
@@ -212,13 +204,13 @@ def unexpireMember(memberid):
     sqlstr = "update members set active='true' where member='%s'" % m
     execute_db(sqlstr)
     get_db().commit()
-    
+
 def _expirationSync():
     """Make sure all expirations match what's in the Payments database"""
     sqlstr = "update members set active='true',updated_date=DATETIME('now') where member in (select member from payments where expires_date < date('now'))"
     execute_db(sqlstr)
     get_db().commit()
-    
+
 def _createMember(m):
     """Add a member entry to the database"""
     sqlstr = "Select member from members where member = '%s'" % m['memberid']
@@ -251,7 +243,7 @@ def _clearPaymentData(paytype):
     sql = "delete from payments where paysystem= '%s'" % paytype
     execute_db(sql)
     get_db().commit()
-    
+
 def _addPaymentData(subs,paytype):
     """From a JSON list of subscribers, add entries to the Payments table"""
     users = []
@@ -269,32 +261,28 @@ def _addPaymentData(subs,paytype):
     cur = get_db().cursor()
     cur.executemany('INSERT into payments (member,email,paysystem,plan,customerid,created_date,expires_date,updated_date,checked_date) VALUES (?,?,?,?,?,?,?,?,?)', users)
     get_db().commit()
-    
-def _getResourceUsers_old(resource):
-    """Given a Resource, return all users, their tags, and whether they are allowed or denied for the resource"""
-    # Change to left join fo including ALL members and their tag ids, but iondicate allowed|notallowed by resoiurce
-    sqlstr = """select m.member,t.tagid,t.tagname,m.plan,
-            (case when coalesce(a.resource,'denied') != 'denied' then 'allowed' else 'denied' end) as allowed 
-            from members m left outer join tagsbymember t on t.member=m.member left outer join accessbymember a
-            on m.member=a.member and a.resource='%s' group by t.tagid""" % resource
-    users = query_db(sqlstr)
-    return users
 
 def _getResourceUsers(resource):
     """Given a Resource, return all users, their tags, and whether they are allowed or denied for the resource"""
     # Also provides some basic logic on various date fields to simplify later processing
     # - this could be done with raw calcs on the dates, if future editors are less comfortable with the SQL syntaxes used
-    sqlstr = """select t.member,t.tagid,m.plan,m.nickname,l.last_accessed,m.access_enabled as enabled, m.access_reason as reason,p.expires_date,a.resource,
+	# Note: The final left join is to account for "max(expires_date)" equivalence without neededing a subquery
+	# - yes, it's kind of odd, but it works
+    sqlstr = """select t.member,t.tagid,m.plan,m.nickname,l.last_accessed,m.access_enabled as enabled, m.access_reason as reason,s.expires_date,a.resource,
         (case when a.resource is not null then 'allowed' else 'denied' end) as allowed,
-        (case when p.expires_date < Datetime('now','-14 day') then 'true' else 'false' end) as past_due,
-        (case when p.expires_date < Datetime('now') AND p.expires_date > Datetime('now','-13 day') then 'true' else 'false' end) as grace_period,
-        (case when p.expires_date < Datetime('now','+2 day') then 'true' else 'false' end) as expires_soon
+        (case when s.expires_date < Datetime('now','-14 day') then 'true' else 'false' end) as past_due,
+        (case when s.expires_date < Datetime('now') AND s.expires_date > Datetime('now','-13 day') then 'true' else 'false' end) as grace_period,
+        (case when s.expires_date < Datetime('now','+2 day') then 'true' else 'false' end) as expires_soon,
+        (case when a.level is not null then a.level else '0' end) as level
         from tagsbymember t join members m on t.member=m.member
         left outer join accessbymember a on a.member=t.member and a.resource='%s'
         left outer join (select member,MAX(event_date) as last_accessed from logs where resource='%s' group by member) l on t.member = l.member
-        left outer join payments p on p.member=t.member group by t.tagid""" % (resource,resource)
+        left outer join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email
+		left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
+		group by t.tagid""" % (resource,resource)
     users = query_db(sqlstr)
     return users
+
 
 def getAccessControlList(resource):
     """Given a Resource, return what tags/users can/cannot access a reource and why as a JSON structure"""
@@ -327,54 +315,23 @@ def getAccessControlList(resource):
         elif u['grace_period'] == 'true':
             warning = """Your membership expired (%s) and you are in the temporary grace period. Correct this
             as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
-        jsonarr.append({'tagid':u['tagid'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed']})
+        jsonarr.append({'tagid':u['tagid'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level']})
     return json_dump(jsonarr)
-    
 
-def addMissingMembers(subs):
-    """Add to Members table any members in Payments but not in Members"""
-    # Old - insert, may be missing data but highly efficient
-    sqlstr_old = """insert into members (member,plan,updated_date) select p.member,p.plan,Datetime('now')
-            from payments p left outer join members m on p.member=m.member where m.member is null"""
-    # New: find missing entries and filter and add them individually - Slower, but fills all details
-    sqlstr = """select p.member from payments p
-            left outer join members m on p.member=m.member where m.member is null"""
-    members = query_db(sqlstr)
-    sqlstr2 = "select entry,entrytype from blacklist"
-    bl_entries = query_db(sqlstr2)
-    missingids = []
-    users = []
-    for m in members:
-        missingids.append(m['member'])
-    ignorelist = []
-    for b in bl_entries:
-        ignorelist.append(b['entry'])
-    for s in subs:
-        if s['userid'] in missingids:
-            if s['customerid'] in ignorelist:
-                print("Customer ID is in the ignore list")
-                continue
-            users.append((s['userid'],s['firstname'],s['lastname'],s['membertype'],s['phone'],s['email'],"Datetime('now')"))
-    if len(users) > 0:
-        cur = get_db().cursor()
-        cur.executemany('INSERT into members (member,firstname,lastname,plan,phone,alt_email,updated_date) VALUES (?,?,?,?,?,?,?)', users)
-        get_db().commit()
-    return len(users)    
-        
-    
+
 def _deactivateMembers():
     """Mark all users as inactive, to ensure we catch any that have been removed from Payments table"""
     sqlstr = "update members set active='false', updated_date=Datetime('now')"
     execute_db(sqlstr)
     get_db().commit()
-    
+
 def _syncMemberPlans():
     """Update Members table with currently paid-for plan from Payments"""
     sqlstr = """update members set plan = (select plan from payments where members.member=payments.member)
             where member in (select member from payments)"""
     execute_db(sqlstr)
     get_db().commit()
-    
+
 def _activatePaidMembers():
     """Set users who are not expired to active state"""
     # This will be problematic if users somehow have two entries in payments- manual and other
@@ -382,7 +339,7 @@ def _activatePaidMembers():
             where member in (select member from payments where expires_date > Datetime('now'))"""
     execute_db(sqlstr)
     get_db().commit()
-    
+
 def _updateMembersFromPayments(subs):
     """Bring Members table and up to date with latest user payment information. Requires Subscriber dict"""
     addMissingMembers(subs)
@@ -390,10 +347,13 @@ def _updateMembersFromPayments(subs):
     _syncMemberPlans()
     _activatePaidMembers()
     return True
-    
+
 def _updatePaymentsData():
     """Get the latest Payment system data and update Payments table. Return subscriber data structure."""
-    subs = pay.getSubscribers(paysystem)
+    for m in range:
+      code
+
+    subs = pay.getSubscriptions(paysystem)
     fsubs = pay.filterSubscribers(subs)
     _clearPaymentData('pinpayments')
     _addPaymentData(fsubs['valid'],'pinpayments')
@@ -411,7 +371,7 @@ def add_member_tag(mid,htag,tagtype,tagname):
         return True
     else:
         return False
-    
+
 def getDataDiscrepancies():
     """Extract some commonly used statistics about data not matching"""
     # Note" SQLLIte does not support full outer joins, so we have some duplication of effort...
@@ -500,7 +460,7 @@ def login_check():
         flash('Username or password incorrect')
 
     return redirect(url_for('index'))
-   
+
 @app.route('/logout')
 @login_required
 def logout():
@@ -515,15 +475,13 @@ def logout():
 def index():
    """Main page, redirects to login if needed"""
    return render_template('index.html')
-   
+
 @app.route('/search',methods=['GET','POST'])
 @login_required
 def search_members():
    """Takes input of searchstr from form, displays matching member list"""
    searchstr = safestr(request.form['searchstr'])
-   sstr = "%" + searchstr + "%"
-   sqlstr = "SELECT member as id, firstname, lastname, alt_email, active, plan, updated_date, access_enabled as enabled from members where firstname LIKE '%s' OR lastname LIKE '%s' OR member LIKE '%s'" % (sstr, sstr, sstr)
-   members = query_db(sqlstr)
+   members = membership.searchMembers(searchstr)
    return render_template('members.html',members=members,searchstr=searchstr)
 
 # --------------------------------------
@@ -547,7 +505,7 @@ def members():
 def member_add():
     """Controller method for POST requests to add a user"""
     member = {}
-    mandatory_fields = ['firstname','lastname','memberid']
+    mandatory_fields = ['firstname','lastname','memberid','plan','payment']
     optional_fields = ['alt_email','phone','nickname']
     print request
     for f in mandatory_fields:
@@ -573,25 +531,26 @@ def member_add():
 def member_edit(id):
     mid = safestr(id)
     member = {}
-    
+
     return "Show the user editing form now, then call member_update"
-    
+
 @app.route('/members/<string:id>', methods = ['GET'])
 @login_required
 def member_show(id):
    """Controller method to Display or modify a single user"""
+   #TODO: Move member query functions to membership module
    access = {}
    mid = safestr(id)
-   sqlstr = """select m.member, m.firstname, m.lastname, m.phone, m.updated_date, m.access_enabled,
-            m.access_reason, m.active, m.alt_email, p.expires_date, p.plan, p.updated_date as payment_date
-            from members m left join payments p on m.member=p.member where m.member='%s'""" % mid
+   sqlstr = """select m.member, m.name, m.phone, m.updated_date, m.access_enabled,
+            m.access_reason, m.active, m.alt_email, s.expires_date, s.planname as plan, s.updated_date as payment_date
+            from members m left join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email where m.member='%s'""" % mid
    member = query_db(sqlstr,"",True)
    member = dict(member)
    sqlstr = """select r.description, a.updated_date from resources r left join accessbymember a
             on r.name=a.resource and a.member='%s' where a.enabled='1'""" % mid
    access = query_db(sqlstr)
    return render_template('member_show.html',member=member,access=access)
-   
+
 @app.route('/members/<string:id>/access', methods = ['GET'])
 @login_required
 def member_editaccess(id):
@@ -621,7 +580,7 @@ def member_setaccess(id):
     addAccess(mid,access)
     flash("Member access updated")
     return redirect(url_for('member_editaccess',id=mid))
-   
+
 @app.route('/members/<string:id>/tags', methods = ['GET'])
 @login_required
 def member_tags(id):
@@ -652,7 +611,7 @@ def member_tagadd(id):
         else:
             flash("Error: That tag is already associated with a user")
     return redirect(url_for('member_tags',id=mid))
-    
+
 @app.route('/members/<string:id>/tags/delete/<string:tagid>', methods = ['GET'])
 @login_required
 def member_tagdelete(id,tagid):
@@ -734,7 +693,7 @@ def resource_showusers(resource):
     sqlstr = "select member from accessbymember where resource='%s'" % rid
     authusers = query_db(sqlstr)
     return render_template('resource_users.html',resource=rid,users=authusers)
-   
+
 #TODO: Create safestring converter to replace string; converter?
 @app.route('/resources/<string:resource>/log', methods=['GET','POST'])
 def logging(resource):
@@ -763,8 +722,8 @@ def logging(resource):
         return render_template('resource_log.html',entries=entries)
     else:
         abort(401)
-        
-        
+
+
 # ------------------------------------------------
 # Payments controllers
 # Routes:
@@ -775,10 +734,8 @@ def logging(resource):
 @login_required
 def payments():
     """(Controller) Show Payment system controls"""
-    payments = {}
-    sqlstr = "select MAX(checked_date) as checked from payments"
-    cdate = query_db(sqlstr,(),True)
-    return render_template('payments.html',cdate=cdate,payments=payments,paysystem=paysystem)
+    cdate = pay.getLastUpdatedDate()
+    return render_template('payments.html',cdate=cdate)
 
 @app.route('/payments/manual', methods = ['GET'])
 @login_required
@@ -820,26 +777,24 @@ def payments_manual_delete(member):
      # TODO: EXPIRE MEMBER FROM ACCESS CONTROLS
     flash("Member %s was deleted from the payments table" % safe_id)
     return redirect(url_for('manual_payments'))
-    
+
 @app.route('/payments/test', methods = ['GET'])
 @login_required
 def test_payments():
-   """(Controller) Validate the connection to the payment system"""
-   payments = {}
-   if pay.testSystem(paysystem):
+   """(Controller) Validate the connection to the payment system(s)"""
+   if pay.testPaymentSystems():
 	  flash("Payment system is reachable.")
    else:
-	  flash("Error: Payment system is UNreachable.")
+	  flash("Error: One or more Payment systems is Unreachable, review logs.")
    return redirect(url_for('payments'))
 
 @app.route('/payments/update', methods = ['GET'])
 @login_required
 def update_payments():
-    """(Controller) Sync Payment data and update Member data from Payments (add missing, deactivate, etc)"""
-    # TODO: return details/status/etc from each call for reporting?
-    fsubs = _updatePaymentsData()
-    details = _updateMembersFromPayments(fsubs['valid'])
-    emails = _createNewGoogleAccounts()
+    """(Controller) Sync Payment data and update Member data (add missing, deactivate, etc)"""
+    # TODO: Error handling
+    pay.updatePaymentData()
+    membership.syncWithSubscriptions()
     flash("Payment and Member data adjusted")
     return redirect(url_for('payments'))
 
@@ -873,6 +828,54 @@ def payments_reports():
     payments = query_db(sqlstr)
     return render_template('payments_reports.html',f=f,payments=payments)
 
+@app.route('/payments/fees', methods = ['GET'])
+@login_required
+def payments_fees():
+    """(Controller) Charge Fee to a user, Schedule recurring Fee, view past paid fees"""
+    f = request.args.get('days','90')
+    # TODO: Member ID, pass in from member page?
+    member = {}
+    dt = """Datetime('now','-%s days')""" % f
+    sqlstr = """select member, amount, fee_date, fee_name, fee_group, fee_description from feespaid where fee_date > %s""" % dt
+    print(sqlstr)
+    fees = query_db(sqlstr)
+    return render_template('fees.html',days=f,member=member,fees=fees)
+
+@app.route("/payments/fees/charge", methods = ['POST'])
+@login_required
+def payments_fees_charge():
+    """(Controller) Charge a one-time fee to a user"""
+    fee = {}
+    mandatory_fields = ['memberid','amount','name','description','group']
+    print request
+    for f in mandatory_fields:
+        fee[f] = ''
+        if f in request.form:
+            fee[f] = safestr(request.form[f])
+            print(fee[f])
+        if fee[f] == '':
+            flash("Error: One or more mandatory fields not filled out")
+            return redirect(url_for('payments_fees'))
+    # Validate member
+    sqlstr = "Select customerid from payments where member = '%s'" % fee['memberid']
+    members = query_db(sqlstr,"",True)
+    if members:
+        # Force validation of currency value
+        try:
+            "{:.2f}".format(float(fee['amount']))
+            ## TODO: Still need to create the actual charge
+            result = pay.chargeFee(paysystem,members['customerid'],fee['name'],fee['group'],fee['description'],fee['amount'])
+            if result['success'] == True:
+                # TODO: Record fee charge
+                flash("Fee successfully charged and recorded")
+            else:
+                flash("Error: Could not charge fee")
+        except ValueError:
+            flash("Amount must be a currency value such as 75 or 13.11")
+        #
+    else:
+        flash("Error: Memberid does not exist. Make sure you have the right one..")
+    return redirect(url_for('payments_fees'))
 
 # ------------------------------------------------------------
 # Blacklist entries
@@ -898,7 +901,7 @@ def reports():
     """(Controller) Display some pre-defined report options"""
     stats = getDataDiscrepancies()
     return render_template('reports.html',stats=stats)
-    
+
 # ------------------------------------------------------------
 # Waiver controllers
 # ------------------------------------------------------------
@@ -909,7 +912,7 @@ def waivers():
     sqlstr = "select waiverid,email,firstname,lastname,created_date from waivers"
     waivers = query_db(sqlstr)
     return render_template('waivers.html',waivers=waivers)
-    
+
 @app.route('/waivers/update', methods=['GET'])
 @login_required
 def waivers_update():
@@ -917,13 +920,16 @@ def waivers_update():
     updated = addNewWaivers()
     flash("Waivers added: %s" % updated)
     return redirect(url_for('waivers'))
-    
+
+
+
+
 # ------------------------------------------------------------
 # Google Accounts and Welcome Letters
 # -----------------------------------------------------------
 
 def _createNewGoogleAccounts():
-    """Check for any user created in the last 3 days who does not have a firstname.lastname@makeitlabs.com account"""
+    """Check for any user created in the last 3 days who does not have a Makeitlabs.com account"""
     sqlstr = "select m.member,m.firstname,m.lastname,p.email from members m inner join payments p on m.member=p.member where p.created_date >= Datetime('now','-3 day') and p.expires_date >= Datetime('now')"
     newusers = query_db(sqlstr)
     for n in newusers:
@@ -936,14 +942,32 @@ def _createNewGoogleAccounts():
             ts = time.time()
             password = "%s-%d" % (n['lastname'],ts - (len(n['email']) * 314))
             print "Create with password %s and email to %s" % (password,n['email'])
-            fname = safestr(n['firstname'])
-	    lname = safestr(n['lastname'])
-            user = google.createUser(fname,lname,n['email'],password)
+            user = google.createUser(n['firstname'],n['lastname'],n['email'],password)
             google.sendWelcomeEmail(user,password,n['email'])
             print("Welcome email sent")
         else:
             print "Member appears to have an account: %s" % users
-    
+
+def _createNewGoogleAccounts():
+    """Check for any user created in the last 3 days who does not have a Makeitlabs.com account"""
+    sqlstr = "select m.member,m.firstname,m.lastname,p.email from members m inner join payments p on m.member=p.member where p.created_date >= Datetime('now','-3 day') and p.expires_date >= Datetime('now')"
+    newusers = query_db(sqlstr)
+    for n in newusers:
+        # Using emailstr search to get around wierd hierarchical name mismatch
+        emailstr = "%s.%s@makeitlabs.com" % (n['firstname'],n['lastname'])
+        users = google.searchEmail(emailstr)
+        if users == []:
+            # TODO: Change this to logging
+            print "Member %s may need an account (%s.%s)" % (n['member'],n['firstname'],n['lastname'])
+            ts = time.time()
+            password = "%s-%d" % (n['lastname'],ts - (len(n['email']) * 314))
+            print "Create with password %s and email to %s" % (password,n['email'])
+            user = google.createUser(n['firstname'],n['lastname'],n['email'],password)
+            google.sendWelcomeEmail(user,password,n['email'])
+            print("Welcome email sent")
+        else:
+            print "Member appears to have an account: %s" % users
+
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
 # Version 1:
@@ -955,7 +979,7 @@ def _createNewGoogleAccounts():
 @login_required
 def api_v1_members():
     """(API) Return a list of all members. either in CSV or JSON"""
-    sqlstr = "select m.member,m.plan,m.updated_date,p.expires_date from members m inner join payments p on m.member=p.member"
+    sqlstr = "select m.member,m.plan,m.updated_date,s.expires_date from members m inner join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email"
     outformat = request.args.get('output','json')
     filters = {}
     filters['active'] = safestr(request.args.get('active',''))
@@ -979,7 +1003,7 @@ def api_v1_members():
                     fstrings.append("m.plan='%s'" % filters[f])
         if len(fstrings) > 0:
             fstring = ' AND '.join(fstrings)
-            sqlstr = sqlstr + " where " + fstring 
+            sqlstr = sqlstr + " where " + fstring
     print(sqlstr)
     members = query_db(sqlstr)
     output = ""
@@ -1002,15 +1026,15 @@ def api_v1_showmember(id):
     """(API) Return details about a member, currently JSON only"""
     mid = safestr(id)
     outformat = request.args.get('output','json')
-    sqlstr = """select m.member, m.plan, m.alt_email, m.firstname, m.lastname, m.phone, p.expires_date
-            from members m inner join payments p on m.member=p.member where m.member='%s'""" % mid
+    sqlstr = """select m.member, m.plan, m.alt_email, m.firstname, m.lastname, m.phone, s.expires_date
+            from members m inner join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email where m.member='%s'""" % mid
     m = query_db(sqlstr,"",True)
     if outformat == 'json':
         output = {'member': m['member'],'plan': m['plan'],'alt_email': m['plan'],
                   'firstname': m['firstname'],'lastname': m['lastname'],
                   'phone': m['phone'],'expires_date': m['expires_date']}
         return json_dump(output), 200, {'Content-type': 'application/json'}
-    
+
 @app.route('/api/v1/resources/<string:id>/acl', methods=['GET'])
 @requires_auth
 def api_v1_show_resource_acl(id):
@@ -1019,21 +1043,22 @@ def api_v1_show_resource_acl(id):
     # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
     output = getAccessControlList(rid)
     return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
-    
+
 @app.route('/api/v0/resources/<string:id>/acl', methods=['GET'])
 @requires_auth
 def api_v0_show_resource_acl(id):
-    """(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
+    """(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
     rid = safestr(id)
     # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
-    users = _getResourceUsers(rid)
+    #users = _getResourceUsers(rid)
+    users = json_loads(getAccessControlList(rid))
     outformat = request.args.get('output','csv')
     if outformat == 'csv':
         outstr = "username,key,value,allowed,hashedCard,lastAccessed"
         for u in users:
-            outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0','0',u['allowed'],u['tagid'],'2011-06-21T05:12:25')
+            outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
         return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
-   
+
 @app.route('/api/v1/logs/<string:id>', methods=['POST'])
 @requires_auth
 def api_v1_log_resource_create(id):
@@ -1052,15 +1077,11 @@ def api_v1_payments_update():
     # Simplistic, and not incredibly secure, host-only filter
     host_addr = str.split(request.environ['HTTP_HOST'],':')
     if request.environ['REMOTE_ADDR'] == host_addr[0]:
-        fsubs = _updatePaymentsData()
-        details = _updateMembersFromPayments(fsubs['valid'])
-        emails = _createNewGoogleAccounts()
-        msg = """Details: Valid: %d, err_email: %d, err_plan: %d, err_userid: %d,
-        err_expired: %d """ % (len(fsubs['valid']),len(fsubs['err_email']),len(fsubs['err_plan']),len(fsubs['err_userid']),
-        len(fsubs['err_expired']))
-        return msg + "\n"
+        pay.updatePaymentData()
+        membership.syncWithSubscriptions()
+	return "Completed."
     else:
-        return "API not available"
+        return "API not available to %s expecting %s" % (request.environ['REMOTE_ADDR'], host_addr[0])
 
 @app.route('/api/v1/test', methods=['GET'])
 def api_test():
@@ -1077,5 +1098,3 @@ def api_test():
 
 if __name__ == '__main__':
     app.run(host=ServerHost,port=ServerPort)
-
-

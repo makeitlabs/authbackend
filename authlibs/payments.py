@@ -8,43 +8,72 @@ and use them to complete Payment-related operations.
 """
 
 import pinpayments as pinpay
+import stripe_pay
 import datetime
-import ConfigParser
+import utilities
+import dbutil
 
-def testSystem(paydict):
-    print paydict
-    if paydict['module'] == 'pinpayments':
-        print("Testing Pinpayments..")
-        return pinpay.testSystem(paydict)
-    else:
-        raise RuntimeError('Invalid payment system used')
+import config
+import sys
 
-def getSubscribers(paysystem):
+import logging
+logger = logging.getLogger(__name__)
+
+setupDone = False
+
+
+def getLastUpdatedDate():
+  sqlstr = "select MAX(updated_date) from subscriptions"
+  return dbutil.query_db(sqlstr,(),True)
+
+def testPaymentSystems(modules=None):
+    if modules is None:
+        modules = config.payments['modules'].split(",")
+    status = {}
+    for m in modules:
+        if m == 'pinpayments':
+            logger.info("Testing Pinpayments..")
+            status['pinpayments'] = pinpay.selftest()
+        elif m == 'stripe':
+            logger.info("Testing Stripe")
+            status['stripe'] = stripe_pay.selftest()
+        else:
+            raise RuntimeError('Invalid payment system defined')
+            return False
+    for k in status:
+      if status[k] == False:
+        return False
+    return True
+
+def getSubscriptions(module=None):
     """Call the appropriate payment system module to get subscribers in JSON format"""
-    if paysystem['module'] == "pinpayments":
-        return pinpay.getSubscribersJSON(paysystem)
+    if module == "pinpayments":
+        return pinpay.getSubscriptionsJSON()
+    elif module == "stripe":
+        return stripe_pay.getSubscriptionsJSON()
     else:
-        raise RuntimeError('Invalid payment system used')
+        raise RuntimeError('Invalid payment system (%s) defined in INI file' % module)
 
-def filterSubscribers(subscribers):
-    """Filter JSON list of subscribers into categories (valid,err_(email|plan|expired)) based on rules"""
+def filterSubscriptions(subscriptions):
+    """Filter JSON list of subscriptions into categories (valid,err_(email|plan|expired)) based on rules"""
     noemail = list()
     notactive = list()
     noplan = list()
     nouserid = list()
     validsubs = list()
-    for sub in subscribers:
+    print("Filtering subscriptions - remember to check pinpay 'userid' to 'name' change")
+    for sub in subscriptions:
         valid = True
         if not sub['email']:
             noemail.append(sub)
-            print "No email for: %s" % sub
+            logger.debug("No email for: %s" % sub)
             valid = False
-        if valid and not sub['membertype']:
-            print "No plan for: %s" % sub
+        if valid and not sub['plantype']:
+            logger.debug("No plan for: %s" % sub)
             noplan.append(sub)
             valid = False
-        if valid and not sub['userid']:
-            print "No userid for: %s" % sub
+        if valid and not sub['name']:
+            logger("No name for: %s" % sub)
             nouserid.append(sub)
             valid = False
         if valid:
@@ -53,20 +82,45 @@ def filterSubscribers(subscribers):
                 notactive.append(sub)
     return {'valid': validsubs, 'err_email': noemail, 'err_plan': noplan, 'err_expired': notactive, 'err_userid': nouserid}
 
+def filterSubscriptions2(subscriptions):
+    """Filter JSON list of subscriptions into categories (valid,err_(email|plan|expired)) based on rules"""
+    noemail = list()
+    notactive = list()
+    noplan = list()
+    nouserid = list()
+    validsubs = list()
+    for sub in subscriptions:
+        if not sub['metadata']:
+            print("MISSING META!")
+        # Active or Trial Period
+        if sub('status') in ['active','trialing']:
+            validsubs.append(sub)
+        elif sub('status') in ['past_due','unpaid']:
+            print("Customer is Past due or Unpaid: %s (%s)" % (sub['metadata']['names'],sub['id']))
+        else:
+            print("Customer is cancelled or otherwise invalid: %s  (%s, %s)" % (sub['id'],sub['metadata']['names'],sub['id']))
+
 def writeSubscribersTextfile(subs,filename):
     f = open(filename,'w')
     for sub in subs:
         print>>f, sub
     f.close()
-    
-def updatePaymentsTable(db,tablename):
-     # TODO: Make this more flexible
-   subs = pay.getSubscribers(paysystem)
-   fsubs = pay.filterSubscribers(subs)
-   _clearPaymentData('pinpayments')
+
+def old_updatePaymentsData():
+   subs = getSubscriptions(paysystem)
+   fsubs = filterSubscriptions(subs)
+   clearPaymentData('pinpayments')
    _addPaymentData(fsubs['valid'],'pinpayments')
-   
-   
+
+# TODO: Update this for Stripe options
+def chargeFee(module,memberid,name,group,description,amount):
+    """Immediately apply a fee to the user's account"""
+    if module == "pinpayments":
+        force = True
+        return pinpay.chargeFee(memberid,name,group,description,amount,force)
+    else:
+        raise RuntimeError('Invalid payment module')
+
 def _isFutureDate(datestr):
    try:
       d = datetime.datetime.strptime(datestr,"%Y-%m-%dT%H:%M:%SZ")
@@ -75,54 +129,106 @@ def _isFutureDate(datestr):
       else:
          return False
    except:
-         print "EXCEPTION"
+         logger.error("Date parsing exception for date %s" % datestr)
          return False
 
-def connect_db():
-   con = sqlite3.connect(Database)
-   con.row_factory = sqlite3.Row
-   return con
+def _selfTest():
+    if testPaymentSystems():
+        for module in config.payments['modules'].split(","):
+            logger.info("Payment System is Active, module is %s" % module)
+            subs = getSubscriptions(module)
+            logger.info("Subscriptions: %d" % len(subs))
+            fsubs = filterSubscriptions(subs)
+            validsubs = len(fsubs['valid'])
+            inactive = len(fsubs['err_expired'])
+            active = validsubs - inactive
+            logger.info("VALID SUBSCRIPTIONS (TOTAL): %d" % validsubs)
+            logger.info(" Active: %d  Inactive: %d" % (active,inactive))
+            logger.info("Sanity check:: ERR_EMAIL: %d" % len(fsubs['err_email']))
+            logger.info("Sanity check:: ERR_PLAN: %d" % len(fsubs['err_plan']))
+            logger.info("Sanity check:: ERR_USERID: %d" % len(fsubs['err_userid']))
+            logger.info("Sanity check:: ERR_EXPIRED: %d" % len(fsubs['err_expired']))
 
-def _selfTest(paysystem):
-    if testSystem(paysystem):
-        print "Payment System is Active, module is %s" % paysystem['module']
-        subs = getSubscribers(paysystem)
-        print "Subscribers: %d" % len(subs)
-        fsubs = filterSubscribers(subs)
-        validsubs = len(fsubs['valid'])
-        inactive = len(fsubs['err_expired'])
-        active = validsubs - inactive
-        print "VALID SUBSCRIBERS (TOTAL): %d" % validsubs
-        print " Active: %d  Inactive: %d" % (active,inactive)
-        print "Sanity check:: ERR_EMAIL: %d" % len(fsubs['err_email'])
-        print "Sanity check:: ERR_PLAN: %d" % len(fsubs['err_plan'])
-        print "Sanity check:: ERR_USERID: %d" % len(fsubs['err_userid'])
-        print "Sanity check:: ERR_EXPIRED: %d" % len(fsubs['err_expired'])
-       
-        writeSubscribersTextfile(subs,"/tmp/subscribers.txt")
-        writeSubscribersTextfile(fsubs['err_email'],'/tmp/err_email.txt')
-        writeSubscribersTextfile(fsubs['err_userid'],'/tmp/err_userid.txt')
-        writeSubscribersTextfile(fsubs['err_expired'],'/tmp/err_expired.txt')
-        writeSubscribersTextfile(fsubs['err_plan'],'/tmp/err_plan.txt')
-        return True
+            writeSubscribersTextfile(subs,"/tmp/subscriptions.txt")
+            writeSubscribersTextfile(fsubs['err_email'],'/tmp/err_email.txt')
+            writeSubscribersTextfile(fsubs['err_userid'],'/tmp/err_userid.txt')
+            writeSubscribersTextfile(fsubs['err_expired'],'/tmp/err_expired.txt')
+            writeSubscribersTextfile(fsubs['err_plan'],'/tmp/err_plan.txt')
     else:
-        print "Payment system is not responding"
+        logger.error("Payment system is not responding")
         return False
 
+def setupPaymentSystems():
+    global setupDone
+    if setupDone:
+      return
+    for module in config.payments['modules'].split(","):
+        if module == 'pinpayments':
+            logger.info("Pinpayments module enabled")
+            pinpay.setupPinpayments()
+        elif module == 'stripe':
+            logger.info("Stripe module enabled")
+            stripe_pay.setupStripe()
+        else:
+            raise RuntimeError('Invalid payment system used')
+    setupDone = True
+
+def clearPaymentData(module):
+    if module in ['pinpayments','stripe']:
+        logger.info("Clearing payment data for %s" % module)
+        dbutil._clearPaymentData(module)
+    else:
+        logger.error("Invalid payment module specified")
+
+def clearSubscriptionData(module):
+    if module in ['pinpayments','stripe']:
+        logger.info("Clearing subscription data for %s" % module)
+        dbutil._clearSubscriptionData(module)
+    else:
+        logger.error("Invalid payment module specified")
+
+def addSubscriptionData(subs,module):
+    if module in ['pinpayments','stripe']:
+        logger.info("Updating Subscription data with valid subscribers from %s" % module)
+        dbutil._addSubscriptionData(subs,module)
+    else:
+        logger.error("Invalid payment module specified")
+
+def updatePaymentData(modules=None):
+    setupPaymentSystems()
+    if modules is None:
+        modules = config.payments['modules']
+    for module in modules.split(","):
+        logger.info("Module: %s" % module)
+        subs = getSubscriptions(module)
+        logger.info(subs)
+        fsubs = filterSubscriptions(subs)
+        logger.info(fsubs)
+        # TODO - Make sure retrieval and filtering is working
+        clearSubscriptionData(module)
+        addSubscriptionData(fsubs['valid'],module)
+
+
 if __name__ == "__main__":
-     # TEMP
-   defaults = {}
-   Config = ConfigParser.ConfigParser(defaults)
-   Config.read('../makeit.ini')
-   
-   # Load Payment config from file
-   global paysystem
-   paysystem = {}
-   paysystem['module'] = "pinpayments"
-   paysystem['valid'] = Config.getboolean('Pinpayments','Valid')
-   paysystem['userid'] = Config.get('Pinpayments','Userid')
-   paysystem['token'] = Config.get('Pinpayments','Token')
-   paysystem['uri'] = Config.get('Pinpayments','Uri')
-   paysystem['rooturi'] = Config.get('Pinpayments','RootURI')
-   print paysystem
-   _selfTest(paysystem)
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+    setupPaymentSystems()
+    #_selfTest()
+    # Fee charging, until we fix it..
+    # Bill S
+    #pinpay.chargeFee('4658001','WorkspaceRental','Rental for Mar','Workspace',"0.01","yes")
+    # Nat DONE
+    #pinpay.chargeFee('18005','WorkspaceRental','Rental for June','Workspace',"160","yes")
+    # Mark P DONE
+    #pinpay.chargeFee('5689154616688640','WorkspaceRental','Rental for Apr','Workspace',"180","yes")
+    # John W DONE
+    #pinpay.chargeFee('5073368378245120','WorkspaceRental','Rental for June','Workspace',"120","yes")
+    ## Bill Foss DONE
+    #pinpay.chargeFee('4358001','WorkspaceRental','Rental for June','Workspace',"300","yes")
+    # Adam Bastien DONE
+    #pinpay.chargeFee('5668001','WorkspaceRental','Rental for June','Workspace',"120","yes")
+    # Ian Cook 4 Weeks auto plot rental
+    #pinpay.chargeFee('190001','AutoPlot','2 Weeks plot rental','Auto',"100","yes")
+    #Craig Johnston for Battleship rental /1/2 space
+    #pinpay.chargeFee('5689127638925312','WorkspaceRental','Rental for June','Workspace','37.50','yes')
+    #
+    updatePaymentData()

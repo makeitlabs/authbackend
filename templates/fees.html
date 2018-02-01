@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+{% block search %}
+  <div class=body>
+	<div><a href="{{ url_for('payments') }}">(Back to Payments)</a></div>
+	{% if not member %}
+	  (TBD: SEARCH FOR MEMBER ID BOX)
+	{% else %}
+	  <div class="sectionhead">Member Details (<a href="{{ url_for('member_edit',id=member.member) }}">Edit</a>):</div>
+	<table>
+	  <tr>
+		<td><div>Member id: </div></td>
+		<td>{{ member.member }}</td>
+	  </tr>
+	   <tr>
+		<td><div>Firstname:</div></td>
+		<td>{{ member.firstname }}</td>
+	  </tr>
+	    <tr>
+		<td><div>Lastname:</div></td>
+		<td>{{ member.lastname }}</td>
+	  </tr>
+	</table>
+	{% endif %}
+	<p></p>
+  <h2>Charge a one-time fee to an account</h2>
+  <p>Enter a Member ID, Fee Amount and other required fields. This will then be added to the user's Pinpayments account. Note that this charges the fee when next they renew, so it's a month behind!</p>
+  <form action="{{ url_for('payments_fees_charge') }}" method="post">
+	  <table border=1>
+		<tr>
+		  <td>Member ID</td>
+		  <td><input name="memberid" id="memberid_field" type="text"></td>
+		  <td>Firstname.Lastname eg "Bill.Schongar"</td>
+		</tr>
+		<tr>
+		  <td>Amount</td>
+		  <td><input name="amount"/></td>
+		  <td>Eg 0.50, 10.00 or 11.37</td>
+		</tr>
+		<tr>
+		  <td>Fee Name</td>
+		  <td><input name="name"/></td>
+		  <td>eg "Space Rental"</td>
+		</tr>
+		<tr>
+		  <td>Fee Group</td>
+		  <td><input name="group" value="General" editable="false"/></td>
+		  <td>Leave as "General" for now</td>
+		</tr>
+		<tr>
+		  <td>Fee Description</td>
+		  <td><input name="description"/></td>
+		  <td>Eg "Auto Plot for two weeks", "Color print job on Sep 06" (alpha numeric only)</td>
+		</tr>
+	  </table>
+	  <input type="submit" value="Charge Fee">
+	</form>
+  <div class="sectionhead">Fees in last {{ days }} days <i>(Options: <a href="{{ url_for('payments_fees', days='30') }}">30</a>, <a href="{{ url_for('payments_fees', days='60') }}">60</a>, 
+  <a href="{{ url_for('payments_fees', days='90') }}">90</a>, <a href="{{ url_for('payments_fees', days='120') }}">120</a>, <a href="{{ url_for('payments_fees', days='180') }}">180</a> days)</i></div>
+  <p></p>
+  <table border=1>
+	<tr><th>Member</th><th>Date</th><th>Amount</th><th>Name</th><th>Group</th><th>Description</th></tr>
+  {% for fee in fees %}
+	  <tr>
+		<td>{{ fee.member }}</td>
+		<td>{{ fee.fee_date }}</td>
+		<td>{{ fee.amount }}</td>
+		<td>{{ fee.fee_name }}</td>
+		<td>{{ fee.fee_group }}</td>
+		<td>{{ fee.fee_description }}</td>
+	  </tr>
+	{% endfor %}
+	</table>
+  </div>
+{% endblock %}

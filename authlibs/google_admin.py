@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+##!/usr/bin/env python
 """ Utilities for handling Google SDK functions
 
 Commonly used functions:
@@ -24,11 +24,15 @@ from apiclient import errors
 from email.mime.text import MIMEText
 import base64
 
+import logging
+logger = logging.getLogger(__name__)
+
 # Settings
 SCOPES = ['https://www.googleapis.com/auth/admin.directory.user.readonly','https://www.googleapis.com/auth/admin.directory.user','https://www.googleapis.com/auth/gmail.compose']
 KEYFILE = 'makeitlabs.json'
 EMAIL_USER = 'makeitlabs.automation@makeitlabs.com'
 ADMIN_USER = 'bill.schongar@makeitlabs.com'
+TEST_EMAIL = 'bill.schongar@makeitlabs.com'
 DOMAIN = "makeitlabs.com"
 
 def searchEmail(emailstr):
@@ -39,10 +43,9 @@ def searchEmail(emailstr):
     users = results.get('users', [])
     return users
 
-def createUser(firstname,lastname,alt_email,password):
-    service = _buildAdminService()
+def createUser(firstname,lastname,userid,alt_email,password,isTest=False):
     ### TODO - Make sure no special characters
-    primary_email = "%s.%s@makeitlabs.com" % (firstname,lastname)
+    primary_email = "%s@makeitlabs.com" % (userid)
     userinfo = {'primaryEmail': primary_email,
             'name': { 'givenName': firstname, 'familyName': lastname },
             'emails': [
@@ -57,11 +60,16 @@ def createUser(firstname,lastname,alt_email,password):
             ],
             'password': password,
     }
-    service.users().insert(body=userinfo).execute()
-    username = "%s.%s" % (firstname,lastname)
-    return username
+    logger.debug(userinfo)
+    if isTest:
+        logger.info("Test mode bypass - otherwise would create new Google Account for : %s (%s)" % (userid,alt_email))
+    else:
+        service = _buildAdminService()
+        service.users().insert(body=userinfo).execute()
+    return userid
 
 def sendWelcomeEmail(username,password,email):
+    logger.info("Sending welcome email to %s at %s" % (username,email))
     letter = "Welcome to MakeIt Labs, and thanks for signing up!\n\n As a new member you have been assigned a MakeIt Labs account: \n\n"
     letter += "\tUsername: %s \n" % username
     letter += "\tTemporary password: %s \n" % password
@@ -89,12 +97,16 @@ Note: If you don't plan to check your @makeitlabs.com email address frequently, 
 --
 Slack is our primary discussion forum for members, and we strongly encourage you to join and participate.  To register for a slack account with MakeIt Labs (it's free!), please go to the following link.  https://makeitlabs.slack.com/signup
 
-5) The account created for me has the wrong Firstname.Lastname! What do I do?
+5) The account created for me has a weird/wrong name! What do I do?
 --
-Accounts are generated using Firstname.Lastname taken from Pinpayments, but we can adjust them. Send an email to info@makeitlabs.com and we'll help sort it out.
+Account names are auto-generated based on the name provided by the Payment provider (Pinpayments, Stripe, etc) but we can adjust them. Send an email to board@makeitlabs.com and we'll help sort it out.
 
 6) How do I get other information?
 --
+We have a documentation site (Wiki) available here: http://wiki.makeitlabs.com with lots of information.
+
+Classes are (normally) scheduled through Eventbrite and visible here: https://www.eventbrite.com/o/makeit-labs-1932299069
+
 If you have any questions, please feel free to contact us at info@makeitlabs.com or come to any Open House for in-person help.
 
 See you soon!
@@ -115,7 +127,7 @@ NH's First and Largest Makerspace, a 501c3 non-profit organization
     
 def testMessage():
     service = _buildEmailService()
-    message_text = "To: tracker@gmail.com\r\nFrom: info@makeitlabs.com\r\nSubject: Test message for new member signup \r\n\r\nbody goes here with actual content. Hopefully this works?"
+    message_text = "To: %s\r\nFrom: info@makeitlabs.com\r\nSubject: Test message for new member signup \r\n\r\nbody goes here with actual content. Hopefully this works?" % TEST_EMAIL
     try:
         message = (service.users().messages().send(userId='me', body={'raw': base64.urlsafe_b64encode(message_text)})
                .execute())
@@ -166,11 +178,5 @@ def testGoogle():
     print users
 
 if __name__ == "__main__":
-    testGoogle()
-    password = "wherearemytacos"
-    #email = "adam@makeitlabs.com"
-    email = 'tracker@gmail.com'
-    #user = createUser("Richard","ButtocksTest4",email,password)
-    searchEmail("bill.schongar@makeitlabs.com")
-    user = "blahblahblah"
+    #testGoogle()
     sendWelcomeEmail(user,password,email)

@@ -9,12 +9,8 @@
 		<td>{{ member.member }}</td>
 	  </tr>
 	   <tr>
-		<td><div>Firstname:</div></td>
-		<td>{{ member.firstname }}</td>
-	  </tr>
-	    <tr>
-		<td><div>Lastname:</div></td>
-		<td>{{ member.lastname }}</td>
+		<td><div>Name:</div></td>
+		<td>{{ member.name }}</td>
 	  </tr>
 		<tr>
 		<td><div {{ 'class=errortext' if (member.active != 'true')  }}>Active:</div></td>
@@ -26,7 +22,7 @@
 	  </tr>
 	  <tr>
 		<td><div>Plan</div></td>
-		<td>{{ member.plan }}</td>
+		<td>{{ member.planname }}</td>
 	  </tr>
 	   <tr>
 		<td><div>Phone</div></td>

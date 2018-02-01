@@ -16,7 +16,7 @@
 	}
    </script>
   <p></p>
-  <h2> Add new member </h2>
+  <h2> Add new member 2 </h2>
   <div class="member_add">
 	<form action="{{ url_for('member_add') }}" method="post">
 	  <table>
@@ -31,6 +31,10 @@
 		<tr>
 		  <td>Member ID<br>(Firstname.Lastname)</td>
 		  <td><input name="memberid" id="memberid_field" type="text"></td>
+		</tr>
+		<tr>
+		 <td>Plan:</td>
+		 <td><select name="plan"><option value="hobbyist" selected="true">Hobbyist</option><option value="pro">Pro</option></select></td>
 		</tr>
 		<tr>
 		  <td>Alternate Email (Optional)</td>
