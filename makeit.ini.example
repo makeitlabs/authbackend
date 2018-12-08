@@ -1,0 +1,32 @@
+[General]
+Debug: False
+Database: makeit.db
+AdminUser: admin
+AdminPassword: admin
+SecretKey: secret
+ServerHost: 0.0.0.0
+ServerPort: 5000
+
+[Payments]
+Modules: stripe
+Valid: false
+
+[Pinpayments]
+Valid: False
+Userid: userid
+RootURI: https://subs.pinpayments.com/
+Uri: https://subs.pinpayments.com/api/v4/userid/subscribers.xml
+Token: 1234
+Hashed: False
+LastUpdated: Never
+
+[Stripe]
+Valid: False
+Userid: userid
+RootURI: https://api.stripe.com
+Uri: https://api.stripe.com/v1/subscriptions
+TokenTEST: sk_test_1234
+Token: sk_live_1234
+
+[Smartwaiver]
+Apikey: abcd
