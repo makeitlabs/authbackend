@@ -21,7 +21,11 @@ TODO:
 import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response
-from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
+# NEwer login functionality
+from flask_user import current_user, login_required, roles_required, UserManager, UserMixin
+from flask_sqlalchemy import SQLAlchemy
+#; older login functionality
+#from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from contextlib import closing
 import pycurl, sys
 import ConfigParser
@@ -38,6 +42,8 @@ from functools import wraps
 import logging
 logging.basicConfig(stream=sys.stderr)
 import pprint
+from datetime import datetime
+from authlibs.db_models import db, User, Role, UserRoles
 
 
 # Load general configuration from file
@@ -51,57 +57,56 @@ AdminUser = Config.get('General','AdminUser')
 AdminPasswd = Config.get('General','AdminPassword')
 DEBUG = Config.getboolean('General','Debug')
 
+# Flask-User Settings
+USER_APP_NAME = 'Basic'
+USER_PASSLIB_CRYPTCONTEXT_SCHEMES=['bcrypt']
+# Don;t want to include these, but it depends on them, so..
+USER_ENABLE_EMAIL = True        # Enable email authentication
+USER_ENABLE_USERNAME = False    # Disable username authentication
+USER_EMAIL_SENDER_NAME = USER_APP_NAME
+USER_EMAIL_SENDER_EMAIL = "noreply@example.com"
+
+# SQLAlchemy setting
+SQLALCHEMY_DATABASE_URI = "sqlite:///"+Database
+SQLALCHEMY_TRACK_MODIFICATIONS = False
+
 # Load Waiver system data from file
 waiversystem = {}
 waiversystem['Apikey'] = Config.get('Smartwaiver','Apikey')
 
-# App setup
-app = Flask(__name__)
-app.config.from_object(__name__)
-app.secret_key = Config.get('General','SecretKey')
+def create_app():
+    # App setup
+    app = Flask(__name__)
+    app.config.from_object(__name__)
+    app.secret_key = Config.get('General','SecretKey')
+    return app
+
 
 # Login mechanism, using Flask-Login
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = "login"
+# ;older login functionality
+#login_manager = LoginManager()
+#login_manager.init_app(app)
+#login_manager.login_view = "login"
 
-class UserNotFoundError(Exception):
-    pass
-
-# Simple user class base on UserMixin
-# TODO - DB-backed users
-# http://flask-login.readthedocs.org/en/latest/_modules/flask/ext/login.html#UserMixin
-class User(UserMixin):
-    '''Simple User class'''
-    USERS = {
-        # username: password
-        AdminUser: AdminPasswd
-    }
-
-    def __init__(self, id):
-        if not id in self.USERS:
-            raise UserNotFoundError()
-        self.id = id
-        self.password = self.USERS[id]
-
-    @classmethod
-    def get(self_class, id):
-        '''Return user instance of id, return None if not exist'''
-        try:
-            return self_class(id)
-        except UserNotFoundError:
-            return None
 
 # Flask-Login use this to reload the user object from the user ID stored in the session
+
+'''
 @login_manager.user_loader
 def load_user(id):
     return User.get(id)
+'''
 
 def check_auth(username, password):
     """This function is called to check if a username /
     password combination is valid.
     """
-    return username == 'api' and password == 's33krit'
+    print(username)
+    print(password)
+    if not User.query.filter_by(email=username,api_key=password).first():
+        return False
+    else:
+        return True
 
 def authenticate():
     """Sends a 401 response that enables basic auth"""
@@ -110,7 +115,7 @@ def authenticate():
     'You have to login with proper credentials', 401,
     {'WWW-Authenticate': 'Basic realm="Login Required"'})
 
-def argh():
+def error_401():
     """Sends a 401 response that enables basic auth"""
     return Response(
     'What the hell. .\n'
@@ -122,11 +127,12 @@ def requires_auth(f):
     def decorated(*args, **kwargs):
         auth = request.authorization
         if not auth:
-            return argh()
+            return error_401()
         if not check_auth(auth.username, auth.password):
             return authenticate()
         return f(*args, **kwargs)
     return decorated
+
 
 def connect_db():
     """Convenience method to connect to the globally-defined database"""
@@ -431,670 +437,710 @@ def addNewWaivers():
 # Request filters
 ########
 
+'''
 @app.before_request
 def before_request():
-	g.db = connect_db()
+	#g.db = connect_db()
+    pass
 
 # TODO : Change this to app.teardown_appcontext so we don't keep closing the DB? Ramifications?
 @app.teardown_request
 def teardown_request(exception):
-	db = getattr(g,'db',None)
-	if db is not None:
-		db.close()
+	#db = getattr(g,'db',None)
+	#if db is not None:
+		#db.close()
+    pass
+'''
 
 ########
 # Routes
 ########
 
-@app.route('/login')
-def login():
-   return render_template('login.html')
+def create_routes():
+    @app.route('/new')
+    @login_required
+    def newroute():
+        return "Hello new route"
 
-@app.route('/login/check', methods=['post'])
-def login_check():
-    """Validate username and password from form against static credentials"""
-    user = User.get(request.form['username'])
-    if (user and user.password == request.form['password']):
-        login_user(user)
-    else:
-        flash('Username or password incorrect')
+    @app.route('/login')
+    def login():
+       return render_template('login.html')
 
-    return redirect(url_for('index'))
+    @app.route('/login/check', methods=['post'])
+    def login_check():
+        """Validate username and password from form against static credentials"""
+        user = User.get(request.form['username'])
+        if (user and user.password == request.form['password']):
+            login_user(user)
+        else:
+            flash('Username or password incorrect')
 
-@app.route('/logout')
-@login_required
-def logout():
-   """Seriously? What do you think logout() does?"""
-   logout_user()
-   flash("Thanks for visiting, you've been logged out.")
-   return redirect(url_for('login'))
+        return redirect(url_for('index'))
 
-@app.route("/index")
-@app.route('/')
-@login_required
-def index():
-   """Main page, redirects to login if needed"""
-   return render_template('index.html')
+    @app.route('/logout')
+    @login_required
+    def logout():
+       """Seriously? What do you think logout() does?"""
+       logout_user()
+       flash("Thanks for visiting, you've been logged out.")
+       return redirect(url_for('login'))
 
-@app.route('/search',methods=['GET','POST'])
-@login_required
-def search_members():
-   """Takes input of searchstr from form, displays matching member list"""
-   searchstr = safestr(request.form['searchstr'])
-   members = membership.searchMembers(searchstr)
-   return render_template('members.html',members=members,searchstr=searchstr)
+    @app.route("/index")
+    @app.route('/')
+    @login_required
+    def index():
+       """Main page, redirects to login if needed"""
+       return render_template('index.html')
 
-# --------------------------------------
-# Member viewing and editing functions
-# Routes
-#  /members : Show (HTTP GET - members()), Create new (HTTP POST - member_add())
-#  /<memberid> - Show (HTTP GET - member_show()), Create new (HTTP POST - member_add())
-#  /<memberid>/access - Show current access and interface to change (GET), Change access (POST)
-#  /<memberid>/tags - Show tags associated with user (GET), Change tags (POST)
-#  /<memberid>/edit - Show current user base info and interface to adjust (GET), Change existing user (POST)
-# --------------------------------------
+    @app.route('/search',methods=['GET','POST'])
+    @login_required
+    def search_members():
+       """Takes input of searchstr from form, displays matching member list"""
+       searchstr = safestr(request.form['searchstr'])
+       members = membership.searchMembers(searchstr)
+       return render_template('members.html',members=members,searchstr=searchstr)
 
-@app.route('/members', methods = ['GET'])
-@login_required
-def members():
-	members = {}
-	return render_template('members.html',members=members)
+    # --------------------------------------
+    # Member viewing and editing functions
+    # Routes
+    #  /members : Show (HTTP GET - members()), Create new (HTTP POST - member_add())
+    #  /<memberid> - Show (HTTP GET - member_show()), Create new (HTTP POST - member_add())
+    #  /<memberid>/access - Show current access and interface to change (GET), Change access (POST)
+    #  /<memberid>/tags - Show tags associated with user (GET), Change tags (POST)
+    #  /<memberid>/edit - Show current user base info and interface to adjust (GET), Change existing user (POST)
+    # --------------------------------------
 
-@app.route('/members', methods= ['POST'])
-@login_required
-def member_add():
-    """Controller method for POST requests to add a user"""
-    member = {}
-    mandatory_fields = ['firstname','lastname','memberid','plan','payment']
-    optional_fields = ['alt_email','phone','nickname']
-    print request
-    for f in mandatory_fields:
-        member[f] = ''
-        if f in request.form:
-            member[f] = request.form[f]
-        if member[f] == '':
-            flash("Error: One or more mandatory fields not filled out")
+    @app.route('/members', methods = ['GET'])
+    @login_required
+    def members():
+    	members = {}
+    	return render_template('members.html',members=members)
+
+    @app.route('/members', methods= ['POST'])
+    @login_required
+    def member_add():
+        """Controller method for POST requests to add a user"""
+        member = {}
+        mandatory_fields = ['firstname','lastname','memberid','plan','payment']
+        optional_fields = ['alt_email','phone','nickname']
+        print request
+        for f in mandatory_fields:
+            member[f] = ''
+            if f in request.form:
+                member[f] = request.form[f]
+            if member[f] == '':
+                flash("Error: One or more mandatory fields not filled out")
+                return redirect(url_for('members'))
+        for f in optional_fields:
+            member[f] = ''
+            if f in request.form:
+                member[f] = request.form[f]
+        result = _createMember(member)
+        flash(result['message'])
+        if result['status'] == "success":
+            return redirect(url_for('member_show',id=member['memberid']))
+        else:
             return redirect(url_for('members'))
-    for f in optional_fields:
-        member[f] = ''
-        if f in request.form:
-            member[f] = request.form[f]
-    result = _createMember(member)
-    flash(result['message'])
-    if result['status'] == "success":
-        return redirect(url_for('member_show',id=member['memberid']))
-    else:
-        return redirect(url_for('members'))
 
-@app.route('/members/<string:id>/edit', methods = ['GET'])
-@login_required
-def member_edit(id):
-    mid = safestr(id)
-    member = {}
+    @app.route('/members/<string:id>/edit', methods = ['GET'])
+    @login_required
+    def member_edit(id):
+        mid = safestr(id)
+        member = {}
 
-    return "Show the user editing form now, then call member_update"
+        return "Show the user editing form now, then call member_update"
 
-@app.route('/members/<string:id>', methods = ['GET'])
-@login_required
-def member_show(id):
-   """Controller method to Display or modify a single user"""
-   #TODO: Move member query functions to membership module
-   access = {}
-   mid = safestr(id)
-   sqlstr = """select m.member, m.name, m.phone, m.updated_date, m.access_enabled,
-            m.access_reason, m.active, m.alt_email, s.expires_date, s.planname as plan, s.updated_date as payment_date
-            from members m left join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email where m.member='%s'""" % mid
-   member = query_db(sqlstr,"",True)
-   member = dict(member)
-   sqlstr = """select r.description, a.updated_date from resources r left join accessbymember a
-            on r.name=a.resource and a.member='%s' where a.enabled='1'""" % mid
-   access = query_db(sqlstr)
-   return render_template('member_show.html',member=member,access=access)
+    @app.route('/members/<string:id>', methods = ['GET'])
+    @login_required
+    def member_show(id):
+       """Controller method to Display or modify a single user"""
+       #TODO: Move member query functions to membership module
+       access = {}
+       mid = safestr(id)
+       sqlstr = """select m.member, m.name, m.phone, m.updated_date, m.access_enabled,
+                m.access_reason, m.active, m.alt_email, s.expires_date, s.planname as plan, s.updated_date as payment_date
+                from members m left join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email where m.member='%s'""" % mid
+       member = query_db(sqlstr,"",True)
+       member = dict(member)
+       sqlstr = """select r.description, a.updated_date from resources r left join accessbymember a
+                on r.name=a.resource and a.member='%s' where a.enabled='1'""" % mid
+       access = query_db(sqlstr)
+       return render_template('member_show.html',member=member,access=access)
 
-@app.route('/members/<string:id>/access', methods = ['GET'])
-@login_required
-def member_editaccess(id):
-    """Controller method to display gather current access details for a member and display the editing interface"""
-    mid = safestr(id)
-    sqlstr = "select tagid,tagtype,tagname from tagsbymember where member = '%s'" % mid
-    tags = query_db(sqlstr)
-    sqlstr = """select r.name,r.description,r.owneremail,a.member as id,a.enabled from resources r
-            left join accessbymember a on r.name = a.resource AND a.member = '%s'""" % mid
-    m = query_db(sqlstr)
-    member = {}
-    member['id'] = mid
-    member['access']= m
-    return render_template('member_access.html',member=member,tags=tags)
+    @app.route('/members/<string:id>/access', methods = ['GET'])
+    @login_required
+    def member_editaccess(id):
+        """Controller method to display gather current access details for a member and display the editing interface"""
+        mid = safestr(id)
+        sqlstr = "select tagid,tagtype,tagname from tagsbymember where member = '%s'" % mid
+        tags = query_db(sqlstr)
+        sqlstr = """select r.name,r.description,r.owneremail,a.member as id,a.enabled from resources r
+                left join accessbymember a on r.name = a.resource AND a.member = '%s'""" % mid
+        m = query_db(sqlstr)
+        member = {}
+        member['id'] = mid
+        member['access']= m
+        return render_template('member_access.html',member=member,tags=tags)
 
-@app.route('/members/<string:id>/access', methods = ['POST'])
-@login_required
-def member_setaccess(id):
-    """Controller method to receive POST and update user access"""
-    mid = safestr(id)
-    access = {}
-    for key in request.form:
-        match = re.search(r"^access_(.+)",key)
-        if match:
-            access[match.group(1)] = 1
-    clearAccess(mid)
-    addAccess(mid,access)
-    flash("Member access updated")
-    return redirect(url_for('member_editaccess',id=mid))
+    @app.route('/members/<string:id>/access', methods = ['POST'])
+    @login_required
+    def member_setaccess(id):
+        """Controller method to receive POST and update user access"""
+        mid = safestr(id)
+        access = {}
+        for key in request.form:
+            match = re.search(r"^access_(.+)",key)
+            if match:
+                access[match.group(1)] = 1
+        clearAccess(mid)
+        addAccess(mid,access)
+        flash("Member access updated")
+        return redirect(url_for('member_editaccess',id=mid))
 
-@app.route('/members/<string:id>/tags', methods = ['GET'])
-@login_required
-def member_tags(id):
-    """Controller method to gather and display tags associated with a memberid"""
-    mid = safestr(id)
-    sqlstr = "select tagid,tagtype,tagname from tagsbymember where member = '%s'" % mid
-    tags = query_db(sqlstr)
-    return render_template('member_tags.html',mid=mid,tags=tags)
+    @app.route('/members/<string:id>/tags', methods = ['GET'])
+    @login_required
+    def member_tags(id):
+        """Controller method to gather and display tags associated with a memberid"""
+        mid = safestr(id)
+        sqlstr = "select tagid,tagtype,tagname from tagsbymember where member = '%s'" % mid
+        tags = query_db(sqlstr)
+        return render_template('member_tags.html',mid=mid,tags=tags)
 
-@app.route('/members/<string:id>/tags', methods = ['POST'])
-@login_required
-def member_tagadd(id):
-    """(Controller) method for POST to add tag for a user, making sure they are not duplicates"""
-    mid = safestr(id)
-    ntag = safestr(request.form['newtag'])
-    ntagtype = safestr(request.form['newtagtype'])
-    if len(ntag) > 10:
-        flash("Not hashing tag, looks like it's pre-hashed")
-        htag = ntag
-    else:
-        htag = authutil.hash_rfid(ntag)
-    ntagname = safestr(request.form['newtagname'])
-    if htag is None:
-        flash("ERROR: The specified RFID tag is invalid, must be all-numeric")
-    else:
-        if add_member_tag(mid,htag,ntagtype,ntagname):
-            flash("Tag added.")
+    @app.route('/members/<string:id>/tags', methods = ['POST'])
+    @login_required
+    def member_tagadd(id):
+        """(Controller) method for POST to add tag for a user, making sure they are not duplicates"""
+        mid = safestr(id)
+        ntag = safestr(request.form['newtag'])
+        ntagtype = safestr(request.form['newtagtype'])
+        if len(ntag) > 10:
+            flash("Not hashing tag, looks like it's pre-hashed")
+            htag = ntag
         else:
-            flash("Error: That tag is already associated with a user")
-    return redirect(url_for('member_tags',id=mid))
-
-@app.route('/members/<string:id>/tags/delete/<string:tagid>', methods = ['GET'])
-@login_required
-def member_tagdelete(id,tagid):
-    """(Controller) Delete a Tag from a Member (HTTP GET, for use from a href link)"""
-    mid = safestr(id)
-    tid = safestr(tagid)
-    sqlstr = "delete from tagsbymember where tagid = '%s' and member = '%s'" % (tid,mid)
-    execute_db(sqlstr)
-    get_db().commit()
-    flash("If that tag was associated with the current user, it was removed")
-    return redirect(url_for('member_tags',id=mid))
-
-# ----------------------------------------------------
-# Resource management (not including member access)
-# Routes:
-#  /resources - View
-#  /resources/<name> - Details for specific resource
-#  /resources/<name>/access - Show access for resource
-# ------------------------------------------------------
-
-@app.route('/resources', methods=['GET'])
-@login_required
-def resources():
-   """(Controller) Display Resources and controls"""
-   resources = _get_resources()
-   access = {}
-   return render_template('resources.html',resources=resources,access=access,editable=True)
-
-@app.route('/resources', methods=['POST'])
-@login_required
-def resource_create():
-   """(Controller) Create a resource from an HTML form POST"""
-   res = {}
-   res['name'] = safestr(request.form['rname'])
-   res['description'] = safestr(request.form['rdesc'])
-   res['owneremail'] = safeemail(request.form['rcontact'])
-   result = _createResource(res)
-   flash(result['message'])
-   return redirect(url_for('resources'))
-
-@app.route('/resources/<string:resource>', methods=['GET'])
-@login_required
-def resource_show(resource):
-    """(Controller) Display information about a given resource"""
-    rname = safestr(resource)
-    sqlstr = "SELECT name, owneremail, description from resources where name = '%s'" % rname
-    print sqlstr
-    r = query_db(sqlstr,(),True)
-    print r
-    return render_template('resource_edit.html',resource=r)
-
-@app.route('/resources/<string:resource>', methods=['POST'])
-@login_required
-def resource_update(resource):
-    """(Controller) Update an existing resource from HTML form POST"""
-    rname = safestr(resource)
-    rdesc = safestr(request.form['rdescription'])
-    remail = safestr(request.form['remail'])
-    sqlstr = "update resources set description='%s',owneremail='%s', last_updated=Datetime('now') where name='%s'" % (rdesc,remail,rname)
-    execute_db(sqlstr)
-    get_db().commit()
-    flash("Resource updated")
-    return redirect(url_for('resources'))
-
-@app.route('/resources/<string:resource>/delete', methods=['POST'])
-def resource_delete(resource):
-    """(Controller) Delete a resource. Shocking."""
-    rname = safestr(resource)
-    sqlstr = "delete from resources where name='%s'" % rname
-    execute_db(sqlstr)
-    get_db().commit()
-    flash("Resource deleted.")
-    return redirect(url_for('resources'))
-
-@app.route('/resources/<string:resource>/list', methods=['GET'])
-def resource_showusers(resource):
-    """(Controller) Display users who are authorized to use this resource"""
-    rid = safestr(resource)
-    sqlstr = "select member from accessbymember where resource='%s'" % rid
-    authusers = query_db(sqlstr)
-    return render_template('resource_users.html',resource=rid,users=authusers)
-
-#TODO: Create safestring converter to replace string; converter?
-@app.route('/resources/<string:resource>/log', methods=['GET','POST'])
-def logging(resource):
-   """Endpoint for a resource to log via API"""
-   # TODO - verify resources against global list
-   if request.method == 'POST':
-    print "LOGGING FOR RESOURCE"
-    # YYYY-MM-DD HH:MM:SS
-    # TODO: Filter this for safety
-    logdatetime = request.form['logdatetime']
-    level = safestr(request.form['level'])
-    # 'system' for resource system, rfid for access messages
-    userid = safestr(request.form['userid'])
-    msg = safestr(request.form['msg'])
-    sqlstr = "INSERT into logs (logdatetime,resource,level,userid,msg) VALUES ('%s','%s','%s','%s','%s')" % (logdatetime,resource,level,userid,msg)
-    execute_db(sqlstr)
-    get_db().commit()
-    print "Committed"
-    return render_template('logged.html')
-   else:
-    print "QUERYING LOGS FOR RESOURCE"
-    if current_user.is_authenticated:
-        r = safestr(resource)
-        sqlstr = "SELECT logdatetime,resource,level,userid,msg from logs where resource = '%s'" % r
-        entries = query_db(sqlstr)
-        return render_template('resource_log.html',entries=entries)
-    else:
-        abort(401)
-
-
-# ------------------------------------------------
-# Payments controllers
-# Routes:
-#  /payments - Show payments options
-# ------------------------------------------------
-
-@app.route('/payments', methods = ['GET'])
-@login_required
-def payments():
-    """(Controller) Show Payment system controls"""
-    cdate = pay.getLastUpdatedDate()
-    return render_template('payments.html',cdate=cdate)
-
-@app.route('/payments/manual', methods = ['GET'])
-@login_required
-def manual_payments():
-   sqlstr = """select member,plan,expires_date,updated_date from payments where paysystem = 'manual'"""
-   members = query_db(sqlstr)
-   return render_template('payments_manual.html',members=members)
-
-
-@app.route('/payments/manual/extend/<member>', methods = ['GET'])
-@login_required
-def payments_manual_extend(member):
-    safe_id = safestr(member)
-    sqlstr = "update payments set expires_date=DATETIME(expires_date,'+31 days') where member = '%s' " % safe_id
-    print(sqlstr)
-    execute_db(sqlstr)
-    get_db().commit()
-    flash("Member %s was updated in the payments table" % safe_id)
-    return redirect(url_for('manual_payments'))
-
-@app.route('/payments/manual/expire/<member>', methods = ['GET'])
-@login_required
-def payments_manual_expire(member):
-    safe_id = safestr(member)
-    sqlstr = "update payments set expires_date=datetime('now')  where member = '%s' " % safe_id
-    execute_db(sqlstr)
-    get_db().commit()
-    # TODO: EXPIRE MEMBER FROM ACCESS CONTROLS
-    flash("Member %s was forcibly expired" % safe_id)
-    return redirect(url_for('manual_payments'))
-
-@app.route('/payments/manual/delete/<member>', methods = ['GET'])
-@login_required
-def payments_manual_delete(member):
-    safe_id = safestr(member)
-    sqlstr = "delete from payments where member = '%s' " % safe_id
-    execute_db(sqlstr)
-    get_db().commit()
-     # TODO: EXPIRE MEMBER FROM ACCESS CONTROLS
-    flash("Member %s was deleted from the payments table" % safe_id)
-    return redirect(url_for('manual_payments'))
-
-@app.route('/payments/test', methods = ['GET'])
-@login_required
-def test_payments():
-   """(Controller) Validate the connection to the payment system(s)"""
-   if pay.testPaymentSystems():
-	  flash("Payment system is reachable.")
-   else:
-	  flash("Error: One or more Payment systems is Unreachable, review logs.")
-   return redirect(url_for('payments'))
-
-@app.route('/payments/update', methods = ['GET'])
-@login_required
-def update_payments():
-    """(Controller) Sync Payment data and update Member data (add missing, deactivate, etc)"""
-    # TODO: Error handling
-    pay.updatePaymentData()
-    membership.syncWithSubscriptions()
-    flash("Payment and Member data adjusted")
-    return redirect(url_for('payments'))
-
-@app.route('/payments/<string:id>', methods=['GET'])
-@login_required
-def payments_member(id):
-    pid = safestr(id)
-    # Note: When debugging Payments system duplication, there may be multiple records
-    #  Display template is set up to handle that scenario
-    sqlstr = """select p.member, m.firstname, m.lastname, p.email, p.paysystem, p.plan, p.customerid,
-            p.expires_date, p.updated_date, p.checked_date, p.created_date from payments p join
-            members m on m.member=p.member where p.member='%s'""" % pid
-    user = query_db(sqlstr)
-    return render_template('payments_member.html',user=user)
-
-@app.route('/payments/reports', methods = ['GET'])
-@login_required
-def payments_reports():
-    """(Controller) View various Payment data attributes"""
-    f = request.args.get('filter','')
-    sqlstr = "select * from payments"
-    if f !='':
-        if f == 'expired':
-            sqlstr = sqlstr + " where expires_date < Datetime('now')"
-        elif f == 'notexpired':
-            sqlstr = sqlstr + " where expires_date > Datetime('now')"
-        elif f == 'recentexpired':
-            sqlstr = sqlstr + " where expires_date > Datetime('now','-180 days') AND expires_date < Datetime('now')"
-        elif f == 'recentexpired':
-            sqlstr = sqlstr + " where expires_date > Datetime('now','-180 days') AND expires_date < Datetime('now')"
-    payments = query_db(sqlstr)
-    return render_template('payments_reports.html',f=f,payments=payments)
-
-@app.route('/payments/fees', methods = ['GET'])
-@login_required
-def payments_fees():
-    """(Controller) Charge Fee to a user, Schedule recurring Fee, view past paid fees"""
-    f = request.args.get('days','90')
-    # TODO: Member ID, pass in from member page?
-    member = {}
-    dt = """Datetime('now','-%s days')""" % f
-    sqlstr = """select member, amount, fee_date, fee_name, fee_group, fee_description from feespaid where fee_date > %s""" % dt
-    print(sqlstr)
-    fees = query_db(sqlstr)
-    return render_template('fees.html',days=f,member=member,fees=fees)
-
-@app.route("/payments/fees/charge", methods = ['POST'])
-@login_required
-def payments_fees_charge():
-    """(Controller) Charge a one-time fee to a user"""
-    fee = {}
-    mandatory_fields = ['memberid','amount','name','description','group']
-    print request
-    for f in mandatory_fields:
-        fee[f] = ''
-        if f in request.form:
-            fee[f] = safestr(request.form[f])
-            print(fee[f])
-        if fee[f] == '':
-            flash("Error: One or more mandatory fields not filled out")
-            return redirect(url_for('payments_fees'))
-    # Validate member
-    sqlstr = "Select customerid from payments where member = '%s'" % fee['memberid']
-    members = query_db(sqlstr,"",True)
-    if members:
-        # Force validation of currency value
-        try:
-            "{:.2f}".format(float(fee['amount']))
-            ## TODO: Still need to create the actual charge
-            result = pay.chargeFee(paysystem,members['customerid'],fee['name'],fee['group'],fee['description'],fee['amount'])
-            if result['success'] == True:
-                # TODO: Record fee charge
-                flash("Fee successfully charged and recorded")
+            htag = authutil.hash_rfid(ntag)
+        ntagname = safestr(request.form['newtagname'])
+        if htag is None:
+            flash("ERROR: The specified RFID tag is invalid, must be all-numeric")
+        else:
+            if add_member_tag(mid,htag,ntagtype,ntagname):
+                flash("Tag added.")
             else:
-                flash("Error: Could not charge fee")
-        except ValueError:
-            flash("Amount must be a currency value such as 75 or 13.11")
-        #
-    else:
-        flash("Error: Memberid does not exist. Make sure you have the right one..")
-    return redirect(url_for('payments_fees'))
+                flash("Error: That tag is already associated with a user")
+        return redirect(url_for('member_tags',id=mid))
 
-# ------------------------------------------------------------
-# Blacklist entries
-# - Ignore bad pinpayments records, mainly
-# ------------------------------------------------------------
+    @app.route('/members/<string:id>/tags/delete/<string:tagid>', methods = ['GET'])
+    @login_required
+    def member_tagdelete(id,tagid):
+        """(Controller) Delete a Tag from a Member (HTTP GET, for use from a href link)"""
+        mid = safestr(id)
+        tid = safestr(tagid)
+        sqlstr = "delete from tagsbymember where tagid = '%s' and member = '%s'" % (tid,mid)
+        execute_db(sqlstr)
+        get_db().commit()
+        flash("If that tag was associated with the current user, it was removed")
+        return redirect(url_for('member_tags',id=mid))
 
-@app.route('/blacklist', methods=['GET'])
-@login_required
-def blacklist_show():
-    """(Controller) Show all the Blacklist entries"""
-    sqlstr = "select entry,entrytype,reason,updated_date from blacklist"
-    blacklist = query_db(sqlstr)
-    return render_template('blacklist.html',blacklist=blacklist)
+    # ----------------------------------------------------
+    # Resource management (not including member access)
+    # Routes:
+    #  /resources - View
+    #  /resources/<name> - Details for specific resource
+    #  /resources/<name>/access - Show access for resource
+    # ------------------------------------------------------
 
+    @app.route('/resources', methods=['GET'])
+    @login_required
+    def resources():
+       """(Controller) Display Resources and controls"""
+       resources = _get_resources()
+       access = {}
+       return render_template('resources.html',resources=resources,access=access,editable=True)
 
-# ------------------------------------------------------------
-# Reporting controllers
-# ------------------------------------------------------------
+    @app.route('/resources', methods=['POST'])
+    @login_required
+    def resource_create():
+       """(Controller) Create a resource from an HTML form POST"""
+       res = {}
+       res['name'] = safestr(request.form['rname'])
+       res['description'] = safestr(request.form['rdesc'])
+       res['owneremail'] = safeemail(request.form['rcontact'])
+       result = _createResource(res)
+       flash(result['message'])
+       return redirect(url_for('resources'))
 
-@app.route('/reports', methods=['GET'])
-@login_required
-def reports():
-    """(Controller) Display some pre-defined report options"""
-    stats = getDataDiscrepancies()
-    return render_template('reports.html',stats=stats)
+    @app.route('/resources/<string:resource>', methods=['GET'])
+    @login_required
+    def resource_show(resource):
+        """(Controller) Display information about a given resource"""
+        rname = safestr(resource)
+        sqlstr = "SELECT name, owneremail, description from resources where name = '%s'" % rname
+        print sqlstr
+        r = query_db(sqlstr,(),True)
+        print r
+        return render_template('resource_edit.html',resource=r)
 
-# ------------------------------------------------------------
-# Waiver controllers
-# ------------------------------------------------------------
+    @app.route('/resources/<string:resource>', methods=['POST'])
+    @login_required
+    def resource_update(resource):
+        """(Controller) Update an existing resource from HTML form POST"""
+        rname = safestr(resource)
+        rdesc = safestr(request.form['rdescription'])
+        remail = safestr(request.form['remail'])
+        sqlstr = "update resources set description='%s',owneremail='%s', last_updated=Datetime('now') where name='%s'" % (rdesc,remail,rname)
+        execute_db(sqlstr)
+        get_db().commit()
+        flash("Resource updated")
+        return redirect(url_for('resources'))
 
-@app.route('/waivers', methods=['GET'])
-@login_required
-def waivers():
-    sqlstr = "select waiverid,email,firstname,lastname,created_date from waivers"
-    waivers = query_db(sqlstr)
-    return render_template('waivers.html',waivers=waivers)
+    @app.route('/resources/<string:resource>/delete', methods=['POST'])
+    def resource_delete(resource):
+        """(Controller) Delete a resource. Shocking."""
+        rname = safestr(resource)
+        sqlstr = "delete from resources where name='%s'" % rname
+        execute_db(sqlstr)
+        get_db().commit()
+        flash("Resource deleted.")
+        return redirect(url_for('resources'))
 
-@app.route('/waivers/update', methods=['GET'])
-@login_required
-def waivers_update():
-    """(Controller) Update list of waivers in the database. Can take a while."""
-    updated = addNewWaivers()
-    flash("Waivers added: %s" % updated)
-    return redirect(url_for('waivers'))
+    @app.route('/resources/<string:resource>/list', methods=['GET'])
+    def resource_showusers(resource):
+        """(Controller) Display users who are authorized to use this resource"""
+        rid = safestr(resource)
+        sqlstr = "select member from accessbymember where resource='%s'" % rid
+        authusers = query_db(sqlstr)
+        return render_template('resource_users.html',resource=rid,users=authusers)
 
-
-
-
-# ------------------------------------------------------------
-# Google Accounts and Welcome Letters
-# -----------------------------------------------------------
-
-def _createNewGoogleAccounts():
-    """Check for any user created in the last 3 days who does not have a Makeitlabs.com account"""
-    sqlstr = "select m.member,m.firstname,m.lastname,p.email from members m inner join payments p on m.member=p.member where p.created_date >= Datetime('now','-3 day') and p.expires_date >= Datetime('now')"
-    newusers = query_db(sqlstr)
-    for n in newusers:
-        # Using emailstr search to get around wierd hierarchical name mismatch
-        emailstr = "%s.%s@makeitlabs.com" % (n['firstname'],n['lastname'])
-        users = google.searchEmail(emailstr)
-        if users == []:
-            # TODO: Change this to logging
-            print "Member %s may need an account (%s.%s)" % (n['member'],n['firstname'],n['lastname'])
-            ts = time.time()
-            password = "%s-%d" % (n['lastname'],ts - (len(n['email']) * 314))
-            print "Create with password %s and email to %s" % (password,n['email'])
-            user = google.createUser(n['firstname'],n['lastname'],n['email'],password)
-            google.sendWelcomeEmail(user,password,n['email'])
-            print("Welcome email sent")
+    #TODO: Create safestring converter to replace string; converter?
+    @app.route('/resources/<string:resource>/log', methods=['GET','POST'])
+    def logging(resource):
+       """Endpoint for a resource to log via API"""
+       # TODO - verify resources against global list
+       if request.method == 'POST':
+        print "LOGGING FOR RESOURCE"
+        # YYYY-MM-DD HH:MM:SS
+        # TODO: Filter this for safety
+        logdatetime = request.form['logdatetime']
+        level = safestr(request.form['level'])
+        # 'system' for resource system, rfid for access messages
+        userid = safestr(request.form['userid'])
+        msg = safestr(request.form['msg'])
+        sqlstr = "INSERT into logs (logdatetime,resource,level,userid,msg) VALUES ('%s','%s','%s','%s','%s')" % (logdatetime,resource,level,userid,msg)
+        execute_db(sqlstr)
+        get_db().commit()
+        print "Committed"
+        return render_template('logged.html')
+       else:
+        print "QUERYING LOGS FOR RESOURCE"
+        if current_user.is_authenticated:
+            r = safestr(resource)
+            sqlstr = "SELECT logdatetime,resource,level,userid,msg from logs where resource = '%s'" % r
+            entries = query_db(sqlstr)
+            return render_template('resource_log.html',entries=entries)
         else:
-            print "Member appears to have an account: %s" % users
+            abort(401)
 
-def _createNewGoogleAccounts():
-    """Check for any user created in the last 3 days who does not have a Makeitlabs.com account"""
-    sqlstr = "select m.member,m.firstname,m.lastname,p.email from members m inner join payments p on m.member=p.member where p.created_date >= Datetime('now','-3 day') and p.expires_date >= Datetime('now')"
-    newusers = query_db(sqlstr)
-    for n in newusers:
-        # Using emailstr search to get around wierd hierarchical name mismatch
-        emailstr = "%s.%s@makeitlabs.com" % (n['firstname'],n['lastname'])
-        users = google.searchEmail(emailstr)
-        if users == []:
-            # TODO: Change this to logging
-            print "Member %s may need an account (%s.%s)" % (n['member'],n['firstname'],n['lastname'])
-            ts = time.time()
-            password = "%s-%d" % (n['lastname'],ts - (len(n['email']) * 314))
-            print "Create with password %s and email to %s" % (password,n['email'])
-            user = google.createUser(n['firstname'],n['lastname'],n['email'],password)
-            google.sendWelcomeEmail(user,password,n['email'])
-            print("Welcome email sent")
-        else:
-            print "Member appears to have an account: %s" % users
 
-# ------------------------------------------------------------
-# API Routes - Stable, versioned URIs for outside integrations
-# Version 1:
-# /api/v1/
-#        /members -  List of all memberids, supports filtering and output formats
-# ----------------------------------------------------------------
+    # ------------------------------------------------
+    # Payments controllers
+    # Routes:
+    #  /payments - Show payments options
+    # ------------------------------------------------
 
-@app.route('/api/v1/members', methods=['GET'])
-@login_required
-def api_v1_members():
-    """(API) Return a list of all members. either in CSV or JSON"""
-    sqlstr = "select m.member,m.plan,m.updated_date,s.expires_date from members m inner join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email"
-    outformat = request.args.get('output','json')
-    filters = {}
-    filters['active'] = safestr(request.args.get('active',''))
-    filters['access_enabled'] = safestr(request.args.get('enabled',''))
-    filters['expired'] = safestr(request.args.get('expired',''))
-    filters['plan'] = safestr(request.args.get('plan',''))
-    fstring = ""
-    if len(filters) > 0:
-        fstrings = []
-        for f in filters:
-            if f == 'active' or f == 'access_enabled':
-                if filters[f] == "true" or filters[f] == "false":
-                    fstrings.append("%s='%s'" % (f,filters[f]))
-            if f == 'expired':
-                if filters[f] == 'true':
-                    fstrings.append("p.expires_date < Datetime('now')")
-                if filters[f] == 'false':
-                    fstrings.append("p.expires_date >= Datetime('now')")
-            if f == 'plan':
-                if filters[f] in ('pro','hobbyist'):
-                    fstrings.append("m.plan='%s'" % filters[f])
-        if len(fstrings) > 0:
-            fstring = ' AND '.join(fstrings)
-            sqlstr = sqlstr + " where " + fstring
-    print(sqlstr)
-    members = query_db(sqlstr)
-    output = ""
-    jsonarr = []
-    for m in members:
-        if outformat == 'csv':
-            output = output + "%s,%s,%s,%s\n" % (m['member'],m['plan'],m['updated_date'],m['expires_date'])
-        elif outformat == 'json':
-            jsonarr.append({'member':m['member'],'plan':m['plan'], 'updated_date': m['updated_date'], 'expires_date': m['expires_date']})
-    if outformat == 'csv':
-        ctype = "text/plain; charset=utf-8"
-    elif outformat == 'json':
-        ctype = "application/json"
-        output = json_dump(jsonarr)
-    return output, 200, {'Content-Type': '%s' % ctype, 'Content-Language': 'en'}
+    @app.route('/payments', methods = ['GET'])
+    @login_required
+    def payments():
+        """(Controller) Show Payment system controls"""
+        cdate = pay.getLastUpdatedDate()
+        return render_template('payments.html',cdate=cdate)
 
-@app.route('/api/v1/members/<string:id>', methods=['GET'])
-@login_required
-def api_v1_showmember(id):
-    """(API) Return details about a member, currently JSON only"""
-    mid = safestr(id)
-    outformat = request.args.get('output','json')
-    sqlstr = """select m.member, m.plan, m.alt_email, m.firstname, m.lastname, m.phone, s.expires_date
-            from members m inner join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email where m.member='%s'""" % mid
-    m = query_db(sqlstr,"",True)
-    if outformat == 'json':
-        output = {'member': m['member'],'plan': m['plan'],'alt_email': m['plan'],
-                  'firstname': m['firstname'],'lastname': m['lastname'],
-                  'phone': m['phone'],'expires_date': m['expires_date']}
-        return json_dump(output), 200, {'Content-type': 'application/json'}
+    @app.route('/payments/manual', methods = ['GET'])
+    @login_required
+    def manual_payments():
+       sqlstr = """select member,plan,expires_date,updated_date from payments where paysystem = 'manual'"""
+       members = query_db(sqlstr)
+       return render_template('payments_manual.html',members=members)
 
-@app.route('/api/v1/resources/<string:id>/acl', methods=['GET'])
-@requires_auth
-def api_v1_show_resource_acl(id):
-    """(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
-    rid = safestr(id)
-    # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
-    output = getAccessControlList(rid)
-    return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
-@app.route('/api/v0/resources/<string:id>/acl', methods=['GET'])
-@requires_auth
-def api_v0_show_resource_acl(id):
-    """(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
-    rid = safestr(id)
-    # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
-    #users = _getResourceUsers(rid)
-    users = json_loads(getAccessControlList(rid))
-    outformat = request.args.get('output','csv')
-    if outformat == 'csv':
-        outstr = "username,key,value,allowed,hashedCard,lastAccessed"
-        for u in users:
-            outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
-        return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
+    @app.route('/payments/manual/extend/<member>', methods = ['GET'])
+    @login_required
+    def payments_manual_extend(member):
+        safe_id = safestr(member)
+        sqlstr = "update payments set expires_date=DATETIME(expires_date,'+31 days') where member = '%s' " % safe_id
+        print(sqlstr)
+        execute_db(sqlstr)
+        get_db().commit()
+        flash("Member %s was updated in the payments table" % safe_id)
+        return redirect(url_for('manual_payments'))
 
-@app.route('/api/v1/logs/<string:id>', methods=['POST'])
-@requires_auth
-def api_v1_log_resource_create(id):
-    rid = safestr(id)
-    entry = {}
-    # Default all to blank, since needed for SQL
-    for opt in ['event','timestamp','memberid','message','ip']:
-        entry[opt] = ''
-    for k in request.form:
-        entry[k] = safestr(request.form[k])
-    return "work in progress"
+    @app.route('/payments/manual/expire/<member>', methods = ['GET'])
+    @login_required
+    def payments_manual_expire(member):
+        safe_id = safestr(member)
+        sqlstr = "update payments set expires_date=datetime('now')  where member = '%s' " % safe_id
+        execute_db(sqlstr)
+        get_db().commit()
+        # TODO: EXPIRE MEMBER FROM ACCESS CONTROLS
+        flash("Member %s was forcibly expired" % safe_id)
+        return redirect(url_for('manual_payments'))
 
-@app.route('/api/v1/payments/update', methods=['GET'])
-def api_v1_payments_update():
-    """(API) Local host-only API for forcing payment data updates via cron. Not ideal, but avoiding other schedulers"""
-    # Simplistic, and not incredibly secure, host-only filter
-    host_addr = str.split(request.environ['HTTP_HOST'],':')
-    if request.environ['REMOTE_ADDR'] == host_addr[0]:
+    @app.route('/payments/manual/delete/<member>', methods = ['GET'])
+    @login_required
+    def payments_manual_delete(member):
+        safe_id = safestr(member)
+        sqlstr = "delete from payments where member = '%s' " % safe_id
+        execute_db(sqlstr)
+        get_db().commit()
+         # TODO: EXPIRE MEMBER FROM ACCESS CONTROLS
+        flash("Member %s was deleted from the payments table" % safe_id)
+        return redirect(url_for('manual_payments'))
+
+    @app.route('/payments/test', methods = ['GET'])
+    @login_required
+    def test_payments():
+       """(Controller) Validate the connection to the payment system(s)"""
+       if pay.testPaymentSystems():
+    	  flash("Payment system is reachable.")
+       else:
+    	  flash("Error: One or more Payment systems is Unreachable, review logs.")
+       return redirect(url_for('payments'))
+
+    @app.route('/payments/update', methods = ['GET'])
+    @login_required
+    def update_payments():
+        """(Controller) Sync Payment data and update Member data (add missing, deactivate, etc)"""
+        # TODO: Error handling
         pay.updatePaymentData()
         membership.syncWithSubscriptions()
-	return "Completed."
-    else:
-        return "API not available to %s expecting %s" % (request.environ['REMOTE_ADDR'], host_addr[0])
+        flash("Payment and Member data adjusted")
+        return redirect(url_for('payments'))
 
-@app.route('/api/v1/test', methods=['GET'])
-def api_test():
-    host_addr = str.split(request.environ['HTTP_HOST'],':')
-    print host_addr
-    str1 = pprint.pformat(request.environ,depth=5)
-    print(str1)
-    if request.environ['REMOTE_ADDR'] == host_addr[0]:
-        return "Yay, right host"
-    else:
-        return "Boo, wrong host"
+    @app.route('/payments/<string:id>', methods=['GET'])
+    @login_required
+    def payments_member(id):
+        pid = safestr(id)
+        # Note: When debugging Payments system duplication, there may be multiple records
+        #  Display template is set up to handle that scenario
+        sqlstr = """select p.member, m.firstname, m.lastname, p.email, p.paysystem, p.plan, p.customerid,
+                p.expires_date, p.updated_date, p.checked_date, p.created_date from payments p join
+                members m on m.member=p.member where p.member='%s'""" % pid
+        user = query_db(sqlstr)
+        return render_template('payments_member.html',user=user)
+
+    @app.route('/payments/reports', methods = ['GET'])
+    @login_required
+    def payments_reports():
+        """(Controller) View various Payment data attributes"""
+        f = request.args.get('filter','')
+        sqlstr = "select * from payments"
+        if f !='':
+            if f == 'expired':
+                sqlstr = sqlstr + " where expires_date < Datetime('now')"
+            elif f == 'notexpired':
+                sqlstr = sqlstr + " where expires_date > Datetime('now')"
+            elif f == 'recentexpired':
+                sqlstr = sqlstr + " where expires_date > Datetime('now','-180 days') AND expires_date < Datetime('now')"
+            elif f == 'recentexpired':
+                sqlstr = sqlstr + " where expires_date > Datetime('now','-180 days') AND expires_date < Datetime('now')"
+        payments = query_db(sqlstr)
+        return render_template('payments_reports.html',f=f,payments=payments)
+
+    @app.route('/payments/fees', methods = ['GET'])
+    @login_required
+    def payments_fees():
+        """(Controller) Charge Fee to a user, Schedule recurring Fee, view past paid fees"""
+        f = request.args.get('days','90')
+        # TODO: Member ID, pass in from member page?
+        member = {}
+        dt = """Datetime('now','-%s days')""" % f
+        sqlstr = """select member, amount, fee_date, fee_name, fee_group, fee_description from feespaid where fee_date > %s""" % dt
+        print(sqlstr)
+        fees = query_db(sqlstr)
+        return render_template('fees.html',days=f,member=member,fees=fees)
+
+    @app.route("/payments/fees/charge", methods = ['POST'])
+    @login_required
+    def payments_fees_charge():
+        """(Controller) Charge a one-time fee to a user"""
+        fee = {}
+        mandatory_fields = ['memberid','amount','name','description','group']
+        print request
+        for f in mandatory_fields:
+            fee[f] = ''
+            if f in request.form:
+                fee[f] = safestr(request.form[f])
+                print(fee[f])
+            if fee[f] == '':
+                flash("Error: One or more mandatory fields not filled out")
+                return redirect(url_for('payments_fees'))
+        # Validate member
+        sqlstr = "Select customerid from payments where member = '%s'" % fee['memberid']
+        members = query_db(sqlstr,"",True)
+        if members:
+            # Force validation of currency value
+            try:
+                "{:.2f}".format(float(fee['amount']))
+                ## TODO: Still need to create the actual charge
+                result = pay.chargeFee(paysystem,members['customerid'],fee['name'],fee['group'],fee['description'],fee['amount'])
+                if result['success'] == True:
+                    # TODO: Record fee charge
+                    flash("Fee successfully charged and recorded")
+                else:
+                    flash("Error: Could not charge fee")
+            except ValueError:
+                flash("Amount must be a currency value such as 75 or 13.11")
+            #
+        else:
+            flash("Error: Memberid does not exist. Make sure you have the right one..")
+        return redirect(url_for('payments_fees'))
+
+    # ------------------------------------------------------------
+    # Blacklist entries
+    # - Ignore bad pinpayments records, mainly
+    # ------------------------------------------------------------
+
+    @app.route('/blacklist', methods=['GET'])
+    @login_required
+    def blacklist_show():
+        """(Controller) Show all the Blacklist entries"""
+        sqlstr = "select entry,entrytype,reason,updated_date from blacklist"
+        blacklist = query_db(sqlstr)
+        return render_template('blacklist.html',blacklist=blacklist)
+
+
+    # ------------------------------------------------------------
+    # Reporting controllers
+    # ------------------------------------------------------------
+
+    @app.route('/reports', methods=['GET'])
+    @login_required
+    def reports():
+        """(Controller) Display some pre-defined report options"""
+        stats = getDataDiscrepancies()
+        return render_template('reports.html',stats=stats)
+
+    # ------------------------------------------------------------
+    # Waiver controllers
+    # ------------------------------------------------------------
+
+    @app.route('/waivers', methods=['GET'])
+    @login_required
+    def waivers():
+        sqlstr = "select waiverid,email,firstname,lastname,created_date from waivers"
+        waivers = query_db(sqlstr)
+        return render_template('waivers.html',waivers=waivers)
+
+    @app.route('/waivers/update', methods=['GET'])
+    @login_required
+    def waivers_update():
+        """(Controller) Update list of waivers in the database. Can take a while."""
+        updated = addNewWaivers()
+        flash("Waivers added: %s" % updated)
+        return redirect(url_for('waivers'))
 
 
 
+
+    # ------------------------------------------------------------
+    # Google Accounts and Welcome Letters
+    # -----------------------------------------------------------
+
+    def _createNewGoogleAccounts():
+        """Check for any user created in the last 3 days who does not have a Makeitlabs.com account"""
+        sqlstr = "select m.member,m.firstname,m.lastname,p.email from members m inner join payments p on m.member=p.member where p.created_date >= Datetime('now','-3 day') and p.expires_date >= Datetime('now')"
+        newusers = query_db(sqlstr)
+        for n in newusers:
+            # Using emailstr search to get around wierd hierarchical name mismatch
+            emailstr = "%s.%s@makeitlabs.com" % (n['firstname'],n['lastname'])
+            users = google.searchEmail(emailstr)
+            if users == []:
+                # TODO: Change this to logging
+                print "Member %s may need an account (%s.%s)" % (n['member'],n['firstname'],n['lastname'])
+                ts = time.time()
+                password = "%s-%d" % (n['lastname'],ts - (len(n['email']) * 314))
+                print "Create with password %s and email to %s" % (password,n['email'])
+                user = google.createUser(n['firstname'],n['lastname'],n['email'],password)
+                google.sendWelcomeEmail(user,password,n['email'])
+                print("Welcome email sent")
+            else:
+                print "Member appears to have an account: %s" % users
+
+    def _createNewGoogleAccounts():
+        """Check for any user created in the last 3 days who does not have a Makeitlabs.com account"""
+        sqlstr = "select m.member,m.firstname,m.lastname,p.email from members m inner join payments p on m.member=p.member where p.created_date >= Datetime('now','-3 day') and p.expires_date >= Datetime('now')"
+        newusers = query_db(sqlstr)
+        for n in newusers:
+            # Using emailstr search to get around wierd hierarchical name mismatch
+            emailstr = "%s.%s@makeitlabs.com" % (n['firstname'],n['lastname'])
+            users = google.searchEmail(emailstr)
+            if users == []:
+                # TODO: Change this to logging
+                print "Member %s may need an account (%s.%s)" % (n['member'],n['firstname'],n['lastname'])
+                ts = time.time()
+                password = "%s-%d" % (n['lastname'],ts - (len(n['email']) * 314))
+                print "Create with password %s and email to %s" % (password,n['email'])
+                user = google.createUser(n['firstname'],n['lastname'],n['email'],password)
+                google.sendWelcomeEmail(user,password,n['email'])
+                print("Welcome email sent")
+            else:
+                print "Member appears to have an account: %s" % users
+
+    # ------------------------------------------------------------
+    # API Routes - Stable, versioned URIs for outside integrations
+    # Version 1:
+    # /api/v1/
+    #        /members -  List of all memberids, supports filtering and output formats
+    # ----------------------------------------------------------------
+
+    @app.route('/api/v3/test', methods=['GET'])
+    @requires_auth
+    def api_v3_test():
+        return("Hello world")
+
+    @app.route('/api/v1/members', methods=['GET'])
+    @login_required
+    def api_v1_members():
+        """(API) Return a list of all members. either in CSV or JSON"""
+        sqlstr = "select m.member,m.plan,m.updated_date,s.expires_date from members m inner join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email"
+        outformat = request.args.get('output','json')
+        filters = {}
+        filters['active'] = safestr(request.args.get('active',''))
+        filters['access_enabled'] = safestr(request.args.get('enabled',''))
+        filters['expired'] = safestr(request.args.get('expired',''))
+        filters['plan'] = safestr(request.args.get('plan',''))
+        fstring = ""
+        if len(filters) > 0:
+            fstrings = []
+            for f in filters:
+                if f == 'active' or f == 'access_enabled':
+                    if filters[f] == "true" or filters[f] == "false":
+                        fstrings.append("%s='%s'" % (f,filters[f]))
+                if f == 'expired':
+                    if filters[f] == 'true':
+                        fstrings.append("p.expires_date < Datetime('now')")
+                    if filters[f] == 'false':
+                        fstrings.append("p.expires_date >= Datetime('now')")
+                if f == 'plan':
+                    if filters[f] in ('pro','hobbyist'):
+                        fstrings.append("m.plan='%s'" % filters[f])
+            if len(fstrings) > 0:
+                fstring = ' AND '.join(fstrings)
+                sqlstr = sqlstr + " where " + fstring
+        print(sqlstr)
+        members = query_db(sqlstr)
+        output = ""
+        jsonarr = []
+        for m in members:
+            if outformat == 'csv':
+                output = output + "%s,%s,%s,%s\n" % (m['member'],m['plan'],m['updated_date'],m['expires_date'])
+            elif outformat == 'json':
+                jsonarr.append({'member':m['member'],'plan':m['plan'], 'updated_date': m['updated_date'], 'expires_date': m['expires_date']})
+        if outformat == 'csv':
+            ctype = "text/plain; charset=utf-8"
+        elif outformat == 'json':
+            ctype = "application/json"
+            output = json_dump(jsonarr)
+        return output, 200, {'Content-Type': '%s' % ctype, 'Content-Language': 'en'}
+
+    @app.route('/api/v1/members/<string:id>', methods=['GET'])
+    @login_required
+    def api_v1_showmember(id):
+        """(API) Return details about a member, currently JSON only"""
+        mid = safestr(id)
+        outformat = request.args.get('output','json')
+        sqlstr = """select m.member, m.plan, m.alt_email, m.firstname, m.lastname, m.phone, s.expires_date
+                from members m inner join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email where m.member='%s'""" % mid
+        m = query_db(sqlstr,"",True)
+        if outformat == 'json':
+            output = {'member': m['member'],'plan': m['plan'],'alt_email': m['plan'],
+                      'firstname': m['firstname'],'lastname': m['lastname'],
+                      'phone': m['phone'],'expires_date': m['expires_date']}
+            return json_dump(output), 200, {'Content-type': 'application/json'}
+
+    @app.route('/api/v1/resources/<string:id>/acl', methods=['GET'])
+    @requires_auth
+    def api_v1_show_resource_acl(id):
+        """(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
+        rid = safestr(id)
+        # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+        output = getAccessControlList(rid)
+        return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+    @app.route('/api/v0/resources/<string:id>/acl', methods=['GET'])
+    #@requires_auth
+    def api_v0_show_resource_acl(id):
+        """(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
+        rid = safestr(id)
+        # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+        #users = _getResourceUsers(rid)
+        users = json_loads(getAccessControlList(rid))
+        outformat = request.args.get('output','csv')
+        if outformat == 'csv':
+            outstr = "username,key,value,allowed,hashedCard,lastAccessed"
+            for u in users:
+                outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
+            return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
+
+    @app.route('/api/v1/logs/<string:id>', methods=['POST'])
+    #@requires_auth
+    def api_v1_log_resource_create(id):
+        rid = safestr(id)
+        entry = {}
+        # Default all to blank, since needed for SQL
+        for opt in ['event','timestamp','memberid','message','ip']:
+            entry[opt] = ''
+        for k in request.form:
+            entry[k] = safestr(request.form[k])
+        return "work in progress"
+
+    @app.route('/api/v1/payments/update', methods=['GET'])
+    def api_v1_payments_update():
+        """(API) Local host-only API for forcing payment data updates via cron. Not ideal, but avoiding other schedulers"""
+        # Simplistic, and not incredibly secure, host-only filter
+        host_addr = str.split(request.environ['HTTP_HOST'],':')
+        if request.environ['REMOTE_ADDR'] == host_addr[0]:
+            pay.updatePaymentData()
+            membership.syncWithSubscriptions()
+            return "Completed."
+        else:
+            return "API not available to %s expecting %s" % (request.environ['REMOTE_ADDR'], host_addr[0])
+
+    @app.route('/api/v1/test', methods=['GET'])
+    def api_test():
+        host_addr = str.split(request.environ['HTTP_HOST'],':')
+        print host_addr
+        str1 = pprint.pformat(request.environ,depth=5)
+        print(str1)
+        if request.environ['REMOTE_ADDR'] == host_addr[0]:
+            return "Yay, right host"
+        else:
+            return "Boo, wrong host"
+
+
+def init_db(app):
+    # DB Models in db_models.py, init'd to SQLAlchemy
+    db.init_app(app)
+
+def createDefaultUsers():
+    # Create default admin role and user if not present
+    admin_role = Role.query.filter(Role.name=='Admin').first()
+    if not admin_role:
+        admin_role = Role(name='Admin')
+    if not User.query.filter(User.email == AdminUser).first():
+        user = User(email=AdminUser,password=user_manager.hash_password(AdminPasswd),email_confirmed_at=datetime.utcnow())
+        db.session.add(user)
+        user.roles.append(admin_role)
+        db.session.commit()
+    # TODO - other default users?
+
+# Start development web server
 if __name__ == '__main__':
-    app.run(host=ServerHost,port=ServerPort)
+    app = create_app()
+    db.init_app(app)
+    user_manager = UserManager(app, db, User)
+    with app.app_context():
+        # Extensions like Flask-SQLAlchemy now know what the "current" app
+        # is while within this block. Therefore, you can now run........
+        db.create_all()
+        createDefaultUsers()
+    create_routes()
+    app.run(host=ServerHost, port=ServerPort, debug=True)
