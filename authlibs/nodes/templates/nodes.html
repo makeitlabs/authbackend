@@ -1,0 +1,37 @@
+{% extends "layout_bootstrap.html" %}
+<h2>Resources</h2>
+{% block body %}
+<div class="nodeslist">
+	<h2>Nodes:  {{ nodes |length }} available</h2>
+	<table class="table table-sm">
+        <tr>
+            <th>Name</th>
+            <th>MAC</th>
+        </tr>
+	{% for nodes in nodes %}
+	  <tr>
+		<td><a href="{{ url_for('nodes.nodes_show',node=nodes.id) }}">{{ nodes.name }}</a></td>
+		<td>{{ nodes.mac }}</td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+
+<!-- Add New Node -->
+
+
+	{% if current_user.privs("RATT") %}
+  <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#nodes-add-collapse" aria-expanded="false" aria-controls="nodes-add-collapse">
+    Add New Node
+  </button>
+  <div class="collapse" id="nodes-add-collapse">
+	<hr />
+  <h3> Add New Node </h3>
+<form action="{{ url_for('nodes.nodes_create') }}" method="post">
+	{% include 'node_form.html' %}
+<input type="submit" value="Create nodes" />
+</form>
+</div>
+{% endif %} <!-- Add New Node -->
+{% endblock %}

@@ -1,0 +1,55 @@
+{# vim:tabstop=2:expandtab:shiftwidth=2 
+#}
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+    <script type="text/javascript" src="{{ url_for('graphs.static',filename='graphs.js') }}"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+          ['Day', 'Active', 'Idle'],
+          ['Monday',  1000,      400],
+          ['Tuesday',  1170,      460],
+          ['Wednesday',  660,       1120],
+          ['Thursday',  1030,      540],
+          ['Friday',  660,       1120],
+          ['Saturday',  660,       1120],
+          ['Sunday',  660,       1120]
+        ]);
+
+        var options = {
+          title: 'Weekly Resource Utilization',
+          hAxis: {title: 'Day',  titleTextStyle: {color: '#333'}},
+          vAxis: {minValue: 0}
+        };
+
+        //var chart = new google.visualization.AreaChart(document.getElementById('chart_div'));
+        //chart.draw(data, options);
+        graphButton("",'{{ url_for("graphs.weekly",id=rec.id) }}');
+      }
+		</script>
+{% endblock %}
+{% block body %}
+<div class="body"><h3>{{ rec.name }} Usage </h3></div>
+ 
+
+{# Charing #}
+	<div class="container">
+			<div id="chart_div" style="width: 100%; height: 500px;"></div>
+	</div>
+{# Charing #}
+	<div class="container">
+    <div class="btn-group" role="group" aria-label="Basic example">
+      <button type="button" onclick="graphButton(this,'{{ url_for("graphs.weekly",id=rec.id) }}');" class="btn btn-outline-secondary">Weekly</button>
+      <button type="button" onclick="graphButton(this,'{{ url_for("graphs.monthly",id=rec.id) }}');" class="btn btn-outline-secondary">Monthly</button>
+      <button type="button" onclick="graphButton(this,'{{ url_for("graphs.weekUsers",id=rec.id) }}');" class="btn btn-outline-secondary">Weekly Users</button>
+      <button type="button" onclick="calendarButton(this,'{{ url_for("graphs.weekCalendar",id=rec.id) }}');" class="btn btn-outline-secondary">Week Calendar</button>
+    </div>
+  </div>
+
+</div> {# Body #}
+
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+{% include "member_header.html" %}
+<div class="body">
+<div class="container"> {# Outer container #}
+	<h3>Tags</h3>
+  {% if tags|length > 0 %}
+  <table class="table">
+    <tr>
+        <th>Tag Type</th>
+	<th>Tag Name</th>
+	<th>Tag Identity</th>
+        <th>Actions</th>
+    </tr>
+  {% for tag in tags %}
+    <tr>
+        <td>{{ tag.tag_type }}</td>
+		<td>{{ tag.tag_name }}</td>
+		<td>
+			<a href="#row_collapse_{{ tag.id }}" data-toggle="collapse" data-target="#row_collapse_{{ tag.id }}">
+			<span class="glyphicon glyphicon-info-sign" />
+			</a>
+			{{ tag.shorthash }}
+		</td>
+
+		  {% if current_user.privs("Useredit","Finance") %}
+		<td><a href="{{ url_for('members.member_tagdelete',tag_ident=tag.id) }}"><span class="glyphicon glyphicon-trash"/></td>
+		{% endif %}
+    </tr>
+    <!-- This row pops-up when the "i" button is clicked -->
+    <tr class="table-row collapse" id="row_collapse_{{ tag.id }}">
+	    <td  colspan=4>
+	Hash: 	{{ tag.longhash }}
+		{% if current_user.privs('Admin') %}
+		Raw Fob ID: {{ tag.tag_ident }}
+		{% endif %}
+		</td>
+    </tr>
+  {% endfor %}
+  </table>
+  {% else %}
+	<i>No tags for this user currently</i>
+  {% endif %}
+
+  {% if current_user.privs("Useredit","Finance") %}
+  <hr />
+  <div class="sectionhead"><h4>Add tag</h4></div>
+  <form id="form_add" class="form-inline" action="{{ url_for('members.member_tagadd',id=mid) }}" method="post">
+	<label class="my-1 mr-1" for="newtagname">Tag Name</label>	
+	 <input  class="form-control mb-2 mr-sm-2" id="newtagname" name="newtagname" type="Text" value="" /></td>
+
+	<label class="my-1 mr-1" for="newtagtype">Tag Type</label>	
+	 <select class="custom-select my-1 my-sm-1" id="newtagtype" name="newtagtype"><option value="rfid">RFID</option><option value="nfc">NFC</option></select>
+
+	<label class="my-1 mr-1" for="newtag">Tag ID</label>	
+	 <input  class="form-control mb-2 mr-sm-2" id="newtag" name="newtag" type="Text" value="" />
+	<input class="form-control mb-2 mr-sm-2 btn btn-primary" type="submit" value="Add new tag">
+  </form>
+
+	<script type="text/javascript">
+		document.getElementById('newtag').onkeypress = function(e){
+			if (!e) e = window.event;
+				var keyCode = e.keyCode || e.which;
+				if (keyCode == '13'){
+					// Enter pressed
+					document.getElementById('form_add').submit();
+					return false;
+			}
+		}
+	</script>
+  {% endif %}
+  </div> {# Outer container #}
+</div> {# BASE body container #}
+{% endblock %}

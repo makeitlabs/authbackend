@@ -1,0 +1,125 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div>
+<div class="sectionhead"><h3>Edit Tool</h3></div>
+  <form action={{ url_for('tools.tools_update',tool=rec.id) }} method="POST">
+	{% include 'tool_form.html' %}
+	{% if tool_locked %} 
+		<div class="container">
+			<div class="alert alert-warning">
+				Tool is locked: {{ rec.lockout }}
+			</div>
+		</div>
+  {% endif %}
+	<input type=submit class="btn btn-primary" value="Save changes">
+				{% if not tool_locked %} 
+				<button type="button" class="btn btn-warning" data-toggle="modal" data-target="#lockoutModal">
+					Lockout Tool
+				</button>
+				{% else %}
+				<button type="button" class="btn btn-success" data-toggle="modal" data-target="#unlockModal">
+					Unlock Tool
+				</button>
+				{% endif %}
+	{% if readonly is not defined or not readonly %}
+<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
+  Delete Tool
+</button>
+	{% endif %}
+  </form>
+
+
+{# Lockout #}
+<div class="container">
+				<p />
+				<div class="collapse" id="collapseExample">
+					<div class="card card-body">
+					
+					</div>
+				</div>
+</div>
+{# End Lockout #}
+
+
+
+{# Delete Modal #}
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Delete Tool</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+	      Are you really sure you want to delete {{ rec.name }}??
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+	  <form action={{ url_for('tools.tool_delete',tool=rec.id) }} method="post">
+		<input class="btn btn-danger" type=submit value="Delete">
+	  </form>
+      </div>
+    </div>
+  </div>
+</div>
+{# Delete Modal #}
+
+{# Lockout Modal #}
+<div class="modal fade" id="lockoutModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+	    <form action={{ url_for('tools.tool_lock',tool=rec.id) }} method="post">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Lock tool</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+				<div class="my-3 form-row form-col col-md-12">
+								Are you really sure you want to lock users out of {{ rec.name }}??
+				</div>
+				<div class="my-3 form-row col-sm-12">
+								<input type="text"  class="col-sm-12" name="lockout_reason" placeholder="Reason for lockout" />
+				</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+		<input class="btn btn-warning" type=submit value="Lock">
+      </div>
+			</form>
+    </div>
+  </div>
+</div>
+{# Lockout Modal #}
+	
+{# Unlock Modal #}
+<div class="modal fade" id="unlockModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Unlock tool</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+								Are you really sure you want to unlock {{ rec.name }}??
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+	  <form action={{ url_for('tools.tool_unlock',tool=rec.id) }} method="post">
+		<input class="btn btn-success" type=submit value="Unlock">
+	  </form>
+      </div>
+    </div>
+  </div>
+</div>
+{# Unlock Modal #}
+
+	{% with tool_id=rec.id, allow_comments=1 %}
+	{% include "comments.html" %}
+	{% endwith %}
+{% endblock %}

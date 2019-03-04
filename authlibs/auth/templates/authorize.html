@@ -1,0 +1,107 @@
+<!--- vim:tabstop=2:expandtab -->
+{% extends "layout_bootstrap.html" %}
+{% block search %}
+<!-- The above form looks like this -->
+
+<div class="comtainer>">
+
+
+{% if message is defined %}
+    <div class="alert alert-success alert-dismissible fade show"  role="alert">
+  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button>
+  {{ message }}
+</div>
+{% endif %}
+{% if error is defined %}
+    <div class="alert alert-danger alert-dismissible fade show"  role="alert">
+  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button>
+  {{ error }}
+</div>
+{% endif %}
+<h2>Authorize Members</h2>
+<form class="bs-example bs-example-form" action="{{ url_for('authorize.authorize') }}" method="post">
+
+{% with add_checkboxes='1', member_url=url_for("members.member_show",id="") %}
+{% include 'userlist.html' %}
+{% endwith %}
+
+<hr />
+
+<h3>Resource Groups</h3>
+<table class="table table-striped compacttable">
+  <thead>
+    <tr>
+      <th>Authorize</th>
+      <th>Resource Group</th>
+      <th>Members</th>
+    </tr>
+  </thead>
+  <tbody id="resourcerows">
+	{% for i in resources %}
+    <tr class="resourcerow">
+	<td><input type="checkbox" onchange="click_checkbox();" 
+	{% if i.level <1  %}
+		disabled
+	{% endif %}
+	class="auth_resource_cb"/></td>
+
+	<td>{{ i.resource.name }}</td>
+	<td><a href="{{ url_for('resources.resource_showusers',resource=i.resource.name) }}">see members</a></td>
+	<!-- 
+	<td>{{ i.levelText }}
+	
+	{% if i.level >1  %}
+	<select name="level_{{ i.resource.name}}" >
+		<option value="0">User</option>
+		<option value="1">Trainer</option>
+		{% if i.level >2  %}
+		<option value="2">Assn't RM</option>
+		{% endif %}
+		{% if i.level >3  %}
+		<option value="3">RM</option>
+		{% endif %}
+	</select>
+	{% endif %}
+	</td>
+	-->
+	{% endfor %}
+    </tr>
+  </tbody>
+</table>
+
+
+<!-- Modal -->
+
+<!-- Button trigger modal -->
+<button type="button" class="btn btn-primary" disabled id="authorize-button" data-toggle="modal" onclick="authbutton();" data-target="#exampleModal">
+  Authorize
+</button>
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Confirm Authorization</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="modaltext">
+        Are you sure you want to authorize this user?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+        <input type="submit" name="Yes" value="Yes" class="btn btn-primary"/>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="formdata" style="visibility:hidden"></div>
+</form>
+</div>
+{% endblock %}

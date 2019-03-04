@@ -1,0 +1,125 @@
+#compacttable td, #compacttable tr, #compacttable th {
+	padding:3px;
+}
+
+.compacttable > thead > tr > th,
+.compacttable > tbody > tr > th,
+.compacttable > tfoot > tr > th,
+.compacttable > thead > tr > td,
+.compacttable > tbody > tr > td,
+.compacttable > tfoot > tr > td {
+	padding: 3px;
+}
+
+.supercompact td, .supercompact  tr, .supercompact  th, .supercompact div, .supercompact > div, .supercompact > div > div  {
+	padding:0px;
+}
+
+         
+ .brad_fadeout {
+     animation:signup-response 3s 1;
+    -webkit-animation:signup-response 3s 1;
+    animation-fill-mode: forwards;
+
+    animation-delay:1s;
+    -webkit-animation-delay:3s; /* Safari and Chrome */
+    -webkit-animation-fill-mode: forwards;
+
+-webkit-transition: all 500ms ease;
+-moz-transition: all 500ms ease;
+-ms-transition: all 500ms ease;
+-o-transition: all 500ms ease;
+transition: all 500ms ease;
+
+} 
+
+@keyframes signup-response{
+    from {opacity :1;}
+    to {opacity :0;}
+}
+
+@-webkit-keyframes signup-response{
+    from {opacity :1;}
+    to {opacity :0;}
+}
+
+.menuimg        { width: 20vw; max-width:180px;}
+.menubox { padding:5px; max-width:200px; width:25vw}
+.menucontent { padding:5px; max-width:200px; width:25vw}
+.menucontent p { text-align:center;width:100% }
+
+.dropdown-submenu {
+    position: relative;
+}
+
+.dropdown-submenu>.dropdown-menu {
+    top: 0;
+    left: 100%;
+    margin-top: -6px;
+    margin-left: -1px;
+    -webkit-border-radius: 0 6px 6px 6px;
+    -moz-border-radius: 0 6px 6px;
+    border-radius: 0 6px 6px 6px;
+}
+
+.dropdown-submenu:hover>.dropdown-menu {
+    display: block;
+}
+
+.dropdown-submenu>a:after {
+    display: block;
+    content: " ";
+    float: right;
+    width: 0;
+    height: 0;
+    border-color: transparent;
+    border-style: solid;
+    border-width: 5px 0 5px 5px;
+    border-left-color: #ccc;
+    margin-top: 5px;
+    margin-right: -10px;
+}
+
+.dropdown-submenu:hover>a:after {
+    border-left-color: #fff;
+}
+
+.dropdown-submenu.pull-left {
+    float: none;
+}
+
+.dropdown-submenu.pull-left>.dropdown-menu {
+    left: -100%;
+    margin-left: 10px;
+    -webkit-border-radius: 6px 0 6px 6px;
+    -moz-border-radius: 6px 0 6px 6px;
+    border-radius: 6px 0 6px 6px;
+}
+
+.tightcbcell {padding:0px;margin:0px;margin-left:3px;margin-right:2px}
+
+
+.bannerGradient {
+/* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#7db9e8+0,1e5799+100&0+0,0+30,1+74,1+100 */
+background: -moz-linear-gradient(left, rgba(125,185,232,0) 0%, rgba(97,156,208,0) 30%, rgba(55,113,173,1) 74%, rgba(30,87,153,1) 100%); /* FF3.6-15 */
+background: -webkit-linear-gradient(left, rgba(125,185,232,0) 0%,rgba(97,156,208,0) 30%,rgba(55,113,173,1) 74%,rgba(30,87,153,1) 100%); /* Chrome10-25,Safari5.1-6 */
+background: linear-gradient(to right, rgba(125,185,232,0) 0%,rgba(97,156,208,0) 30%,rgba(55,113,173,1) 74%,rgba(30,87,153,1) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#007db9e8', endColorstr='#1e5799',GradientType=1 ); /* IE6-9 */
+}
+
+
+.hvr-grow-shadow {
+    display: inline-block;
+    vertical-align: middle;
+    -webkit-transform: perspective(1px) translateZ(0);
+    transform: perspective(1px) translateZ(0);
+    -webkit-transition-duration: 0.3s;
+    transition-duration: 0.3s;
+    -webkit-transition-property:  transform;
+    transition-property:  transform;
+}
+.hvr-grow-shadow:hover, .hvr-grow-shadow:focus, .hvr-grow-shadow:active {
+    -webkit-transform: scale(1.1);
+    transform: scale(1.1);
+}
+

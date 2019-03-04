@@ -1,0 +1,20 @@
+{# Included in header of other "member" pages #}
+
+<div class="container">
+	<div class="btn-group my-2" role="group" aria-label="Member Pages">
+		<button onclick='location.href="{{ url_for("members.members") }}";'  type="button" class="btn btn-{% if page!="all" %}outline-{% endif %}info">All</button>
+		<button onclick='location.href="{{ url_for("members.member_show",id=rec.member) }}";'  type="button" class="btn btn-{% if page!="view" %}outline-{% endif %}info">View</button>
+		<button onclick='location.href="{{ url_for("members.member_edit",id=rec.id) }}";'  type="button" class="btn btn-{% if page!="edit" %}outline-{% endif %}info">Edit</button>
+		<button onclick='location.href="{{ url_for("members.member_tags",id=rec.id) }}";'  type="button" class="btn btn-{% if page!="tags" %}outline-{% endif %}info">Tags</button>
+		<button onclick='location.href="{{ url_for("members.member_setaccess",id=rec.id) }}";'  type="button" class="btn btn-{% if page!="access" %}outline-{% endif %}info">Access</button>
+		<button onclick='location.href="{{ url_for("logs.logs",memberid=rec.id) }}";'  type="button" class="btn btn-outline-info">Log</button>
+	</div>
+	<div class="container m-0 mb-3 p-0">
+		<div class="m-0 p-0 row">
+			<h3>{{ rec.firstname }} {{ rec.lastname }}  </h3>
+		</div>
+		<div class="row m-0 p-0">
+			{{ rec.member }} (#{{ rec.id }})
+		</div>
+	</div>
+</div>

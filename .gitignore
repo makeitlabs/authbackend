@@ -1,4 +1,12 @@
-makeit.db
+*.pyc
+.gitignore
+*.db
+*.enc
+bkgtag.txt
+doorbot.py
 makeit.ini
-makeit.db
-makeitlabs.json
+mqtt.log
+mqtt_messages.js
+newexampleschema
+*.swp
+run_auth.py

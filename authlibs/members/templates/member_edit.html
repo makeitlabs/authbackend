@@ -1,0 +1,57 @@
+{% extends "layout_bootstrap.html" %}
+{% block search %}
+  <div class=body>
+	{% include "member_header.html" %}
+
+	<form action="{{ url_for('members.member_edit',id=rec.id) }}" method="post">
+		
+	{% include 'member_form.html' %}
+
+	<div class="container"> {# Outer container #}
+	  <input class='btn btn-primary' type="submit" name="SaveChanges" value="Save" />
+	{% if current_user.privs("Finance") %}
+		{# DELETE MODAL #}
+
+				<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
+					Delete Member
+				</button>
+
+				<!-- Modal -->
+				<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+					<div class="modal-dialog" role="document">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h5 class="modal-title" id="exampleModalLabel">Delete {{ rec.member }}</h5>
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+									<span aria-hidden="true">&times;</span>
+								</button>
+							</div>
+							<div class="modal-body">
+								<p> This will <b>perminatley delete</b> this member, including GMail and Slack accounts.
+								This should <i>only</i> be done for accounts that were created in error, should never have
+								existed, and were unused. This is <i>not</i> the correct method to disable users, terminate
+								accounts or revoke access.</p>
+								<p> If you are <i>positive</i> that this is the correct thing to do, please confirm.</p>
+							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+								<input class='btn btn-danger' type="submit" name="DeleteMember" value="Delete Member" />
+							</div>
+						</div>
+					</div>
+				</div>
+
+		{# DELETE MODAL #}
+	{% endif %}
+	</div> {# Outer container #}
+	</form>
+
+	<div class="container"> {# Outer container #}
+
+
+
+	{% with member_id=rec.id %}
+	{% include "comments.html" %}
+	{% endwith %}
+	</div> {# Outer container #}
+{% endblock %}

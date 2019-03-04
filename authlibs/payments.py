@@ -12,6 +12,9 @@ import stripe_pay
 import datetime
 import utilities
 import dbutil
+import init
+from sqlalchemy import func
+from authlibs.db_models import db, Member, Resource, AccessByMember, Tool, Logs, UsageLog, Subscription
 
 import config
 import sys
@@ -23,8 +26,7 @@ setupDone = False
 
 
 def getLastUpdatedDate():
-  sqlstr = "select MAX(updated_date) from subscriptions"
-  return dbutil.query_db(sqlstr,(),True)
+	return db.session.query(func.max(Subscription.updated_date)).scalar()
 
 def testPaymentSystems(modules=None):
     if modules is None:
@@ -201,6 +203,13 @@ def updatePaymentData(modules=None):
     for module in modules.split(","):
         logger.info("Module: %s" % module)
         subs = getSubscriptions(module)
+        print """
+
+
+        NOW WE HAVE PAY DATA
+
+
+        """
         logger.info(subs)
         fsubs = filterSubscriptions(subs)
         logger.info(fsubs)
@@ -209,26 +218,27 @@ def updatePaymentData(modules=None):
         addSubscriptionData(fsubs['valid'],module)
 
 
-if __name__ == "__main__":
-    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-    setupPaymentSystems()
-    #_selfTest()
-    # Fee charging, until we fix it..
-    # Bill S
-    #pinpay.chargeFee('4658001','WorkspaceRental','Rental for Mar','Workspace',"0.01","yes")
-    # Nat DONE
-    #pinpay.chargeFee('18005','WorkspaceRental','Rental for June','Workspace',"160","yes")
-    # Mark P DONE
-    #pinpay.chargeFee('5689154616688640','WorkspaceRental','Rental for Apr','Workspace',"180","yes")
-    # John W DONE
-    #pinpay.chargeFee('5073368378245120','WorkspaceRental','Rental for June','Workspace',"120","yes")
-    ## Bill Foss DONE
-    #pinpay.chargeFee('4358001','WorkspaceRental','Rental for June','Workspace',"300","yes")
-    # Adam Bastien DONE
-    #pinpay.chargeFee('5668001','WorkspaceRental','Rental for June','Workspace',"120","yes")
-    # Ian Cook 4 Weeks auto plot rental
-    #pinpay.chargeFee('190001','AutoPlot','2 Weeks plot rental','Auto',"100","yes")
-    #Craig Johnston for Battleship rental /1/2 space
-    #pinpay.chargeFee('5689127638925312','WorkspaceRental','Rental for June','Workspace','37.50','yes')
-    #
-    updatePaymentData()
+## Call with python ./authserver.py --command updatepayments instead
+
+def cli_updatepayments(cmd,**kwargs):
+        setupPaymentSystems()
+        #_selfTest()
+        # Fee charging, until we fix it..
+        # Bill S
+        #pinpay.chargeFee('4658001','WorkspaceRental','Rental for Mar','Workspace',"0.01","yes")
+        # Nat DONE
+        #pinpay.chargeFee('18005','WorkspaceRental','Rental for June','Workspace',"160","yes")
+        # Mark P DONE
+        #pinpay.chargeFee('5689154616688640','WorkspaceRental','Rental for Apr','Workspace',"180","yes")
+        # John W DONE
+        #pinpay.chargeFee('5073368378245120','WorkspaceRental','Rental for June','Workspace',"120","yes")
+        ## Bill Foss DONE
+        #pinpay.chargeFee('4358001','WorkspaceRental','Rental for June','Workspace',"300","yes")
+        # Adam Bastien DONE
+        #pinpay.chargeFee('5668001','WorkspaceRental','Rental for June','Workspace',"120","yes")
+        # Ian Cook 4 Weeks auto plot rental
+        #pinpay.chargeFee('190001','AutoPlot','2 Weeks plot rental','Auto',"100","yes")
+        #Craig Johnston for Battleship rental /1/2 space
+        #pinpay.chargeFee('5689127638925312','WorkspaceRental','Rental for June','Workspace','37.50','yes')
+        #
+        updatePaymentData()

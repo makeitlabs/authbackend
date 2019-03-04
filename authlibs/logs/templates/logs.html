@@ -1,0 +1,156 @@
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+  <link href="{{ url_for('static', filename='css/bootstrap-datepicker3.min.css') }}" rel="stylesheet">
+	<script type="text/javascript" src="{{ url_for("static",filename="js/bootstrap-datepicker.min.js") }}"></script>
+	<script type="text/javascript" src="{{ url_for("logs.static",filename="logfilter.js") }}"></script>
+{% endblock %}
+
+{% macro dobuttons() %}
+		<div class="content">
+			<span>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-asterisk"  onclick="location.href='{{ url_for('logs.logs') }}'" />
+			<button class="btn btn-lg btn-light glyphicon glyphicon-filter" aria-hidden="true" data-toggle="collapse" href="#filterCollapse" role="button" aria-expanded="false" aria-controls="filterCollapse" /></button>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-step-backward" onclick="location.href='{{ meta.first }}'" />
+			{% if meta.prev %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-left"  onclick="location.href='{{ meta.prev }}'" />
+			{% else %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-left disabled" />
+			{% endif %}
+			{% if meta.next %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-right" onclick="location.href='{{ meta.next }}'"  />
+			{% else %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-right disabled"  />
+			{% endif %}
+			<button class="btn btn-lg btn-light glyphicon glyphicon-step-forward"  onclick="location.href='{{ meta.last }}'"></button>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-download"  onclick="location.href='{{ meta.csvurl }}'"></button>
+
+			</span>
+			<span>{{ meta.displayoffset }} - {{ meta.lastoffset}} of {{ meta.count }}</span>
+		</div>
+{%- endmacro -%}
+
+{% block widebody %}
+  <div class=body>
+	<div class="sectionhead">Logs</div>
+    <p></p>
+
+	<div class="content" style="margin-bottom:10px">
+		{{ dobuttons() }}
+		<div class="collapse" id="filterCollapse">
+			<form method="GET">
+				<div class="card card-body" style="width: 50rem;">
+
+					{% if meta['nomembersearch'] %}
+					<bkg:nohr><div class="form-row"><b>Members</b></div>
+					<div class="form-col">
+						<label for="memberInput">Search Member</label>
+						<input type="text" name="memberInput" id="searchfield1" 
+							oninput="changedDropdownText('searchfield1','{{ url_for("authorize.membersearch",search="") }}','memberList');" />
+					</div> 
+					<div class="form-row supercompact" id="memberList"> {# Member Form Row #}
+						{# Filled in via javascript #}
+					</div> {#  Member Form Row #}
+					{% endif %}
+
+					<hr style="margin:1px"/><div class="form-row supercompact"><b>Resources</b></div>
+					<div class="form-row" id="resourceList"> {# Resource Form Row #}
+						{% for r in resources %}
+							<div class="form-group tightcbcell" >
+								<input type="checkbox" name="input_resource_{{ r.id }}"><label>{{ r.name}}</label>
+							</div>
+						{% endfor %}
+					</div> {#  Resource Form Row #}
+
+					<hr style="margin:1px" /><div class="form-row"><b>Tools</b></div>
+					<div class="form-row" id="toolList"> {# Tool Form Row #}
+						{% for t in tools %}
+							<div class="form-group tightcbcell">
+								<input type="checkbox" name="input_tool_{{ t.id }}"><label>{{ t.name}}</label>
+							</div>
+						{% endfor %}
+					</div> {# Tool Form Row #}
+
+					<hr style="margin:1px" /><div class="form-row"><b>Nodes</b></div>
+					<div class="form-row tightcbcell" id="nodeList"> {# Node Form Row #}
+						{% for n in nodes %}
+							<div class="form-group">
+								<input type="checkbox" name="input_node_{{ n.id }}"><label>{{ n.name}}</label>
+							</div>
+						{% endfor %}
+					</div> {#  Resource Form Row #}
+
+					<hr style="margin:1px" /><div class="form-row"><b>Date Range</b></div>
+					<div class="form-row"> {# Datepicker Row #}
+						<div class="input-daterange input-group" id="datepicker">
+								<span class="input-group-addon">From</span>
+								<input type="text" class="input-sm form-control" name="input_date_start" />
+								<span class="input-group-addon">to</span>
+								<input type="text" class="input-sm form-control" name="input_date_end" />
+						</div>
+					</div> {# Datepicker row #}
+
+					<input style="margin-top:10px" class="btn btn-primary" type="submit" value="filter" />
+				</div> {# Filter Card #}
+			</form>
+		</div>
+	</div> {# Outer filter content #}
+
+	<table  style="font-size:10px" class="table table-compact supercompact">
+      <tr>
+        <th>When</th>
+        <th>Ago</th>
+        <th>Who</th>
+        <th>Tool</th>
+        <th>Node</th>
+        <th>Resource</th>
+        <th>Event</th>
+        <th>Admin</th>
+        <th>Message</th>
+      </tr>
+      {% for l in logs %}
+	  <tr>
+		<td>{{ l.when }}</td>
+		<td>{{ l.ago }} ago</td>
+		<td>
+			{% if l.user %}
+			<a href="{{ url_for("members.member_show",id=l.member_id) }}">
+			{{ l.user }}
+			</a>
+			{% endif %}
+		</td>
+		<td>
+			{% if l.tool %}
+			<a href="{{ url_for("tools.tools_show",tool=l.tool_id) }}">
+			{{ l.tool }}
+			</a>
+			{% endif %}
+		</td>
+		<td>
+			{% if l.node %}
+			<a href="{{ url_for("nodes.nodes_show",node=l.node_id) }}">
+			{{ l.node }}
+			</a>
+			{% endif %}
+		</td>
+		<td>
+			{% if l.resource %}
+			<a href="{{ url_for("resources.resource_show",resource=l.resource) }}">
+			{{ l.resource }}
+			</a>
+			{% endif %}
+		</td>
+		<td>{{ l.event }}</td>
+		<td>
+			<a href="{{ url_for("members.member_show",id=l.admin_id) }}">
+				{{ l.doneby }}
+			</a>
+		</td>
+		<td>{{ l.message }}</td>
+	  </tr>
+      {% endfor %}
+	</table>
+		{{ dobuttons() }}
+		{# 	<pre>{{ meta }}
+		{{ request.url }}</pre> #}
+  </div>
+{% endblock %}

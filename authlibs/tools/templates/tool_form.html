@@ -1,0 +1,69 @@
+{#    This is meant to be INCLUDED by another page.
+			Wrap this inside another div class-content block, 
+			and inside a form (if desiered)
+
+			This template is used for THREE different thins:
+			Create, Edit, or Display a record
+	
+			{% include 'template.html' %}
+
+			Or to include checkbox columns:
+
+			{% with add_checkboxes='1' %}
+			{% include 'userlist.html' %}
+			{% endwith %}
+
+#}
+
+<!-- Import any "with" parameters -->
+{% if member_url %}
+<script type="text/javascript">var MEMBER_URL="{{ url_for("members.member_show",id="") }}";</script>
+{% else %}
+<script type="text/javascript">var MEMBER_URL=null;</script>
+{% endif %}
+
+
+{% if readonly is defined and readonly  %}
+{% set ro="readonly" %}
+{% endif %}
+
+{% if rec is not defined %}
+{% set rec={} %}
+{% endif %}
+
+{% from 'global_macros.html' import input with context %}
+
+<div class="container">
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('name',"Tool Name",small="Typically: \"tooltype-specifc\", like \"door-front\" or \"laser-rabbit\"") }}
+    </div>
+    <div class="form-group col-md-6">
+			{{ input('short',"short Name",small="Short name for slack use, like \"rabbit\" or \"lift\"") }}
+    </div>
+	</div>
+  <div class="form-row">
+    <div class="form-group col-md-8">
+      <label for="input_resource_id">Resource Group</label>
+			<select {{ ro }} class="form-control" name="input_resource_id">
+				{% for r in resources %}
+					<option name="{{ r.name }}" value="{{ r.id }}"
+					{% if rec.resource_id == r.id %}selected{% endif %}
+					>{{ r.name }}</option>
+				{% endfor %}
+			</select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-8">
+      <label for="input_resource_id">Node</label>
+			<select {{ ro }} class="form-control" name="input_node_id">
+				{% for n in nodes %}
+					<option name="{{ n.name }}" value="{{ n.id }}"
+					{% if rec.node_id == n.id %}selected{% endif %}
+					>{{ n.name }}</option>
+				{% endfor %}
+			</select>
+    </div>
+  </div>
+</div>

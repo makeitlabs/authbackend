@@ -1,0 +1,73 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div>
+<div class="sectionhead"><h3>Edit Resource</h3></div>
+	<a href="{{ url_for("resources.resource_usage",resource=rec.name) }}" class="btn btn-link">Usage Graphs</a>
+	<a href="{{ url_for("resources.resource_usage_reports",resource=rec.name) }}" class="btn btn-link">Usage Reports</a>
+  <form action={{ url_for('resources.resource_update',resource=rec.id) }} method="POST">
+	{% include 'form.html' %}
+	{% if readonly is not defined or not readonly %}
+	<input type=submit class="btn btn-primary" value="Save changes">
+	{% endif %}
+  </form>
+
+	<hr />
+	<div class="container"> <!-- Tools -->
+	<h3>Tools</h3>
+	{% if not tools %}
+		<p>There are no tools of this resource type</p>
+	{% else %}
+		<table class="table">
+			<tr>
+				<th>Tool Name</th>
+				<th>Front-End</th>
+			</tr>
+	{% for t in tools %}
+			<tr>
+				<td>{{ t.name }}</td>
+				<td>{{ t.frontend }}</td>
+			</tr>
+	{% endfor %}
+		</table>
+	{% endif %}
+	</div> <!-- Tools -->
+	{% if readonly is not defined or not readonly %} <!-- WE CAN EDIT -->
+  <div class="sectionhead">
+	  <p />
+  </div>
+
+{% if current_user.privs("RATT") %} {# RATT privs - can delete #}
+  <!-- Button trigger for "Delete" modal -->
+<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
+  Delete Resource
+</button>
+
+<!-- Modal for Delete resource confirmation -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+	      Are you really sure you want to delete {{ rec.name }}??
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+	  <form action={{ url_for('resources.resource_delete',resource=rec.id) }} method="post">
+		<input class="btn btn-danger" type=submit value="Delete">
+	  </form>
+      </div>
+    </div>
+  </div>
+</div>
+  {% endif %} {# RATT PRIVS - CAN DELETE #}
+  {% endif %} {# WE CAN EDIT #}
+
+	{% with resource_id=rec.id %}
+	{% include "comments.html" %}
+	{% endwith %}
+{% endblock %}

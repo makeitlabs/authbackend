@@ -25,8 +25,13 @@ h2              { font-size: 1.4em; padding-bottom: 10px;}
 .banner         { padding-bottom: 20px; }
 .errortext      { color: #FF0000; }
 .sectionhead    { font-size: large; color: #377ba8; padding-bottom: 0.4em; padding-top: 0.5em;}
-.menuimg        { width: 125px; height:125px;}
+.menuimg        { width: 30vw }
 .menubox        { align:center; padding: 1.0em; text-align: center}
 .protip         { font-style: italic; padding-bottom: 0.3em; padding-top: 0.2em;}
 .delete         { background-color: #FF0000; font-size: medium;}
 .warningtext    { color: #FF0000; font-style: italic;}
+
+.bkg {font-size: 10px; border:1px}
+.bkg tr:nth-child(even) {background: #EEE}
+.bkg tr:nth-child(odd) {background: #FFF}
+

@@ -1,0 +1,113 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+
+<script type="text/javascript" src="{{ url_for("nodes.static",filename="nodeedit.js") }}"></script>
+<script type="text/javascript"> IMG_BASE="{{ url_for("static",filename="") }}";</script>
+<div>
+<div class="sectionhead"><h3>Edit Node</h3></div>
+  <form action={{ url_for('nodes.nodes_update',node=node.id) }} method="POST">
+	{% include 'node_form.html' %}
+
+	<! -- KV Pairs -->
+	<div id="div_kv_base" class="container">
+		{# If you edit this - change it in the javascript, too!! #}
+		{% set vars = {'lastgrp':None}  %}
+		<h4>Parameters</h4>
+		<div class="form-group"> <!-- INITIAL GROUP -->
+		{% for p in params %}
+			{% if p.groupname != vars['lastgrp'] %}
+			</div><div class="form-group" {{ p.indent }}> <!-- NEW GROUP -->
+			<div class="form-row">
+				<div class="form-group col-md-6">
+					<hr />
+					<h5>{{ p.groupname }}</h5>
+				</div>
+			</div>
+			{% if vars.update({'lastgrp':p.groupname}) %} {% endif %}
+			{% endif %}
+			<div class="form-row kvdiv" be_kv_id="{{ p.id }}" id="kv_row_{{ p.id }}">
+				<div class="form-group col-md-6">
+					<label>{{ p.itemname }}</label>
+					<input type="hidden" name="key_orig_{{ p.id }}" id="key_orig_{{ p.id }}"  value="{{ p.value }}" />
+					<input type="hidden" name="ncid_{{ p.id }}" id="ncid_{{ p.id }}"  value="{{ p.ncid }}" />
+					{% if p.kind == "boolean" %}
+						<select {% if p.value == "" %} disabled=true {% endif %} name="key_input_{{ p.id }}" id="key_input_{{ p.id }}" class="custom-select" >
+							<option value="true" {% if p.initialvalue %} selected {% endif %}> True
+							<option value="false" {% if not p.initialvalue %} selected {% endif %}> False
+							</option>
+						</select>
+					{% elif p.options %}
+						<select {% if p.value == "" %} disabled=true {% endif %} name="key_input_{{ p.id }}" id="key_input_{{ p.id }}" class="custom-select" >
+						{% for x in p.options %} 
+							<option value="{{ x }}"
+							{% if x == p.initialvalue %} selected {% endif %}>
+							{{ x }}
+							</option>
+						{% endfor %}
+						</select>
+					{% else %}
+					<input type="text" {{ ro }} {% if p.value == "" %} readonly {% endif %} class="form-control kv_input_key" name="key_input_{{ p.id }}" id="key_input_{{ p.id }}"  value="{{ p.value }}">
+					{% endif %}
+					<div class="form-text text-muted">
+						<small>{{ p.description }}</small>
+					</div>
+					<div class="form-check form-check-inline">
+						<input class="form-check-input" type="checkbox" id="usedefault_{{ p.id }}" value="on" onClick="click_global_cb({{ p.id }},'{{ p.default }}');"
+					{% if p.value == "" %} checked {% endif %}
+						>
+						<label class="form-check-label" for="inlineCheckbox1">Use Global Default</label>
+					</div>
+				</div>
+			</div>
+		{% endfor %}
+		</div> <!-- CLOSE LAST GROUP -->
+	</div>
+	<!-- end KV Pairs -->
+
+	
+		<br />
+		<div class="container">
+		{% if readonly is not defined or not readonly %}
+		<input type=submit class="btn btn-primary" value="Save changes">
+		{% endif %}
+	</dif>
+
+  </form>
+	{% if readonly is not defined or not readonly %}
+  <div class="sectionhead">
+	  <p />
+  </div>
+
+  <!-- Button trigger for "Delete" modal -->
+<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
+  Delete Tool
+</button>
+
+<!-- Modal for Delete resource confirmation -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+	      Are you really sure you want to delete {{ node.name }}??
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+	  <form action={{ url_for('nodes.node_delete',node=node.id) }} method="post">
+		<input class="btn btn-danger" type=submit value="Delete">
+	  </form>
+      </div>
+    </div>
+  </div>
+</div>
+  {% endif %} <!-- We have premissions to delete -->
+
+	{% with node_id=node.id %}
+	{% include "comments.html" %}
+	{% endwith %}
+{% endblock %}

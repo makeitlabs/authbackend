@@ -1,0 +1,79 @@
+{#    This is meant to be INCLUDED by another page.
+			Wrap this inside another div class-content block, 
+			and inside a form (if desiered)
+
+			This template is used for THREE different thins:
+			Create, Edit, or Display a record
+	
+			{% include 'template.html' %}
+
+			Or to include checkbox columns:
+
+			{% with add_checkboxes='1' %}
+			{% include 'userlist.html' %}
+			{% endwith %}
+
+#}
+
+<!-- Import any "with" parameters -->
+{% if member_url %}
+<script type="text/javascript">var MEMBER_URL="{{ url_for("members.member_show",id="") }}";</script>
+{% else %}
+<script type="text/javascript">var MEMBER_URL=null;</script>
+{% endif %}
+
+
+{% if readonly is defined and readonly  %}
+{% set ro="readonly" %}
+{% endif %}
+
+{% if rec is not defined %}
+{% set rec={} %}
+{% endif %}
+
+
+{% from 'global_macros.html' import input with context %}
+
+<div class="container">
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('name',"Resource Name",'resource-users',small='Typically ends in \"-users\"') }}
+    </div>
+    <div class="form-group col-md-6">
+			{{ input('short',"Short Name",'',small='Very short nickname - for slack') }}
+    </div>
+	</div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('description',"Description",'Descripton of resource') }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('owneremail',"RM Email group/alias",'resource@makeitlabs.com',type="email") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('slack_chan',"Public Slack Channel",'#resource-users',small="Public notices, like tool outages") }}
+    </div>
+    <div class="form-group col-md-6">
+			{{ input('slack_admin_chan',"Admin Slack Channel",'#resource-admin',small="Notices to admins, like tool activity") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('info_url',"Resource URL",'https://wiki.makeitlabs.com/resource',small="Where uses can go for more info") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-12">
+			{{ input('info_text',"Information Text (Short, for RATT)",'This tool requires a class..',small="Displayed on RATT for unauthorized users") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-12">
+			{{ input('slack_info_text',"Information Text (Longer, for RATT or Email)",'Click this URL for training classes...',small="Emailed to unauthorized users who want access") }}
+    </div>
+  </div>
+</div>

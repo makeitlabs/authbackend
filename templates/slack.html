@@ -1,0 +1,45 @@
+{% extends "layout_bootstrap.html" %}
+{% block search %}
+  <div class=body>
+	<div class="sectionhead">Disconnected Slack Accounts</div>
+   <form method="POST">
+	   <input type="submit" name="Link" value="Link" />
+    <p></p>
+    <div>
+    <span style="display:inline-block;vertical-align:top">
+	<table class="bkg">
+      <tr>
+        <th>Slack ID</th>
+        <th>Email</th>
+      </tr>
+      {% for s in slacks %}
+	  <tr>
+		<td>{{ s.name }}</td>
+		<td>{{ s.email }}</td>
+		<td><input type="radio" name="slack" value="{{ s.name }}" /></td>
+	  </tr>
+      {% endfor %}
+	</table>
+    </span>
+
+
+    <span style="display:inline-block;vertical-align:top;border-left-color:black;border-left-width:3px;border-left-style:solid">
+	<table class="bkg">
+      <tr>
+	      <th></th>
+        <th>Member</th>
+        <th>Alt Email</th>
+      </tr>
+      {% for m in members %}
+	  <tr>
+		  <td><input type="radio" name="member" value="{{ m.member }}" /></td>
+		<td>{{ m.member }}</td>
+		<td>{{ m.alt_email }}</td>
+	  </tr>
+      {% endfor %}
+	</table>
+    </span>
+    </div>
+   </form>
+  </div>
+{% endblock %}

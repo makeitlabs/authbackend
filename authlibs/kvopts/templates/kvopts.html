@@ -1,0 +1,41 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div class="kvoptlist">
+	<h2>Node Parameters:  {{ kvopts |length }} available</h2>
+	<table class="table table-sm">
+        <tr>
+            <th>Key Name</th>
+            <th>Default</th>
+						<th>Options</th>
+						<th>Type</th>
+        </tr>
+	{% for kv in kvopts %}
+	  <tr>
+		<td><a href="{{ url_for('kvopts.kvopt_show',kvopt=kv.keyname) }}">{{ kv.keyname }}</a></td>
+		<td>{{ kv.default }}</td>
+		<td>{{ kv.options }}</td>
+		<td>{{ kv.kind }}</td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+
+<!-- Add New KVopt -->
+
+
+	{% if current_user.privs("RATT") %}
+  <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#kvopt-add-collapse" aria-expanded="false" aria-controls="kvopt-add-collapse">
+    Add New Node Parameter
+  </button>
+  <div class="collapse" id="kvopt-add-collapse">
+		<hr />
+		<h3> Add New Node Parameter </h3>
+		<form action="{{ url_for('kvopts.kvopt_create') }}" method="post">
+			{% include 'kvopt_form.html' %}
+		<input type="submit" value="Create Parameter" />
+		</form>
+	</div>
+</div>
+{% endif %} <!-- Add New KVopt -->
+{% endblock %}

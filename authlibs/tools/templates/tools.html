@@ -1,0 +1,39 @@
+{% extends "layout_bootstrap.html" %}
+<h2>Resources</h2>
+{% block body %}
+<div class="toolslist">
+	<h2>Tools:  {{ tools |length }} available</h2>
+	<table class="table table-sm">
+        <tr>
+            <th>Name</th>
+            <th>Node</th>
+            <th>Resource Group</th>
+        </tr>
+	{% for tool in tools %}
+	  <tr>
+		<td><a href="{{ url_for('tools.tools_show',tool=tool.id) }}">{{ tool.name }}</a></td>
+		<td>{{ tool.node }}</td>
+		<td>{{ tool.resource_name }}</td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+
+<!-- Add New Tool -->
+
+
+	{% if current_user.privs("RATT") %}
+  <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#tools-add-collapse" aria-expanded="false" aria-controls="tools-add-collapse">
+    Add New Tool
+  </button>
+  <div class="collapse" id="tools-add-collapse">
+	<hr />
+  <h3> Add New Tool </h3>
+<form action="{{ url_for('tools.tools_create') }}" method="post">
+	{% include 'tool_form.html' %}
+<input type="submit" value="Create tools" />
+</form>
+</div>
+{% endif %} <!-- Add New Resoruce -->
+{% endblock %}

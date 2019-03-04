@@ -1,0 +1,47 @@
+{% extends "layout_bootstrap.html" %}
+<h2>Resources</h2>
+{% block body %}
+<div class="resourcelist">
+	<h2>Resource Groups:  {{ resources |length }} available</h2>
+	<table class="table table-sm">
+        <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Owner Email</th>
+	    <th>View</th>
+        </tr>
+	{% for resource in resources %}
+	  <tr>
+		<td><a href="{{ url_for('resources.resource_show',resource=resource.name) }}">{{ resource.name }}</a></td>
+		<td>{{ resource.description }}</td>
+		<td>{{ resource.owneremail }}</td>
+		<td>
+		  <a class="btn btn-outline-info" href="{{ url_for('resources.resource_showusers',resource=resource.name) }}">MEMBERS</a>
+		  <a class="btn btn-outline-info" href="{{ url_for('logs.logs',resourceid=resource.id) }}">LOGS</a>
+		  
+		  <a class="btn btn-outline-info" href="{{ url_for('resources.resource_usage',resource=resource.name) }}" class="btn btn-link">GRAPHS</a>
+		  <a class="btn btn-outline-info" href="{{ url_for('resources.resource_usage_reports',resource=resource.name) }}" class="btn btn-link">REPORTS</a>
+		</td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+
+<!-- Add New Resource -->
+
+
+	{% if current_user.privs("RATT") %}
+  <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#resource-add-collapse" aria-expanded="false" aria-controls="resource-add-collapse">
+    Add New Resource Group
+  </button>
+  <div class="collapse" id="resource-add-collapse">
+	<hr />
+  <h3> Add New Resource </h3>
+<form action="{{ url_for('resources.resource_create') }}" method="post">
+	{% include 'form.html' %}
+<input type="submit" value="Create resource" />
+</form>
+</div>
+{% endif %} <!-- Add New Resoruce -->
+{% endblock %}

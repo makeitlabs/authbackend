@@ -1,0 +1,103 @@
+<!-- This is meant to be INCLUDED by another page.
+			Wrap this inside another div class-content block, 
+			and inside a form (if desiered)
+	
+			(removed the "xx"es!)
+
+			{xx% include 'userlist.html' %xx}
+
+			Or to include checkbox columns:
+
+			{xx% with add_checkboxes='1' %xx}
+			{xx% include 'userlist.html' %xx}
+			{xx% endwith %}
+-->
+
+{% if add_checkboxes %}
+<script type="text/javascript">var USE_MEMBER_CHECKBOXES=1;</script>
+{% else %}
+<script type="text/javascript">var USE_MEMBER_CHECKBOXES=0;</script>
+{% endif %}
+
+{% if member_url %}
+<script type="text/javascript">var MEMBER_URL="{{ url_for("members.member_show",id="") }}";</script>
+{% else %}
+<script type="text/javascript">var MEMBER_URL=null;</script>
+{% endif %}
+
+{# Define variables to help javascript code find path locations #}
+<script type="text/javascript">var STATIC_URL="{{ url_for("static",filename="") }}";</script>
+<script type="text/javascript">var MEMBER_SEARCH_URL="{{ url_for("authorize.membersearch",search="") }}";</script>
+
+<script src="{{ url_for('static', filename='js/userlist.js') }}"></script>
+
+<div class="input-group mb-3">
+  Search for members: 
+  <input type="text" class="form-control" name="search" oninput="changedDropdownText();" id="searchfield1" placeholder="" aria-label="Example text with button addon" aria-describedby="button-addon1" autocomplete="off"  >
+	<div class="input-group-append" id="button-addon4">
+		{# <button name="membertype" id="activeInactive" class="btn btn-outline-secondary" onClick="DoActiveButton();" type="button">Active Members</button> #}
+		{# <button class="btn btn-outline-secondary" onClick="DoSearchButton();" type="button">Search</button> #}
+		<button class="btn btn-outline-secondary" onClick="DoAllButton();" type="button">SEE ALL</button>
+	</div>
+</div>
+
+<div id="search_box">
+	<input onclick="changedDropdownText();" class="cb member_filter_cb mx-3" value="active" checked type="checkbox">Active</input>
+	<input onclick="changedDropdownText();" class="cb member_filter_cb mx-3" value="nosub" checked type="checkbox">No-Subscription</input>
+	<input onclick="changedDropdownText();" class="cb member_filter_cb mx-3" value="noaccess" checked type="checkbox">Access Disabled</input>
+	<input onclick="changedDropdownText();" class="cb member_filter_cb mx-3" value="expired" checked type="checkbox">Expired</input>
+	<input onclick="changedDropdownText();" class="cb member_filter_cb mx-3" value="grace" checked type="checkbox">Grace Period</input>
+	<input onclick="changedDropdownText();" class="cb member_filter_cb mx-3" value="recentexpire" checked type="checkbox">Recent Expire</input>
+</div>
+
+<div class="alert alert-secondary" role="alert" id="entermatchtext">
+  Enter any part of a name in the search field above to find matches, or click "SEE ALL" to browse all users.  Results are filtered by the criteria above.
+</div>
+
+
+<button class="btn btn-outline-secondary invisible" id="moarUsers" onClick="MoarUsers();" type="button">SEE MORE RESULTS...</button>
+<table class="table table-striped compacttable" style="display:hidden" id="membertable">
+  <thead>
+    <tr>
+{% if add_checkboxes %}
+      <th></th>
+{% endif %}
+      <th>Member ID</th>
+      <th>First</th>
+      <th>Last</th>
+      <th>Email</th>
+      <th>Status</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody id="memberrows">
+	{# This really isn't used - done in Javascript #}
+	{% for member in members %}
+    <tr class="memberrow">
+  {% if add_checkboxes %}
+<td><input type="checkbox" onchange="click_checkbox();" 
+	class="auth_user_cb"/></td>
+  {% endif %}
+      <td>
+	      			{% if not add_checkboxes %}
+				<a href="{{ url_for('members.member_show',id=member.member)}}">
+				{% endif %}
+				{# WARNING! Do not add ANYTHING but cleartext member name when checkboxes are enabled! Will break checkbox form submit code #}
+				{{ member.member }}
+	      			{% if not add_checkboxes %}
+			</a>
+				{% endif %}
+			</td>
+      <td>{{ member.firstname }}</td>
+      <td>{{ member.lastname }}</td>
+      <td>{{ member.email }}</td>
+      <td>{{ member.active }}</td>
+      <td>
+      <img src="{{ url_for("static",filename="logicon.png") }}" height="16px" >
+      <img src="{{ url_for("static",filename="eye.png") }}" height="16px" >
+      <img src="{{ url_for("static",filename="lock.png") }}" height="16px" >
+      <img src="{{ url_for("static",filename="edit.png") }}" height="16px"> </td>
+	{% endfor %}
+    </tr>
+  </tbody>
+</table>

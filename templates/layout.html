@@ -6,10 +6,23 @@
   {% if current_user.is_authenticated %}
     <a href="{{ url_for('logout') }}">Logout</a>
   {% endif %}
+	{% if DEPLOYTYPE  or TESTDB %}
+		<p style="font-size:x-large;color:red;background:yellow">
+		{% if DEPLOYTYPE %}
+			Special Deployment - {{ DEPLOYTYPE }}
+		{% endif %}
+		{% if DEPLOYTYPE  or TESTDB %}
+		<br />
+		{% endif %}
+		{% if TESTDB %}
+		Using TEST atabase
+		{% endif %}
+		</p>
+	{% endif %}
   </div>
   <div class=banner>
   <div class=bannerlogo><a href="{{ url_for('index') }}"><img src="{{ url_for('static',filename='makeit.png') }}" width="100%" height="100%"/></a></div>
-  <div class=bannertext>Admin interface, v0.4</div>
+  <div class=bannertext>Admin interface, v0.5</div>
   </div>
   
   
@@ -23,4 +36,15 @@
   <p>
     
   </p><div><a href="{{ url_for('index') }}">Home</a></div>
+ {% if current_user %}
+  <p>
+  <address>Logged in as: {{ current_user.email }}</address>
+  <p>
+<p>Privileges:
+{% if current_user.privs('Admin') %}[Admin] {% endif %}
+{% if current_user.privs('Finance') %}[Finance] {% endif %}
+{% if current_user.privs('Useredit') %}[Useredit] {% endif %}
+{% if current_user.privs('RATT') %}[RATT] {% endif %}
+</p>
+  {% endif %}
 </div>

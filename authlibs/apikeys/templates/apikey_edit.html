@@ -1,0 +1,44 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div>
+<div class="sectionhead"><h3>Edit API Key</h3></div>
+  <form action={{ url_for('apikeys.apikeys_update',apikey=apikey.id) }} method="POST">
+	{% include 'apikey_form.html' %}
+	{% if readonly is not defined or not readonly %}
+	<input type=submit class="btn btn-primary" value="Save changes">
+	{% endif %}
+  </form>
+	{% if readonly is not defined or not readonly %}
+  <div class="sectionhead">
+	  <p />
+  </div>
+
+  <!-- Button trigger for "Delete" modal -->
+<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
+  Delete API Key
+</button>
+
+<!-- Modal for Delete resource confirmation -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+	      Are you really sure you want to delete {{ apikey.name }}??
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+	  <form action={{ url_for('apikeys.apikey_delete',apikey=apikey.id) }} method="post">
+		<input class="btn btn-danger" type=submit value="Delete">
+	  </form>
+      </div>
+    </div>
+  </div>
+</div>
+  {% endif %} <!-- We have premissions to delete -->
+{% endblock %}

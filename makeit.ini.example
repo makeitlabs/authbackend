@@ -1,15 +1,25 @@
 [General]
 Debug: False
 Database: makeit.db
-AdminUser: admin
+LogDatabase: log.db
+AdminUser: admin@makeitlabs.com
 AdminPassword: admin
 SecretKey: secret
 ServerHost: 0.0.0.0
 ServerPort: 5000
+; Deployment should be "Production" for real use - something different for test/devel servers
+Deployment: Production
+Logins: all
+; all - global - resource
+; "all" means all can login - "global" requires some global privs - "resource" requires trainer privs on a resource
+DefaultLogin: oauth
+; "oauth" or "local"
 
 [Payments]
 Modules: stripe
 Valid: false
+Canary:	Always.Member
+; "Canary" member is one who the system will refuse to make subscription adjustments if this user becomes invalid
 
 [Pinpayments]
 Valid: False
@@ -30,3 +40,45 @@ Token: sk_live_1234
 
 [Smartwaiver]
 Apikey: abcd
+
+[OAuth]
+GOOGLE_CLIENT_ID = '<Client-ID>'
+GOOGLE_CLIENT_SECRET = '<Client-secret>'
+REDIRECT_URI = '/authorized'  # one of the Redirect URIs from Google APIs console
+SECRET_KEY = 'development key'
+
+[MQTT]
+SSL=False
+LogLevel=DEBUG
+BrokerHost=localhost
+BrokerPort=1883
+keepalive=1000
+BaseTopic=test/topic
+; To enable auth - specify username and password
+;username=
+;password=
+
+;Set SSL=True in MQTT to use (Commented ones are optional)
+[MQTT_SSL]
+ca_certs=/data/certs/ca.crt
+certfile=/data/certs/client.crt
+keyfile=/data/certs/client.key
+;tls_version
+;ciphers
+
+
+[Slack]
+BOT_API_TOKEN=<slackbot api token>
+SLACKBOT_API_USERNAME=slackbot
+SLACKBOT_API_PASSWORD=somethinglongandrandom
+
+[backups]
+api_username=testkey
+api_password=testkey
+db_backup_directory=/tmp/backups
+acl_backup_directory=/tmp/acls
+aws_token=<AWS TOKEN>
+aws_secret_key=<AWS SECRET KEY>
+aws_bucket=<AWS BUCKET>
+BOT_API_TOKEN=<SLACK TOKEN - PROBABLY SAME AS IN SLACK SECTION>
+localurl=http://127.0.0.1:5000
