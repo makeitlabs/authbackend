@@ -181,12 +181,12 @@ class RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED:
 
 class RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED:
     id=4001
-    desc='Resource access granted'
+    desc='Resource access revoked'
 		slack_icon=":thumbs_down:"
 
 class RATTBE_LOGEVENT_RESOURCE_ACCESS_XXX:
     id=4002
-    desc='Resource access granted'
+    desc='Resource access ???'
 
 class RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE:
     id=4004
