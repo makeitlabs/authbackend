@@ -31,6 +31,7 @@ streamHandler.setFormatter(formatter)
 
 api_username = config.Config.get("Slack","SLACKBOT_API_USERNAME")
 api_password = config.Config.get("Slack","SLACKBOT_API_PASSWORD")
+url_base = config.Config.get("backups","localurl")
 
 log_events=[]
 logger.addHandler(streamHandler)
@@ -88,7 +89,7 @@ def matchusers(sc,user,ctx,pattern):
 
   if not foundQuick:
     req = requests.Session()
-    url = "http://127.0.0.1:5000/api/membersearch/"+safestr(pattern)
+    url = url_base+"/api/membersearch/"+safestr(pattern)
     r = req.get(url, auth=(api_username,api_password))
     if r.status_code != 200:
       raise BaseException ("%s API failed %d" % (url,r.status_code))
@@ -118,7 +119,7 @@ def cancel_callbacks(ctx):
 
 def authorize_confirm(sc,user,ctx):
   req = requests.Session()
-  url = "http://127.0.0.1:5000/api/v1/authorize"
+  url = url_base+"/api/v1/authorize"
   data={'slack_id': user['user']['profile']['display_name']}
   data['resources']=[r['id'] for r in ctx['authorize_resources']]
   data['members']=[m['id'] for m in ctx['authorize_users']]
@@ -229,7 +230,7 @@ def safestr(s):
 def get_resources():
   resources=[]
   req = requests.Session()
-  url = "http://127.0.0.1:5000/api/v1/resources"
+  url = url_base+"/api/v1/resources"
   r = req.get(url, auth=(api_username,api_password))
   if r.status_code != 200:
     raise BaseException ("%s API failed %d" % (url,r.status_code))
@@ -251,7 +252,7 @@ def api_cmd(sc,user,ctx,*s):
 def tools_cmd(sc,user,ctx,*s):
   myid = safestr(user['user']['profile']['display_name'])
   req = requests.Session()
-  url = "http://127.0.0.1:5000/api/v1/slack/tools/"+str(myid)
+  url = url_base+"/api/v1/slack/tools/"+str(myid)
   r = req.get(url, auth=(api_username,api_password))
   if r.status_code != 200:
     raise BaseException ("%s API failed %d" % (url,r.status_code))
@@ -264,7 +265,7 @@ def use_tool(sc,user,ctx,*s):
     print "Which tool or resource?"
   tool = s[1]
   req = requests.Session()
-  url = "http://127.0.0.1:5000/api/v1/slack/open/"+tool+"/"+str(myid)
+  url = url_base+"/api/v1/slack/open/"+tool+"/"+str(myid)
   r = req.get(url, auth=(api_username,api_password))
   if r.status_code != 200:
     raise BaseException ("%s API failed %d" % (url,r.status_code))
@@ -274,7 +275,7 @@ def use_tool(sc,user,ctx,*s):
 def whoami(sc,user,ctx,*s):
   myid = safestr(user['user']['profile']['display_name'])
   req = requests.Session()
-  url = "http://127.0.0.1:5000/api/v1/slack/whoami/"+str(myid)
+  url = url_base+"/api/v1/slack/whoami/"+str(myid)
   r = req.get(url, auth=(api_username,api_password))
   if r.status_code != 200:
     raise BaseException ("%s API failed %d" % (url,r.status_code))
@@ -284,7 +285,7 @@ def whoami(sc,user,ctx,*s):
 def admin_commands(sc,user,ctx,*s):
   myid = safestr(user['user']['profile']['display_name'])
   req = requests.Session()
-  url = "http://127.0.0.1:5000/api/v1/slack/admin/"+str(myid)
+  url = url_base+"/api/v1/slack/admin/"+str(myid)
   data= {'command':s[1:]}
   r = req.post(url, json=data,auth=(api_username,api_password))
   if r.status_code != 200:
@@ -302,7 +303,7 @@ def privileges(sc,user,ctx,*s):
     return "```Ambiguous - chose among:\n"+v+"```"
 
   req = requests.Session()
-  url = "http://127.0.0.1:5000/api/v1/memberprivs/"+str(matches[0]['id'])
+  url = url_base+"/api/v1/memberprivs/"+str(matches[0]['id'])
   r = req.get(url, auth=(api_username,api_password))
   if r.status_code != 200:
     raise BaseException ("%s API failed %d" % (url,r.status_code))
