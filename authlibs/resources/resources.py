@@ -241,6 +241,7 @@ def resource_showusers(resource):
 			accrec.append({'member_id':x[1],'member':x[2],'level':level,
 					'sortlevel':int(x[3]),
 					'sorttime':sorttime,
+					'logurl':url_for("logs.logs")+"?input_member_%s=on&input_resource_%s=on" %(x[1],res_id),
 					'lockout_reason':'' if x[4] is None else x[4],'lastusedago':lu1,'usedago':lu2,'lastused':lu1})
 			
 		return render_template('resource_users.html',resource=rid,accrecs=sorted(accrec,cmp=showuser_sort))
