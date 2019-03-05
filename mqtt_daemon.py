@@ -258,8 +258,8 @@ def on_message(client,userdata,msg):
                     usage.enabledSecs = enabledSecs
                     usage.activeSecs = activeSecs
                     usage.idleSecs = idleSecs
-                    usage.time_reported = datetime.now()
-                    usage.time_logged = datetime.now()
+                    usage.time_reported = datetime.utcnow()
+                    usage.time_logged = datetime.utcnow()
                     db.session.add(usage)
                     db.session.commit()
 
