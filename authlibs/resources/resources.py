@@ -2,6 +2,7 @@
 
 from ..templateCommon import  *
 
+import math
 from authlibs import accesslib
 from authlibs import ago
 from authlibs.comments import comments
@@ -83,6 +84,15 @@ def generate_report(fields,records):
 	for r in records:
 			yield ",".join(["\"%s\"" % r[f['name']] for f in fields]) + "\n"
 
+def sec_to_hms(sec):
+	h=0
+	m=0
+	s=0
+	h = math.floor(sec/3600)
+	m = math.floor(math.fmod(sec,3600)/60)
+	s = math.fmod(sec,60)
+	return "{0:2.0f}:{1:02.0f}:{2:02.0f}".format(h,m,s)
+	
 @blueprint.route('/<string:resource>/usagereports', methods=['GET'])
 @login_required
 def resource_usage_reports(resource):
@@ -128,7 +138,10 @@ def resource_usage_reports(resource):
 	usercache={}
 	records=[]
 	for r in d:
-		rec={'enabled':r.enabled,'active':r.active,'idle':r.idle}
+		if 'format' in request.values and request.values['format']=='csv':
+			rec={'enabled':r.enabled,'active':r.active,'idle':r.idle}
+		else:
+			rec={'enabled':sec_to_hms(r.enabled),'active':sec_to_hms(r.active),'idle':sec_to_hms(r.idle)}
 		if 'by_user' in request.values:
 			if r.member_id not in usercache:
 				mm = Member.query.filter(Member.id==r.member_id).one_or_none()
