@@ -209,8 +209,7 @@ def resource_showusers(resource):
 			res_id=res_id.id
 			mid_to_lastuse={}
 
-			#for u in  UsageLog.query.filter(UsageLog.resource_id == res_id).group_by(UsageLog.member_id).order_by(func.max(UsageLog.time_logged)).all():
-			for u in  UsageLog.query.filter(UsageLog.resource_id == res_id).group_by(UsageLog.member_id).all():
+			for u in  UsageLog.query.filter(UsageLog.resource_id == res_id).group_by(UsageLog.member_id).order_by(func.max(UsageLog.time_logged)).all():
 				mid_to_lastuse[u.member_id] = u.time_reported
 
 			authusers = db.session.query(AccessByMember.id,AccessByMember.member_id,Member.member,AccessByMember.level,AccessByMember.lockout_reason)
@@ -226,8 +225,12 @@ def resource_showusers(resource):
 				lu2=""
 				lu3=""
 				if x[1] in mid_to_lastuse: 
-					(lu1,lu2,lu3) = ago.ago(mid_to_lastuse[x[1]],now)
-					lu2 += " ago"
+					lu1=""
+					lu2=""
+					lu3=""
+					if mid_to_lastuse[x[1]]:
+						(lu1,lu2,lu3) = ago.ago(mid_to_lastuse[x[1]],now)
+						lu2 += " ago"
 				accrec.append({'member_id':x[1],'member':x[2],'level':level,'lockout_reason':'' if x[4] is None else x[4],'lastusedago':lu1,'usedago':lu2,'lastused':lu1})
 				
 			return render_template('resource_users.html',resource=rid,accrecs=accrec)
