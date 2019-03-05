@@ -196,6 +196,15 @@ def resource_delete(resource):
 		flash("Resource deleted.")
 		return redirect(url_for('resources.resources'))
 
+def showuser_sort(a,b):
+	if (a['sortlevel'] < b['sortlevel']): return 1
+	if (a['sortlevel'] > b['sortlevel']): return -1
+
+	if (a['sorttime'] and not b['sorttime']): return -1
+	if (not a['sorttime'] and b['sorttime']): return 1
+	if (not a['sorttime'] and not b['sorttime']): return 0
+	return int((b['sorttime'] - a['sorttime']).total_seconds())
+	
 @blueprint.route('/<string:resource>/list', methods=['GET'])
 def resource_showusers(resource):
 		"""(Controller) Display users who are authorized to use this resource"""
@@ -205,38 +214,36 @@ def resource_showusers(resource):
 			flash ("Resource not found","warning")
 			return redirect(url_for('resources.resources'))
 
-		try:
-			res_id=res_id.id
-			mid_to_lastuse={}
+		res_id=res_id.id
+		mid_to_lastuse={}
 
-			for u in  UsageLog.query.filter(UsageLog.resource_id == res_id).group_by(UsageLog.member_id).order_by(func.max(UsageLog.time_logged)).all():
-				mid_to_lastuse[u.member_id] = u.time_logged
+		for u in  UsageLog.query.filter(UsageLog.resource_id == res_id).group_by(UsageLog.member_id).order_by(func.max(UsageLog.time_logged)).all():
+			mid_to_lastuse[u.member_id] = u.time_logged
 
-			authusers = db.session.query(AccessByMember.id,AccessByMember.member_id,Member.member,AccessByMember.level,AccessByMember.lockout_reason)
-			authusers = authusers.join(Member,AccessByMember.member_id == Member.id)
-			authusers = authusers.filter(AccessByMember.resource_id == db.session.query(Resource.id).filter(Resource.name == rid))
-			authusers = authusers.order_by(AccessByMember.level.desc())
-			authusers = authusers.all()
-			accrec=[]
-			now = datetime.datetime.now()
-			for x in authusers:
-				level = accessLevelToString(x[3],blanks=[0,-1])
-				lu1=""
-				lu2=""
-				lu3=""
-				if x[1] in mid_to_lastuse: 
-					lu1=""
-					lu2=""
-					lu3=""
-					if mid_to_lastuse[x[1]]:
-						(lu1,lu2,lu3) = ago.ago(mid_to_lastuse[x[1]],now)
-						lu2 += " ago"
-				accrec.append({'member_id':x[1],'member':x[2],'level':level,'lockout_reason':'' if x[4] is None else x[4],'lastusedago':lu1,'usedago':lu2,'lastused':lu1})
-				
-			return render_template('resource_users.html',resource=rid,accrecs=accrec)
-		except BaseException as e:
-			flash (Markup("ERROR: "+str(e)),"warning")
-			return redirect(url_for('resources.resources'))
+		authusers = db.session.query(AccessByMember.id,AccessByMember.member_id,Member.member,AccessByMember.level,AccessByMember.lockout_reason)
+		authusers = authusers.join(Member,AccessByMember.member_id == Member.id)
+		authusers = authusers.filter(AccessByMember.resource_id == db.session.query(Resource.id).filter(Resource.name == rid))
+		authusers = authusers.order_by(AccessByMember.level.desc())
+		authusers = authusers.all()
+		accrec=[]
+		now = datetime.datetime.now()
+		for x in authusers:
+			level = accessLevelToString(x[3],blanks=[0,-1])
+			lu1=""
+			lu2=""
+			lu3=""
+			sorttime = None
+			if x[1] in mid_to_lastuse: 
+				if mid_to_lastuse[x[1]]:
+					(lu1,lu2,lu3) = ago.ago(mid_to_lastuse[x[1]],now)
+					lu2 += " ago"
+					sorttime = mid_to_lastuse[x[1]]
+			accrec.append({'member_id':x[1],'member':x[2],'level':level,
+					'sortlevel':int(x[3]),
+					'sorttime':sorttime,
+					'lockout_reason':'' if x[4] is None else x[4],'lastusedago':lu1,'usedago':lu2,'lastused':lu1})
+			
+		return render_template('resource_users.html',resource=rid,accrecs=sorted(accrec,cmp=showuser_sort))
 
 #TODO: Create safestring converter to replace string; converter?
 @blueprint.route('/<string:resource>/log', methods=['GET','POST'])
