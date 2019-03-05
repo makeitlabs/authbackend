@@ -101,10 +101,10 @@ def resource_usage_reports(resource):
 	q = UsageLog.query.filter(UsageLog.resource_id==r.id)
 	if 'input_date_start' in request.values and request.values['input_date_start'] != "":
 			dt = datetime.datetime.strptime(request.values['input_date_start'],"%m/%d/%Y")
-			q = q.filter(UsageLog.time_reported >= dt)
+			q = q.filter(UsageLog.time_logged >= dt)
 	if 'input_date_end' in request.values and request.values['input_date_end'] != "":
 			dt = datetime.datetime.strptime(request.values['input_date_end'],"%m/%d/%Y")+datetime.timedelta(days=1)
-			q = q.filter(UsageLog.time_reported < dt)
+			q = q.filter(UsageLog.time_logged < dt)
 
 	q = q.add_column(func.sum(UsageLog.enabledSecs).label('enabled'))
 	q = q.add_column(func.sum(UsageLog.activeSecs).label('active'))
