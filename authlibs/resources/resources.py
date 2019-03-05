@@ -209,7 +209,8 @@ def resource_showusers(resource):
 			res_id=res_id.id
 			mid_to_lastuse={}
 
-			for u in  UsageLog.query.filter(UsageLog.resource_id == res_id).group_by(UsageLog.member_id).order_by(func.max(UsageLog.time_logged)).all():
+			#for u in  UsageLog.query.filter(UsageLog.resource_id == res_id).group_by(UsageLog.member_id).order_by(func.max(UsageLog.time_logged)).all():
+			for u in  UsageLog.query.filter(UsageLog.resource_id == res_id).group_by(UsageLog.member_id).all():
 				mid_to_lastuse[u.member_id] = u.time_reported
 
 			authusers = db.session.query(AccessByMember.id,AccessByMember.member_id,Member.member,AccessByMember.level,AccessByMember.lockout_reason)
