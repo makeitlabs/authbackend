@@ -74,14 +74,13 @@ def authinit(app):
         if resp.ok:
             account_info_json = resp.json()
             email = account_info_json['email']
-            print "EMAIL IS",email
             member=email.split("@")[0]
             if not email.endswith("@makeitlabs.com"):
                 flash("Not a MakeIt Labs account",'warning')
                 return redirect(url_for('login'))
             #query = Member.query.filter_by(Member.member.ilike(member))
             #if not query:
-            query = Member.query.filter(Member.email==email)
+            query = Member.query.filter(Member.email.ilike(email))
 
             try:
                 user = query.all()
@@ -96,33 +95,25 @@ def authinit(app):
                         return redirect(url_for('index'))
 
                 user = user[0]
-                print "GOT USER",user
                 sub = quickSubscriptionCheck(member_id=user.id)
-                print "GOT SUB",sub
                 if sub == "Active":
                   if (UserRoles.query.filter(UserRoles.member_id == user.id).count() >= 1):
                     login_user(user, remember=True)
-                    print "CASE 1"
                     flash("Welcome!")
                     return redirect(url_for('index'))
                   logintype= app.config['globalConfig'].Config.get('General','Logins')
                   if logintype == "resource":
                     if  (AccessByMember.query.filter(AccessByMember.member_id == user.id,AccessByMember.level >= AccessByMember.LEVEL_TRAINER).count() ==0):
-                      print "CASE 2"
                       flash("Only resource managers may log in")
                     else:
-                      print "CASE 3"
                       login_user(user, remember=True)
                   else:
                     flash("Welcome!")
-                    print "CASE 4"
                     login_user(user, remember=True)
                 else:
                   flash("Login Denied - "+sub,'danger')
-                  print "CASE 5"
                 return redirect(url_for('index'))
             except NoResultFound:
-                print "CASE 6"
                 flash("Email adddress "+str(email)+" not found in member database")
                 return redirect(url_for('index'))
 
