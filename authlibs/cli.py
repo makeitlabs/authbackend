@@ -40,6 +40,7 @@ def deleteadmin(cmd,**kwargs):
 
 def changepassword(cmd,**kwargs):
   user = Member.query.filter(Member.member.like(cmd[1])).one()
+	print "Set password for %s - %s" % (user.member,user.email)
   if len(cmd) <3:
       pw1=getpass.getpass("Password:")
       pw2=getpass.getpass("Reenter :")

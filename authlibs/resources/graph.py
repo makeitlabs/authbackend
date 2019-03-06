@@ -157,7 +157,7 @@ def weekUsers(id):
 		totalenabled += x.enabled
 
 	out = []
-	for x in sorted(data,key=lambda x:x['enabled']):
+	for x in sorted(data,key=lambda x:x['enabled'],reverse=True):
 		out.append(x)
 
 	if len(out)> 10:
@@ -171,7 +171,7 @@ def weekUsers(id):
 
 	for x in out:
 		if x['member_id']==0:
-			x['member'] = 'Total'
+			x['member'] = 'Other Users'
 		else:
 			x['member'] = Member.query.filter(Member.id == x['member_id']).one().member
 	
@@ -180,11 +180,11 @@ def weekUsers(id):
 		out2.append([x['member'],x['enabled']])
 
 	out={'data':out2,'type':'pie','opts':{
-		'title':"Monthy Top Users`",
+		'title':"Weekly Top Users",
 		'hAxis':{'title': 'Name',  'titleTextStyle': {'color': '#333'}},
 		'vAxis': {'minValue': 0}
 		}}
-	out = json_dumps(out)
+	out = json_dumps(out,indent=2)
 	return out,200
 
 @blueprint.route('/v1/weekCalendar/<int:id>', methods=['GET'])
