@@ -23,6 +23,7 @@ if __name__ == '__main__':
 		parser.add_argument("--verbose","-v",help="verbosity",action="count")
 		parser.add_argument("--debug","-d",help="verbosity",action="count")
 		parser.add_argument("--nopayment",help="Do not update payment and waiver data",action="store_true")
+		parser.add_argument("--noupload",help="Do not send backups to AWS",action="store_true")
 		(args,extras) = parser.parse_known_args(sys.argv[1:])
 
     now = datetime.now()
@@ -59,7 +60,10 @@ if __name__ == '__main__':
 
     # Make a backup of ACL lists for all resources, and generate reports of changes
     if args.verbose: print "* Backing up ACLs"
-    aclbackup.do_update()
+    try:
+      aclbackup.do_update()
+    except:
+      print "ERROR generaring ACL backups"
 
     # Prune old backup files
     now = datetime.now()
@@ -76,17 +80,18 @@ if __name__ == '__main__':
           os.unlink(f)
 
     # Send backups to Amazon S3 (and Glacier) storage
-    s3 = boto3.client('s3',
-      aws_access_key_id= aws_token,
-      aws_secret_access_key=aws_secret_key)
+    if not args.noupload:
+      s3 = boto3.client('s3',
+        aws_access_key_id= aws_token,
+        aws_secret_access_key=aws_secret_key)
 
-    if args.verbose: print "* Sending backups to Amazon"
-    for d in (acldir,backup_dir):
-      files = glob.glob(os.path.join(d,today+"*"))
-      for f in files:
-        fn = f.split("/")[-1]
-        if args.verbose: "BACKUP",f,fn
-        #s3.put_object(Body=html, Key=fn,ContentType="text/html",Bucket=aws_bucket)
-        s3.upload_file(f,aws_bucket,fn)
+      if args.verbose: print "* Sending backups to Amazon"
+      for d in (acldir,backup_dir):
+        files = glob.glob(os.path.join(d,today+"*"))
+        for f in files:
+          fn = f.split("/")[-1]
+          if args.verbose: "BACKUP",f,fn
+          #s3.put_object(Body=html, Key=fn,ContentType="text/html",Bucket=aws_bucket)
+          s3.upload_file(f,aws_bucket,fn)
 
         
