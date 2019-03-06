@@ -369,7 +369,11 @@ def ping(sc,user,ctx,*s):
 
 def help_cb(sc,user,ctx,*s):
 	text = '```'
-	if (len(s) == 2):
+  showhidden=False
+	if (len(s) == 2) and s[1] == 'hidden':
+    showhidden=True
+
+	if (len(s) == 2) and not showhidden:
 		text="```Unrecognized command. Type `help` for a list of commands"
 		for x in verbs:
 			if s[1].lower()==x['name'].lower():
@@ -384,7 +388,7 @@ def help_cb(sc,user,ctx,*s):
 		text= "Enter one of the following, or `help {command}` for more detail:\n```"
 
 		for x in sorted(verbs,key=lambda x:x['name']):
-			if 'callback' in x and 'hidden' not in x:
+			if 'callback' in x and (('hidden' not in x) or (showhidden)):
 				if 'usage' in x:
 					text += x['usage']+ "  -- "+x['desc']+"\n"
 				elif 'desc' in x:
@@ -394,7 +398,7 @@ def help_cb(sc,user,ctx,*s):
 
 		text+= "\nOther help topics:\n"
 		for x in sorted(verbs,key=lambda x:x['name']):
-			if 'callback' not in x and 'hidden' not in x:
+			if 'callback' not in x and (('hidden' not in x) or (showhidden)):
 				if 'desc' in x:
 					text += x['name'] + " - "+x['desc']+"\n"
 				else:
@@ -411,7 +415,7 @@ def help_cb(sc,user,ctx,*s):
 verbs = [
 	{	'name':"authorize", 
 		'callback':authorize,
-		'usage':"authorize <userids...> [on <resrouces..>]",
+		'usage':"authorize <userids...> [on <resources..>]",
 		'desc':"Authorize a user to use a tool/resource",
 		'detail':"Authorize one or more users on one or more resources. Specify user ids (or quick IDs) from \"userid\" command. Will try to match a user name, but if there is any ambiguity, it will fail (create quick IDs for possible matches) - and require you to retry. If you don't specify the resources, you'll have to afterwards."
 	},
@@ -419,6 +423,7 @@ verbs = [
 		'callback':userid,
 		'usage':"userid <pattern>",
 		'desc':"Find user's ID",
+    'hidden':True,
 		'detail':"Search for a user's ID by specifying a portion of it - like \"Jo\" to find \"Joe\", \"Jon\", \"John\", etc. Command will return a list of matching users, their IDs, and temporary \"quick IDs\" that can be used to reduce keystrokes like \"01\""
 	},
 	{	'name':"resources", 
@@ -429,20 +434,24 @@ verbs = [
 	{	'name':"quickid", 
 		'callback':quickids,
 		'desc':"Show quickids",
+    'hidden':True,
 		'detail':"QuickIDs are TEMPORARY user ids used to make you need to type less. They are aways in the form of \"00\" (two digits). They are automatcally created by commands such as \"userid\" and \"authorize\" which lookup ids based on partial matches. Use them whenever user IDs are required. The \"quickid\" command will show you what is in your cache. These are short lived, and will always disappear shortly after used."
 	},
 	{	'name':"ping", 
 		'callback':ping,
+    'hidden':True,
 		'desc':"Just see if I'm alive"
 	},
 	{	'name':"confirm", 
 		'callback':confirm,
+    'hidden':True,
 		'desc':"Confirm a request",
 		'detail':'When do tell me to do something - I will verify the request and ask you to confirm it. Type \"confirm\" or \"yes\" or \"ok\" to do it',
 		'aliases':['ok','yes']
 	},
 	{	'name':"cancel", 
 		'callback':cancel,
+    'hidden':True,
 		'desc':"cancel a request",
 		'detail':'When do tell me to do something - I will verify the request and ask you to confirm it. This is one way to explicitly cancel it',
 		'aliases':['no']
@@ -455,13 +464,9 @@ verbs = [
 		'desc':"tools - Show tools you have access to",
 		'callback':tools_cmd,
 	},
-	{	'name':"api", 
-		'desc':"api test",
-		'callback':api_cmd,
-		'detail':"Test of API calls"
-	},
 	{	'name':"on", 
 		'callback':on_resource,
+    'hidden':True,
 		'desc':"Say what resources you are authorizing users on",
 		'detail':"this is the second-half of a sequence you would have started with the \"authorize\" command"
 	},
@@ -479,24 +484,26 @@ verbs = [
 	{
 		'name':"echo", 
 		'callback':echo_cmd,
+    'hidden':True,
 		"desc":"Echo to console",
 		'detail':"Echo string to console - for debug"
 	},
 	{
 		'name':"clear", 
 		'callback':clear_cmd,
+    'hidden':True,
 		"desc":"clear - Clear Quick ID Cache"
 	},
-	{
-		'name':"open", 
-		'callback':use_tool,
-		"desc":"open {resource}  - Request RFID-less access to a tool or specific resource"
-	},
-	{
-		'name':"use", 
-		'callback':use_tool,
-		"desc":"use {resource}  - Request RFID-less access to a tool or specific resource"
-	},
+	#{
+	#	'name':"open", 
+	#	'callback':use_tool,
+	#	"desc":"open {resource}  - Request RFID-less access to a tool or specific resource"
+	#},
+	#{
+	#	'name':"use", 
+	#	'callback':use_tool,
+	#	"desc":"use {resource}  - Request RFID-less access to a tool or specific resource"
+	#},
 	{
 		'name':"whoami", 
 		'callback':whoami,
