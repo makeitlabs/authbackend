@@ -71,6 +71,7 @@ keyfile=/data/certs/client.key
 BOT_API_TOKEN=<slackbot api token>
 SLACKBOT_API_USERNAME=slackbot
 SLACKBOT_API_PASSWORD=somethinglongandrandom
+LOGFILE=slackbot.log
 
 [backups]
 api_username=testkey

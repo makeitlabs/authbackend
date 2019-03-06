@@ -31,6 +31,7 @@ streamHandler.setFormatter(formatter)
 
 api_username = config.Config.get("Slack","SLACKBOT_API_USERNAME")
 api_password = config.Config.get("Slack","SLACKBOT_API_PASSWORD")
+slack_logfile = config.Config.get("Slack","LOGFILE")
 url_base = config.Config.get("backups","localurl")
 
 log_events=[]
@@ -425,27 +426,10 @@ verbs = [
 		'usage':"resources",
 		'desc':"List all resources"
 	},
-	{	'name':"divzero", 
-		'callback':divzero,
-		'desc':"Divide a number by zero"
-	},
-	{	'name':"divzero2", 
-		'callback':divzero,
-		'usage':"divzero",
-		'desc':"Divide a number by zero"
-	},
-	{	'name':"divthree", 
-		'callback':divzero,
-		'desc':"Divide a number by zero"
-	},
 	{	'name':"quickid", 
 		'callback':quickids,
 		'desc':"Show quickids",
 		'detail':"QuickIDs are TEMPORARY user ids used to make you need to type less. They are aways in the form of \"00\" (two digits). They are automatcally created by commands such as \"userid\" and \"authorize\" which lookup ids based on partial matches. Use them whenever user IDs are required. The \"quickid\" command will show you what is in your cache. These are short lived, and will always disappear shortly after used."
-	},
-	{	'name':"log", 
-		'callback':show_event_log,
-		'desc':"Show slackbot command log"
 	},
 	{	'name':"ping", 
 		'callback':ping,
@@ -543,7 +527,7 @@ def log_event(name,message):
 	logstr=str(datetime.datetime.now())+" "+name+" "+message
 	log_events.append(logstr)
 	print logstr
-	open("slackbot.log","a").write(logstr+"\n")
+	open(slack_logfile,"a").write(logstr+"\n")
 	if len(log_events)>40:
 		log_events=log_events[1:]
 	
