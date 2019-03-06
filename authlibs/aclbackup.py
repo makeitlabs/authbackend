@@ -29,6 +29,11 @@ def compare_v1(first,second,resource):
 	str=""
 	fn1 = "%s/%s-%s-v1.txt" % (ACL_STORAGE,first,resource)
 	fn2 = "%s/%s-%s-v1.txt" % (ACL_STORAGE,second,resource)
+
+	if not os.path.isfile(fn1):
+		print "Yesterday's file",fn1,"does not exist"
+		return
+
 	f1 = json.load(open(fn1))
 	f2 = json.load(open(fn2))
 

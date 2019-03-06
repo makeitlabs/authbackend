@@ -60,10 +60,7 @@ if __name__ == '__main__':
 
     # Make a backup of ACL lists for all resources, and generate reports of changes
     if args.verbose: print "* Backing up ACLs"
-    try:
-      aclbackup.do_update()
-    except:
-      print "ERROR generaring ACL backups"
+    aclbackup.do_update()
 
     # Prune old backup files
     now = datetime.now()
