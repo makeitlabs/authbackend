@@ -467,7 +467,7 @@ verbs = [
 	},
 	{
 		'name':"resource", 
-		"desc":"Tool or resoruce",
+		"desc":"Tool or resource",
 		'detail':"Short name/id of a tool or resource, like \"laser\" or \"lift\". Use \"resources\" command to see a list"
 	},
 	{
