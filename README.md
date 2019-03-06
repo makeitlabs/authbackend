@@ -153,3 +153,5 @@ You will want to run `nightly.py` on some nightly cron job. It will:
 * Get snapshots of ACL lists - send messages to slack groups of changes since prior run
 * Back all snaps up to Amazon
 
+To help restore backups - you can use the `restore.py` helper script
+
