@@ -199,7 +199,8 @@ class Subscription(db.Model):
     name = db.Column(db.String(50))
     email = db.Column(db.String(50))
     # NOTE CHANGE FROM PLANNAME" to PLAN
-    plan = db.Column(db.String(50))
+    plan = db.Column(db.String(50)) # This will be the MiL plan - like "pro" or "hobbiest"
+    rate_plan = db.Column(db.String(50)) # This will be the Stripe plan - More granualr - like "group_probae" or something
     expires_date = db.Column(db.DateTime())
     created_date = db.Column(db.DateTime())
     updated_date = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())

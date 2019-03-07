@@ -152,6 +152,7 @@ def _addSubscriptionData(subs,paytype):
             s.name = sub['name']
             s.email = sub['email']
             s.plan = sub['plantype']
+            s.rate_plan = sub['planname']
             s.expires_date = authutil.parse_datetime(sub['expires'])
             s.created_date = authutil.parse_datetime(sub['created'])
             s.updated_date = authutil.parse_datetime(sub['updatedon'])
