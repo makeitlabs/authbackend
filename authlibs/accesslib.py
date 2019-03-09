@@ -207,7 +207,7 @@ def access_query(resource_id,member_id=None,tags=True):
     q = q.add_column(case([(AccessByMember.resource_id !=  None, 'allowed')], else_ = 'denied').label('allowed'))
     # TODO Disable user it no subscription at all??? Only with other "plantype" logic to figure out "free" memberships
     q = q.add_column(case([((Subscription.expires_date < db.func.DateTime('now','-14 days')), 'true')], else_ = 'false').label('past_due'))
-    q = q.add_column(case([((Subscription.expires_date < db.func.DateTime('now') & (Subscription.expires_date > db.func.DateTime('now','-13 day'))), 'true')], else_ = 'false').label('grace_period'))
+    q = q.add_column(case([(((Subscription.expires_date < db.func.DateTime('now')) & (Subscription.expires_date > db.func.DateTime('now','-13 days'))), 'true')], else_ = 'false').label('grace_period'))
     q = q.add_column(case([(Subscription.expires_date < db.func.DateTime('now','+2 days'), 'true')], else_ = 'false').label('expires_soon'))
     q = q.add_column(case([(AccessByMember.level != None , AccessByMember.level )], else_ = 0).label('level'))
     q = q.add_column(Member.member)
