@@ -36,7 +36,7 @@ def syncWithSubscriptions(isTest=False):
 
   ''' Create Google (someday Slack?) accounts for new members '''
   logger.debug("Create new Accounts")
-  createMissingMemberAccounts(added,isTest,False)
+  createMissingMemberAccounts(added,isTest,True)
 
 	# Canary test 
 
@@ -192,7 +192,7 @@ def addMissingMembers(missing):
 def googleEmailExists(m):
   # Member ID is available, check if existing account. If so, manual data check is required for now.
   search = google.searchEmail(m.member)
-  logger.debug("Google email search for %s returns %s" % str(m.member,search))
+  logger.debug("Google email search for %s returns %s" % (m.member,search))
   return (len(search > 0))
   
   
@@ -201,8 +201,9 @@ def createMissingMemberAccounts(members,isTest=True,searchGoogle=False):
     
     for m in members:
         # Handle duplicate names through numeric additions
+        logger.warn("Check Google member account for %s (%s)" % (m.member,m.alt_email))
         if searchGoogle and googleEmailExists(m):
-          msg = "Manual intervention required: %s (%s) needs an account created. Memberid %s is not used, but has an account." % (m['stripe_name'],m['alt_email'],memberid)
+          msg = "Manual intervention required: %s (%s) needs an account created. Memberid %s is not used, but has an account." % (m.stripe_name,m.alt_email,m.id)
           logger.error(msg)
           continue
           
@@ -214,8 +215,12 @@ def createMissingMemberAccounts(members,isTest=True,searchGoogle=False):
             nameparts = utilities.nameToFirstLast(m.member)
             # - Use first portion of name as Firstname, all remaining as Familyname
             password = "%s%d%d" % (nameparts['last'],random.randint(1,100000),len(nameparts['last']))
-            google.createUser(nameparts['first'],nameparts['last'],m.member,m.alt_email,password)
-            google.sendWelcomeEmail(m.member,password,m.alt_email)
+            try:
+              google.createUser(nameparts['first'],nameparts['last'],m.member,m.alt_email,password)
+              google.sendWelcomeEmail(m.member,password,m.alt_email)
+            except BaseExeption as e:
+              msg = "Failed createing Google account for %s: %s" % (m.alt_email,str(e))
+              logger.error(msg)
         
 
         
