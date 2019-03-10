@@ -73,6 +73,12 @@ SLACKBOT_API_USERNAME=slackbot
 SLACKBOT_API_PASSWORD=somethinglongandrandom
 LOGFILE=slackbot.log
 
+[SlackReporter]
+BOT_API_TOKEN=<another slack api token>
+BOT_CHANNEL=<channel ID for the weekly report>
+BOT_NAME=<name of the slackbot for the weekly report>
+
+
 [backups]
 api_username=testkey
 api_password=testkey
