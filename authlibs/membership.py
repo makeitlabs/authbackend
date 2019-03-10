@@ -45,10 +45,12 @@ def syncWithSubscriptions(isTest=False):
 					check = accesslib.quickSubscriptionCheck(member=canary)
 					if check == "No Subscription":
 						logger.critical("No subscription found for Adam.Shey")
-						return
+						db.session.rollback()
+						return 1
 
   db.session.commit()
   logger.debug("New Member/Sub data Committed")
+  return 0
   
 
 def searchMembers(searchstr):
@@ -118,8 +120,8 @@ def getMissingMembers():
     missing = missing.filter(Subscription.plan != 'trial')
     missing = missing.all()
 
-    for s in missing:
-            logger.debug("Missing Subscription: %s %s id %s" % (s.subid,s.name,s.email))
+    #for s in missing:
+    #        logger.debug("Missing Subscription: %s %s id %s" % (s.subid,s.name,s.email))
 
     return missing
 
