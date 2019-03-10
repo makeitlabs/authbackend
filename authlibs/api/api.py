@@ -523,7 +523,7 @@ def api_cron_nightly():
   if current_app.config['globalConfig'].DeployType.lower() != "production":
     isTest=True
     logger.error("Non-Production environment - NOT creating google/slack accounts")
-    membership.syncWithSubscriptions(isTest)  
+  membership.syncWithSubscriptions(isTest)  
   cli_waivers([])
   connect_waivers()
   logger.info("Nightly CRON finished")
