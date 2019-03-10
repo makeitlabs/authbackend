@@ -338,6 +338,17 @@ def create_routes():
     def TestOauth():
         return testdata()
 
+    @app.route('/loginas/<string:user>')
+    @roles_required('Admin')
+    def LoginAs(user):
+        m = Member.query.filter(Member.member==user).one_or_none()
+        if m:
+                flash("User changed","success")
+                login_user(m, remember=True)
+        else:
+                flash("User not found","warning")
+        return redirect(url_for('index'))
+
     @app.route('/test/admin')
     @roles_required('Admin')
     def TestAdmin():
