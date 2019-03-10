@@ -33,7 +33,7 @@ blueprint = Blueprint("payments", __name__, template_folder='templates', static_
 
 @blueprint.route('/', methods = ['GET'])
 @login_required
-@roles_required(['Admin','Finamce'])
+@roles_required(['Admin','Finance'])
 def payments():
     """(Controller) Show Payment system controls"""
     cdate = pay.getLastUpdatedDate()
@@ -43,7 +43,7 @@ def payments():
 @blueprint.route('/missing/assign/<string:assign>', methods = ['GET'])
 @blueprint.route('/missing', methods = ['GET','POST'])
 @login_required
-@roles_required(['Admin','Finamce'])
+@roles_required(['Admin','Finance'])
 def payments_missing(assign=None):
     """Find subscriptions with no members"""
     if 'Undo' in request.form:
@@ -79,7 +79,7 @@ def payments_missing(assign=None):
 
 @blueprint.route('/manual', methods = ['GET'])
 @login_required
-@roles_required(['Admin','Finamce'])
+@roles_required(['Admin','Finance'])
 def manual_payments():
    sqlstr = """select member,plan,expires_date,updated_date from payments where paysystem = 'manual'"""
    members = query_db(sqlstr)
@@ -88,7 +88,7 @@ def manual_payments():
 
 @blueprint.route('/manual/extend/<member>', methods = ['GET'])
 @login_required
-@roles_required(['Admin','Finamce'])
+@roles_required(['Admin','Finance'])
 def payments_manual_extend(member):
     safe_id = safestr(member)
     sqlstr = "update payments set expires_date=DATETIME(expires_date,'+31 days') where member = '%s' " % safe_id
@@ -99,7 +99,7 @@ def payments_manual_extend(member):
 
 @blueprint.route('/manual/expire/<member>', methods = ['GET'])
 @login_required
-@roles_required(['Admin','Finamce'])
+@roles_required(['Admin','Finance'])
 def payments_manual_expire(member):
     safe_id = safestr(member)
     sqlstr = "update payments set expires_date=datetime('now')  where member = '%s' " % safe_id
@@ -111,7 +111,7 @@ def payments_manual_expire(member):
 
 @blueprint.route('/manual/delete/<member>', methods = ['GET'])
 @login_required
-@roles_required(['Admin','Finamce'])
+@roles_required(['Admin','Finance'])
 def payments_manual_delete(member):
     safe_id = safestr(member)
     sqlstr = "delete from payments where member = '%s' " % safe_id
@@ -123,7 +123,7 @@ def payments_manual_delete(member):
 
 @blueprint.route('/test', methods = ['GET'])
 @login_required
-@roles_required(['Admin','Finamce'])
+@roles_required(['Admin','Finance'])
 def test_payments():
    """(Controller) Validate the connection to the payment system(s)"""
    if pay.testPaymentSystems():
@@ -134,14 +134,14 @@ def test_payments():
 
 @blueprint.route('/membership/<string:membership>', methods = ['GET'])
 @login_required
-@roles_required(['Admin','Finamce'])
+@roles_required(['Admin','Finance'])
 def payment_membership(membership):
    (subscription,member)=db.session.query(Subscription,Member).outerjoin(Member).filter(Subscription.membership==membership).one_or_none()
    return render_template('payments_membership.html',subscription=subscription,member=member)
 
 @blueprint.route('/update', methods = ['GET'])
 @login_required
-@roles_required(['Admin','Finamce'])
+@roles_required(['Admin','Finance'])
 def update_payments():
     """(Controller) Sync Payment data and update Member data (add missing, deactivate, etc)"""
     # TODO: Error handling
@@ -156,7 +156,7 @@ def update_payments():
 
 @blueprint.route('/<string:id>', methods=['GET'])
 @login_required
-@roles_required(['Admin','Finamce'])
+@roles_required(['Admin','Finance'])
 def payments_member(id):
     pid = safestr(id)
     # Note: When debugging Payments system duplication, there may be multiple records
