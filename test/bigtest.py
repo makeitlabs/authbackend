@@ -24,9 +24,9 @@ basic="""
 """
 
 noprivs_mustfail="""
-/member/252/edit
-/member/252/access
-/member/252/tags
+/member/13/edit
+/member/13/access
+/member/13/tags
 /tools/5000
 /reports/blacklist
 /member/tags/lookup
@@ -42,7 +42,7 @@ noprivs_mustfail="""
 /kvopts
 /resources
 /api/ubersearch/brad
-/member/Brad.Goodman
+/member/Bradley.Goodman
 """
 
 mustfail="""
