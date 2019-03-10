@@ -36,7 +36,8 @@ def syncWithSubscriptions(isTest=False):
 
   ''' Create Google (someday Slack?) accounts for new members '''
   logger.debug("Create new Accounts")
-  createMissingMemberAccounts(added,isTest,False)
+  '''createMissingMemberAccounts(added,isTest,False)'''
+  createMissingMemberAccounts(added,True,True)
 
 	# Canary test 
 
@@ -192,8 +193,8 @@ def addMissingMembers(missing):
 def googleEmailExists(m):
   # Member ID is available, check if existing account. If so, manual data check is required for now.
   search = google.searchEmail(m.member)
-  logger.debug("Google email search for %s returns %s" % str(m.member,search))
-  return (len(search > 0))
+  logger.debug("Google email search for %s returns %s" % (m.member,search))
+  return (len(search) > 0)
   
   
 def createMissingMemberAccounts(members,isTest=True,searchGoogle=False):
@@ -202,7 +203,7 @@ def createMissingMemberAccounts(members,isTest=True,searchGoogle=False):
     for m in members:
         # Handle duplicate names through numeric additions
         if searchGoogle and googleEmailExists(m):
-          msg = "Manual intervention required: %s (%s) needs an account created. Memberid %s is not used, but has an account." % (m['stripe_name'],m['alt_email'],memberid)
+          msg = "Manual intervention required: %s (%s) needs an account created. Memberid %s is not used, but has an account." % (m.stripe_name, m.alt_email, m.id)
           logger.error(msg)
           continue
           
