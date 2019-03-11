@@ -93,12 +93,14 @@ function queryMembers(searchstr) {
 							el.innerHTML = "<tr>"
 							if (USE_MEMBER_CHECKBOXES)
 								el.innerHTML += "<td><input type=\"checkbox\" onchange=\"click_checkbox();\" class=\"auth_user_cb\" /></td>";
+							if (USE_MEMBER_RADIOBUTTONS)
+								el.innerHTML += "<td><input type=\"radio\" name=\"member_radio\" value=\""+data[x]['member']+"\" class=\"auth_user_cb\" /></td>";
 							if (USE_MEMBER_CUSTOM_BUTTON)
 								el.innerHTML += "<td><a class='btn btn-info' onclick='customButton(\""+data[x]['member']+"\");'>"+USE_MEMBER_CUSTOM_BUTTON+"</a>";
 							td=""
 							/* DO not add URLs w/ member checkboxes. Kills codes that
 							 pulls the member_id from this td */
-							if (! USE_MEMBER_CHECKBOXES)
+							if ((! USE_MEMBER_CHECKBOXES) && (! USE_MEMBER_RADIOBUTTONS) && (! USE_MEMBER_CUSTOM_BUTTON))
 								if (MEMBER_URL) {
 									td += "<a href=\""+MEMBER_URL+data[x]['member']+"\">";
 								}

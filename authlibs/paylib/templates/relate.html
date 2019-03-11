@@ -1,43 +1,36 @@
 {% extends "layout_bootstrap.html" %}
 {% block body %}
-  <form method="POST">
-  <div class=body>
-	<h3>Subscriptions in Need of Attention</h3>
-	<table class="table table-sm bkg">
-      <tr>
-        <th>Name</th>
-        <th>Email</th>
-        <th>Created</th>
-        <th>Detail</th>
-        <th>Rate Plan</th>
-      </tr>
-      {% for s in subscriptions %}
-	  <tr>
-		<td>{{ s.name }}</td>
-		<td>{{ s.email }}</td>
-		<td>{{ s.created_date }}</td>
-		<td><a class="btn btn-secondary" href="{{ url_for("payments.payment_membership",membership=s.membership) }}">Detail</a></td>
-		<td>{{ s.rate_plan }}</td>
-		<td><input type="radio" name="membership" value="exist_{{ s.membership }}">&nbsp;Assign to...</input></td>
-		<td><input type="radio" name="membership" value="new_{{ s.membership }}">&nbsp;Create New Membership</input></td>
-	  </tr>
-      {% endfor %}
-	</table>
-	<p>To assign a subsription to a payment - select to appropriate radio boxes for each, then click "assign"</p>
-	<input type="submit" value="Assign" name="Assign" />
-	</div>
-  </div>
+  <form action="relate_assign" method="POST">
+		<div class=body>
+			<h3>Subscriptions in Need of Attention</h3>
+			<table class="table table-sm bkg">
+					<tr>
+						<th>Name</th>
+						<th>Email</th>
+						<th>Created</th>
+						<th>Detail</th>
+						<th>Rate Plan</th>
+					</tr>
+					{% for s in subscriptions %}
+				<tr>
+				<td>{{ s.name }}</td>
+				<td>{{ s.email }}</td>
+				<td>{{ s.created_date }}</td>
+				<td><a class="btn btn-secondary" href="{{ url_for("payments.payment_membership",membership=s.membership) }}">Detail</a></td>
+				<td>{{ s.rate_plan }}</td>
+				<td><input type="radio" name="exist_stripe" value="{{ s.membership }}">&nbsp;Assign to...</input></td>
+				<td><input type="radio" name="new_stripe" value="{{ s.membership }}">&nbsp;Create New Membership</input></td>
+				</tr>
+					{% endfor %}
+			</table>
+			<p>To assign a subsription to a payment - select to appropriate radio boxes for each, then click "assign"</p>
+			<input type="submit" value="Assign" name="Assign" />
+		</div>
+	<hr />
+		<div class="container">
+			{% with add_radiobuttons=1 %}
+			{% include 'userlist.html' %}
+			{% endwith %}
+		</div>
   </form>
-<hr />
-<div class="container">
-{% with add_custom_button='Link' %}
-{% include 'userlist.html' %}
-{% endwith %}
-</div>
-
-<script type="text/javascript">
-function customButton(text){
-alert(text);
-}
-</script>
 {% endblock %}

@@ -31,11 +31,7 @@
 <script type="text/javascript">var USE_MEMBER_CUSTOM_BUTTON="";</script>
 {% endif %}
 
-{% if member_url %}
 <script type="text/javascript">var MEMBER_URL="{{ url_for("members.member_show",id="") }}";</script>
-{% else %}
-<script type="text/javascript">var MEMBER_URL=null;</script>
-{% endif %}
 
 {# Define variables to help javascript code find path locations #}
 <script type="text/javascript">var STATIC_URL="{{ url_for("static",filename="") }}";</script>

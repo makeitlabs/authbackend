@@ -234,13 +234,39 @@ def payments_fees_charge():
         flash("Error: Memberid does not exist. Make sure you have the right one..")
     return redirect(url_for('payments.payments_fees'))
 
-@blueprint.route('/relate', methods = ['GET','POST'])
+@blueprint.route('/relate', methods = ['GET'])
 @login_required
 @roles_required(['Admin','Finance'])
 def relate():
   subscriptions = Subscription.query.filter(Subscription.member_id == None).filter(Subscription.active == "true").all()
 
   return render_template('relate.html',subscriptions=subscriptions)
+
+# Post handler for "relate" above
+@blueprint.route('/relate_assign', methods = ['POST'])
+@login_required
+@roles_required(['Admin','Finance'])
+def relate_assign():
+  if 'Assign' in request.form:
+    if 'new_stripe' not in request.form and 'exist_stripe' not in request.form:
+      flash ("Designate a subscription as \"New Member\" or \"Assign To\" an existing account","warning")
+      return redirect(url_for('payments.relate'))
+    if 'exist_stripe' in request.form and 'member_radio' not in request.form:
+      flash ("You must (search for and select) a Member to Assign a subscription to","warning")
+      return redirect(url_for('payments.relate'))
+
+    if 'exist_stripe' in request.form:
+      mem = Member.query.filter(Member.member == request.form['member_radio']).one().id
+      memsub = Subscription.query.filter(Subscription.member_id == mem).all()
+      if len(memsub) != 0:
+        flash ("Member already has a membership","warning")
+      else:
+        flash ("Assigning subscription to existing member","success")
+
+    elif 'new_stripe' in request.form:
+      flash ("Creating new member","success")
+        
+  return redirect(url_for('payments.relate'))
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
