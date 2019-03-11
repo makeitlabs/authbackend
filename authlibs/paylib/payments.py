@@ -234,5 +234,14 @@ def payments_fees_charge():
         flash("Error: Memberid does not exist. Make sure you have the right one..")
     return redirect(url_for('payments.payments_fees'))
 
+@blueprint.route('/relate', methods = ['GET','POST'])
+@login_required
+@roles_required(['Admin','Finance'])
+def relate():
+  subscriptions = Subscription.query.filter(Subscription.member_id == None).filter(Subscription.active == "true").all()
+
+  return render_template('relate.html',subscriptions=subscriptions)
+
 def register_pages(app):
 	app.register_blueprint(blueprint)
+

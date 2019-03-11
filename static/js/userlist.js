@@ -93,6 +93,8 @@ function queryMembers(searchstr) {
 							el.innerHTML = "<tr>"
 							if (USE_MEMBER_CHECKBOXES)
 								el.innerHTML += "<td><input type=\"checkbox\" onchange=\"click_checkbox();\" class=\"auth_user_cb\" /></td>";
+							if (USE_MEMBER_CUSTOM_BUTTON)
+								el.innerHTML += "<td><a class='btn btn-info' onclick='customButton(\""+data[x]['member']+"\");'>"+USE_MEMBER_CUSTOM_BUTTON+"</a>";
 							td=""
 							/* DO not add URLs w/ member checkboxes. Kills codes that
 							 pulls the member_id from this td */

@@ -19,6 +19,18 @@
 <script type="text/javascript">var USE_MEMBER_CHECKBOXES=0;</script>
 {% endif %}
 
+{% if add_radiobuttons %}
+<script type="text/javascript">var USE_MEMBER_RADIOBUTTONS=1;</script>
+{% else %}
+<script type="text/javascript">var USE_MEMBER_RADIOBUTTONS=0;</script>
+{% endif %}
+
+{% if add_custom_button %}
+<script type="text/javascript">var USE_MEMBER_CUSTOM_BUTTON="{{ add_custom_button }}";</script>
+{% else %}
+<script type="text/javascript">var USE_MEMBER_CUSTOM_BUTTON="";</script>
+{% endif %}
+
 {% if member_url %}
 <script type="text/javascript">var MEMBER_URL="{{ url_for("members.member_show",id="") }}";</script>
 {% else %}
@@ -62,6 +74,12 @@
 {% if add_checkboxes %}
       <th></th>
 {% endif %}
+{% if add_custom_button %}
+      <th></th>
+{% endif %}
+{% if add_radiobuttons %}
+      <th></th>
+{% endif %}
       <th>Member ID</th>
       <th>First</th>
       <th>Last</th>
@@ -78,6 +96,7 @@
 <td><input type="checkbox" onchange="click_checkbox();" 
 	class="auth_user_cb"/></td>
   {% endif %}
+	
       <td>
 	      			{% if not add_checkboxes %}
 				<a href="{{ url_for('members.member_show',id=member.member)}}">
