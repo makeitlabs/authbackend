@@ -14,6 +14,7 @@ Logins: all
 ; "all" means all can login - "global" requires some global privs - "resource" requires trainer privs on a resource
 DefaultLogin: oauth
 ; "oauth" or "local"
+HelpURL: https://github.com/makeitlabs/authbackend/wiki/RATT-Tool-Authentication-Backend
 
 [Payments]
 Modules: stripe

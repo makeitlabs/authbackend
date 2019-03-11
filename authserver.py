@@ -504,6 +504,7 @@ with app.app_context():
     slackutils.create_routes(app)
     g.main_menu = main_menu
     app.config['main_menu'] = main_menu
+    app.config['HelpURL'] = app.config['globalConfig'].HelpURL
     #print site_map(app)
     #app.login_manager.login_view="test"
     #print app.login_manager.login_view
