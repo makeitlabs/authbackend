@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#vim:tabstop=2:expandtab
 """
 This module handles Waiver signing information from 3rd party integrations, specifically SmartWaiver.
 
@@ -30,7 +31,11 @@ import urllib
 import re
 import xml.etree.ElementTree as ET
 import ConfigParser
+from db_models import db, Waiver
 from StringIO import StringIO
+from flask import current_app
+
+from templateCommon import *
 
 baseuri = "https://www.smartwaiver.com/api/v3/"
 
@@ -68,12 +73,12 @@ def getWaivers(waiver_dict):
                  'lastname': lastname, 'created_date': created_date}
             members.append(m)
             # TEMP
-            print("%s %s" % (firstname,lastname))
+            logger.debug("%s %s" % (firstname,lastname))
         more = root.find('more_participants_exist')
         if more is None:
             more_members = False
         else:
-            print "More members... getting those after %s" % waiver_id
+            logger.debug ("More members... getting those after %s" % waiver_id)
             xmlwaivers = _getWaiversXML(waiver_dict['api_key'],waiver_id)
     f.close()
     return members
@@ -89,9 +94,17 @@ def waiverXML():
         print child.find('primary_email').text
         print child.find('participant_id').text
 
+def getLastWaiverId():
+    """Retrieve the most recently created (last) waiver from the database"""
+    #sqlstr = "select waiverid from waivers order by created_date desc limit 1"
+    #w = query_db(sqlstr,"",True)
+    w = Waiver.query.order_by(Waiver.created_date.desc()).limit(1).one_or_none()
+    if not w:
+      return None
+    return w.waiver_id
+
+
 if __name__ == "__main__":
-    waiver_dict = {'api_key': '6acf8d5fd250853bff297078cfa7f9dc-292286'}
-    waivers = getWaivers(waiver_dict)
-    #print waivers
-    #waiverXML()
+		print "To do this, use:"
+		print "python ./authserver.py --command updatewaivers"
 

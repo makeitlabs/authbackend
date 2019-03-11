@@ -2,6 +2,7 @@
 # Config stub that all modules can share, instead of reloading..
 
 import ConfigParser
+import logging
 
 INIFILE = "makeit.ini"
 
@@ -35,4 +36,8 @@ if 'Smartwaiver' in Config.sections():
      for o in Config.options('Smartwaiver'):
         smartwaiver[o] = Config.get('Smartwaiver',o)
      
+def configLogger(l):
+    l.basicConfig()
+    l.setLevel(logger.DEBUG)
+
     

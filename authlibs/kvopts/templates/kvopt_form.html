@@ -1,0 +1,76 @@
+{#    This is meant to be INCLUDED by another page.
+			Wrap this inside another div class-content block, 
+			and inside a form (if desiered)
+
+			This template is used for THREE different thins:
+			Create, Edit, or Display a record
+	
+			{% include 'template.html' %}
+
+			Or to include checkbox columns:
+
+			{% with add_checkboxes='1' %}
+			{% include 'userlist.html' %}
+			{% endwith %}
+
+#}
+
+<!-- Import any "with" parameters -->
+{% if member_url %}
+<script type="text/javascript">var KVOPT_URL="{{ url_for("kvopt.kvopt",id="") }}";</script>
+{% else %}
+<script type="text/javascript">var KVOPT_URL=null;</script>
+{% endif %}
+
+
+{% if readonly is defined and readonly  %}
+{% set ro="readonly" %}
+{% endif %}
+
+{% if rec is not defined %}
+{% set rec={} %}
+{% endif %}
+
+{% from 'global_macros.html' import input with context %}
+
+<div class="container">
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('keyname',"Parameter Name",'Single word parameter name') }}
+    </div>
+	</div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('default',"Default",'Default Value, if undefined') }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('options',"Options",'OPTIONAL: Semicolon-separated list of valid options') }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('displayOrder',"Display Order",'OPTIONAL: Lower numbers display before higher ones') }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-12">
+			{{ input('description',"Description",'Long description of what this field is used for.') }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+      <label for="input_kind">Field Type:</label>
+			<div class="btn-group btn-group-toggle" id="pass-btn-grp" data-toggle="buttons">
+			{% for x in kinds %}
+					<label class="btn btn-secondary {% if rec.kind == x %}active {% endif %}">
+						<input type="radio" name="input_kind" value="{{ x }}" id="option1"  autocomplete="off" 
+							{% if rec.kind == x %} checked {% endif %}
+						> {{ x }}
+					</label> 
+			 {% endfor %}
+			</div>
+    </div>
+  </div>
+</div>

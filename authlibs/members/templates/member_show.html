@@ -1,0 +1,204 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+{% include "member_header.html" %}
+<div class="body"> <!-- BASE contrainer -->
+
+{% with readonly='1' %}
+{% include 'member_form.html' %}
+{% endwith %}
+		
+<div class="container"> {# Outer container #}
+<div class="compact form-row row">
+	<div class="col-sm-4">
+			Last updated:
+	</div>
+	<div class="col-sm-6">
+			{{ rec.time_updated }}
+	</div>
+</div>
+		 
+		
+<div class="compact form-row row">
+	<div class="col-sm-4">
+			Waiver Completed
+	</div>
+			{% if meta.waiver %}
+			{{ meta.waiver }}
+			{{ rec.waiver_date }}
+			{% else %}
+			<div class="alert-warning">No Waiver</div>
+			{% endif %}
+</div>
+
+<div class="my-2 p-2 border border-secondary rounded container">
+<h3>Access</h3>
+	{% if not access_allowed %}
+		<div class="my-2 alert-danger">Access Denied: {{ access_warning }}</div>
+	{% else %}
+		<div class="my-2 alert-success">Access Granted {{ access_warning }}</div>
+	{% endif %}
+	{% if not dooraccess %}
+		<div class="my-2 alert-danger">No door access record</div>
+	{% elif dooraccess.past_due  == "true" %}
+		<div class="my-2 alert-danger">Subscription past due since {{ dooraccess.expires_date }}</div>
+	{% elif dooraccess.grace_period  == "true" %}
+		<div class="my-2 alert-warning">Subscription expired {{ dooraccess.expires_date }} - in grace period</div>
+	{% else %}
+		<div class="my-2 alert-info">Orientation Complete</div>
+	{% endif %}
+
+  <button class="btn btn-outline-info" type="button" data-toggle="collapse" data-target="#debugaccess" aria-expanded="false" aria-controls="collapseExample">
+    <span class="glyphicon glyphicon-info-sign"></span>
+  </button>
+<pre class="collapse" id="debugaccess" > {{ dooraccess }} </pre>
+
+</div>
+
+		 
+		
+			<a href="{{ url_for("logs.logs",memberid=rec.id) }}">Show Logs for Member</a>
+		 
+		
+			<td colspan=2><h3>Payment Info</h3>
+		 
+		
+			Payment Membership ID
+		 
+<div class="compact form-row row">
+	<div class="col-sm-2">
+			Affined to membership
+	</div>
+	<div class="col-sm-4">
+			{{ rec.membership }}
+	</div>
+	<div class="col-sm-5">
+			<a href="{{ url_for("payments.payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a>
+	</div>
+	{% if current_user.privs("Finance") %}
+	<div class="col-sm-1">
+				<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#unassociateModal">
+					Unlink Subscription
+				</button>
+	</div>
+	{% endif %}
+</div>
+		
+<div class="compact form-row row">
+	<div class="col-sm-2">
+			Active
+	</div>
+	<div class="col-sm-2">
+			<div 
+			{% if meta.is_expired %}
+				class="alert-warning"
+			{% endif %}
+			>{{ subscription.active }}
+			</div>
+	</div>
+</div>
+		 
+		
+<div class="compact form-row row">
+	<div class="col-sm-2">
+			Plan
+	</div>
+	<div class="col-sm-6">
+			{{ subscription.plan }}
+	</div>
+</div>
+		 
+{% if current_user.privs("Finance") %}
+<div class="compact form-row row">
+	<div class="col-sm-2">
+			Rate Plan
+	</div>
+	<div class="col-sm-6">
+			{{ subscription.rate_plan }}
+	</div>
+</div>
+{% endif %}
+		 
+		
+<div class="compact form-row row">
+	<div class="col-sm-2">
+			Updated
+	</div>
+	<div class="col-sm-6">
+			{{ subscription.updated_date }}
+	</div>
+</div>
+		 
+		
+<div class="compact form-row row">
+	<div class="col-sm-2">
+			Created
+	</div>
+	<div class="col-sm-6">
+			{{ subscription.created_date }}
+	</div>
+</div>
+	   
+<div class="compact form-row row">
+	<div class="col-sm-2">
+			Expires
+	</div>
+	<div class="col-sm-2">
+			<div 
+			{% if meta.is_expired %}
+				class="alert-warning"
+			{% endif %}
+			> {{ subscription.expires_date }}
+			</div>
+	</div>
+</div>
+
+
+	<div class="sectionhead">Current Access (<a href="{{ url_for('members.member_editaccess',id=rec.id) }}">Edit</a>):</div>
+	<ul class="entries">
+	{% if not access %}
+	  <i> No current access defined for this user</i>
+	{% else %}
+	  {% for a in access %}
+		<li>{{ a.description }}, Updated: {{ a.time_updated }} </li>
+	  {% endfor %}
+	{% endif %}
+	</ul>
+
+	</div> {# Outer container #}
+  </div> <!-- BASE container -->
+		{# DISASSOCIATE MODAL #}
+
+				<!-- Modal -->
+				<div class="modal fade" id="unassociateModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+					<div class="modal-dialog" role="document">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h5 class="modal-title" id="exampleModalLabel">Unassociate payment for {{ rec.member }}</h5>
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+									<span aria-hidden="true">&times;</span>
+								</button>
+							</div>
+							<div class="modal-body">
+								<p> This will remove the associaiton between this member and a payment, rendering this membership inactive.
+									This is typically only done if you are planning on going into the "Payments" window and linking this
+									payment to another, correct membership.</p>
+								<p> If you are <i>positive</i> that this is the correct thing to do, please confirm.</p>
+							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+								<form method="POST" action="{{ url_for("members.unassociate") }}">
+								<input type="hidden" name="memberid" value="{{ rec.id }}" />
+								<input class='btn btn-danger' type="submit" name="UnassociateMember" value="Unassociate Membership" />
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+
+		{# DISASSOCIATE MODAL #}
+  	{% if current_user.privs("Useredit") %}
+	{% with readonly=1,member_id=rec.id %}
+	{% include "comments.html" %}
+	{% endwith %}
+	{% endif %}
+{% endblock %}

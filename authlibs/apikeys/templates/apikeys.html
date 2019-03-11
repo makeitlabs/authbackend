@@ -1,0 +1,36 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div class="content">
+	<h2>API Keys:  {{ apikeys |length }} available</h2>
+	<table class="table table-sm">
+        <tr>
+            <th>Name</th>
+            <th>Username</th>
+        </tr>
+	{% for a in apikeys %}
+	  <tr>
+		<td><a href="{{ url_for('apikeys.apikeys_show',apikey=a.id) }}">{{ a.name }}</a></td>
+		<td>{{ a.username }}</td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+
+<!-- Add New Tool -->
+
+
+	{% if current_user.privs("RATT") %}
+  <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#tools-add-collapse" aria-expanded="false" aria-controls="tools-add-collapse">
+    Add New API Key
+  </button>
+  <div class="collapse" id="tools-add-collapse">
+	<hr />
+  <h3> Add New API Key </h3>
+<form action="{{ url_for('apikeys.apikeys_create') }}" method="post">
+	{% include 'apikey_form.html' %}
+<input type="submit" value="Create API Key" />
+</form>
+</div>
+{% endif %} <!-- Add New Resoruce -->
+{% endblock %}

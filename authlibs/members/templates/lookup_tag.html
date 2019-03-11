@@ -1,0 +1,65 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+  <h2>Lookup tag</h2>
+  <div class=welcometext>
+	Scan a fob, enter a fob ID, hash or fingerprint.
+  </div>
+
+  <form id="lookup_form" method='POST' class='inline-form'>
+  <label for="input_tag">Tag #</label>
+  <input name="input_tag" id="input_tag" type="text" />
+  <input type="submit" name="Lookup" value="Lookup" class="btn btn-primary" />
+  </form>
+
+  {% if tags|length > 0 %}
+  <hr />
+  <table class="table">
+    <tr>
+        <th>Member</th>
+        <th>Tag Type</th>
+	<th>Tag Name</th>
+	<th>Tag Identity</th>
+        <th>Actions</th>
+    </tr>
+  {% for tag in tags %}
+    <tr>
+	<td><a href="{{ url_for("members.member_show",id=tag.member) }}"/>{{ tag.member }}</a></td>
+        <td>{{ tag.tag.tag_type }}</td>
+		<td>{{ tag.tag.tag_name }}</td>
+		<td>
+			<a href="#row_collapse_{{ tag.tag.id }}" data-toggle="collapse" data-target="#row_collapse_{{ tag.tag.id }}">
+			<span class="glyphicon glyphicon-info-sign" />
+			</a>
+			{{ tag.tag.shorthash }}
+		</td>
+
+		  {% if current_user.privs("Useredit","Finance") %}
+		<td><a href="{{ url_for('members.member_tagdelete',id=mid,tag_ident=tag.tagid) }}"><span class="glyphicon glyphicon-trash"/></td>
+		{% endif %}
+    </tr>
+    <!-- This row pops-up when the "i" button is clicked -->
+    <tr class="table-row collapse" id="row_collapse_{{ tag.tag.id }}">
+	    <td  colspan=4>
+	Hash: 	{{ tag.tag.longhash }}
+		{% if current_user.privs('Admin') %}
+		Raw Fob ID: {{ tag.tag.tag_ident }}
+		{% endif %}
+		</td>
+    </tr>
+  {% endfor %}
+  </table>
+  {% else %}
+  {% endif %}
+
+	<script type="text/javascript">
+		document.getElementById('input_tag').onkeypress = function(e){
+			if (!e) e = window.event;
+				var keyCode = e.keyCode || e.which;
+				if (keyCode == '13'){
+					// Enter pressed
+					document.getElementById('lookup_form').submit();
+					return false;
+			}
+		}
+	</script>
+{% endblock %}

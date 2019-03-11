@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<!-- 
+  vim:tabstop=2:expandtab 
+-->
+<!-- For help https://getbootstrap.com/docs/4.1/getting-started/introduction/ -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="{{ url_for("static",filename="favicon.ico") }}">
+
+		<link rel="apple-touch-icon" sizes="180x180" href="{{ url_for("static",filename="favicons/apple-touch-icon.png") }}">
+		<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for("static",filename="favicons/favicon-32x32.png") }}">
+		<link rel="icon" type="image/png" sizes="16x16" href="{{ url_for("static",filename="favicons/favicon-16x16.png") }}">
+		<link rel="manifest" href="{{ url_for("static",filename="favicons/site.webmanifest") }}">
+		<link rel="mask-icon" href="{{ url_for("static",filename="favicons/safari-pinned-tab.svg") }}" color="#5bbad5">
+		<link rel="shortcut icon" href="{{ url_for("static",filename="favicons/favicon.ico") }}">
+		<meta name="msapplication-TileColor" content="#603cba">
+		<meta name="msapplication-config" content="{{ url_for("static",filename="favicons/browserconfig.xml") }}">
+		<meta name="theme-color" content="#ffffff">
+
+    <title>AuthIt</title>
+
+    <!-- Bootstrap core CSS -->
+    <!-- link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet" -->
+    <link rel="stylesheet" href="{{ url_for("static",filename="css/bootstrap.min.css") }}" --bkg-orig-href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    {# <script src="{{ url_for("static",filename="js/jquery-3.3.1.slim.min.js") }}" --bkg-orig-src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script> #}
+    <script src='{{ url_for("static",filename="js/jquery.min.js") }}' --bkg-orig-src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+		<script src='{{ url_for("static",filename="js/popper.min.js") }}' --bkg-orig-src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+		<script src='{{ url_for("static",filename="js/bootstrap.min.js") }}' --bkg-orig-src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+
+
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    {# <link href="{{ url_for('static', filename='css/ie10-viewport-bug-workaround.css') }}" rel="stylesheet"> #}
+
+    <!-- Custom styles for this template -->
+    {# <link href="static/starter-template.css" rel="stylesheet"> #}
+
+    <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
+    <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+    {# <script src="../../assets/js/ie-emulation-modes-warning.js"></script>  #}
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <link href="{{ url_for('static', filename='css/brad.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/bootstrap-glyphicons.css') }}" rel="stylesheet">
+		<script src='{{ url_for("static",filename="js/layout_search.js") }}'></script>
+		{% block head %} {% endblock %}
+  </head>
+
+  <body
+		{% if DEPLOYTYPE %}
+    style="background-color:#ffffd0"
+    {% endif %}
+>
+
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-sm navbar-light bannerGradient">
+  <a class="navbar-brand" href="{{ url_for('index') }}">
+    <img class="hvr-grow-shadow" src="{{ url_for('static',filename='MakeIt.svg') }}"  alt="">
+  </a>
+{% if current_user.is_authenticated %}
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="collapse navbar-collapse" id="navbarSupportedContent">
+    <ul class="navbar-nav mr-auto" >
+      <li class="nav-item">
+        <a class="nav-item nav-link" href="#">v0.6</a>
+      </li>
+      <li class="nav-item active">
+	      <a class="nav-link" href="{{ url_for("index") }}">Home <span class="sr-only">(current)</span></a>
+      </li>
+      {% if config['HelpURL'] %}
+      <li class="nav-item">
+        <a class="nav-link" href="{{ config['HelpURL'] }}">Help</a>
+      </li>
+      {% endif %}
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for("logout") }}">Logout</a>
+      </li>
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown2" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Pages
+        </a>
+        <div class="dropdown-menu" aria-labelledby="navbarDropdown2">
+		{% for x in config['main_menu']() %}
+		<a class="dropdown-item" href="{{ x['url'] }}">{{ x['title'] }}</a>
+		{% endfor %}
+	</div>
+      </li>
+
+    </ul>
+	{% if current_user.privs("Useredit") or current_user.is_arm() %}
+    <p class="navbar-text navbar-right">
+    <div class="dropdown">
+      <input id="layout_search_text" xxclass="form-control" autocomplete="off" type="search"  xx-data-toggle="dropdown" placeholder="Search" aria-label="Search">
+			<div class="dropdown-menu" id="layout_search_menu" aria-labelledby="dropdownMenuButton">
+				{# <a class="layout_search_item dropdown-item" href="#">Action</a>#}
+			</div>
+    </div>
+    {% endif %}
+  </div>
+{% endif %}
+<script type="text/javascript">
+var LAYOUT_MEMBERS_URL="{{ url_for("members.member_show",id="") }}";
+var LAYOUT_SEARCH_URL="{{ url_for("api.ubersearch_handler",ss="") }}";
+$( "#layout_search_text" ).on('input',function() {
+  layout_search_keypress();
+});
+$( "#layout_search_text" ).on('focusout', function() {
+  layout_search_blur();
+});
+</script>
+</nav>
+<!-- NAVBAR --> 
+
+{% if DEPLOYTYPE  or TESTDB %}
+	<div class="alert alert-warning" role="alert">
+		{% if DEPLOYTYPE %}
+			Special Non-Production Deployment - {{ DEPLOYTYPE }}
+		{% endif %}
+		{% if DEPLOYTYPE  and TESTDB %}
+		<br />
+		{% endif %}
+		{% if TESTDB %}
+		Using TEST Database
+		{% endif %}
+	</div>
+{% endif %}
+
+  <div class="container">
+
+	  	{#
+		{% for message in get_flashed_messages() %}
+			<div --bkg-flash="unknown" class="alert alert-warning" role="alert">{{ message }}</div>
+		{% endfor %}
+		#}
+
+		{% with messages = get_flashed_messages(with_categories=true) %}
+		  {% if messages %}
+		    {% for category, message in messages %}
+		    	{% if category  %}
+				{% if category == "message" %}
+				    <div --bkg-flash="message" class="alert alert-info alert-dismissable fade show" role="alert">{{ message }}
+				      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button></div>
+			    	{% else %}
+				    <div -bkg-flash="{{ category }}" class="alert alert-{{ category }} alert-dismissable fade show" role="alert">{{ message }}
+				      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button></div>
+				{% endif %}
+			{% else %}
+			    <div --bkg-flash="unknown2" class="alert alert-primary alert-dismissable fade show" role="alert">{{ message }}
+			      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button></div>
+			{% endif %}
+		    {% endfor %}
+		  {% endif %}
+		{% endwith %}
+
+
+		{% block search %} {% endblock %}
+	</div>
+	<div style="margin-left:10px;margin-right:10px" class="body">
+		{% block widebody %} {% endblock %}
+	</div>
+	<div class="container">
+		{% block body %}
+		{% block resources %} {% endblock %}
+		{% endblock %}
+	</div>
+   </div><!-- /.container -->
+
+
+
+
+    <!-- FOOTER -->
+			<hr />
+					{% if current_user and current_user.email and current_user.is_authenticated%}
+					<footer class="page-footer">
+						<div class="container">
+							<div class="row">
+								<div class="col">
+									<address>{{ current_user.email }}</address>
+								</div>
+								<div class="col">
+									<div style="float:right" >
+									{% for r in  current_user.effective_roles() %}
+									<span class="badge badge-primary">{{ r }}</span> 
+									{% endfor %}
+									{% for r in  current_user.resource_roles() %}
+									<span class="badge badge-info">{{ r }}</span> 
+									{% endfor %}
+									</div>
+								</div>
+							</div>
+						</div>
+					</footer>
+					{% endif %}
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    {# <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script> #}
+    {# <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script> #}
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    {# <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script> #}
+
+  </body>
+</html>
+
+
+
+<!--- NEW ONE --->

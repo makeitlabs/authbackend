@@ -1,0 +1,31 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div class="sectionhead">Users of '{{ resource }}': ({{ accrecs|length }})</div>
+{% if accrecs|length > 0 %}
+<div class="protip">Click a user's name to edit their access for any resource</div>
+<p></p>
+<table class="table table-sm" >
+    <tr>
+        <th>Member</th>
+        <th>Access Level</th>
+        <th>Suspended</th>
+        <th colspan=2>Last Accessed</th>
+    </tr>
+    {% for accrec in accrecs %}
+        <tr>
+						<td><a href="{{ url_for('members.member_setaccess',id=accrec.member_id) }}">{{ accrec.member }}</a></td>
+            <td>{{ accrec.level }}</td>
+            <td>{{ accrec.lockout_reason }}</td>
+            <td>{{ accrec.usedago }}</td>
+            <td>{{ accrec.lastused }}</td>
+            <td></td>
+            <td><a class="btn btn-outline-secondary" href="{{ accrec.logurl}}">Log</a></td>
+        </tr>
+    {% endfor %}
+</table>
+
+
+{% endif %}
+<div class="sectionhead">Add a missing user</div>
+To add a user to this resource <a href="{{ url_for('members.members') }}">search for them on the members page</a>
+{% endblock %}

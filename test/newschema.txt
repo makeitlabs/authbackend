@@ -1,0 +1,108 @@
+CREATE TABLE accessbyid(resource,rfidtag,enabled,lastmodified);
+
+CREATE TABLE resources (name,description,owneremail, last_updated text);
+
+CREATE TABLE blacklist (entry TEXT, entrytype text, reason TEXT, updated_date TEXT);
+
+CREATE TABLE payments (member TEXT, paysystem TEXT, plan TEXT, customerid TEXT, expires_date TEXT, updated_date TEXT, checked_date TEXT, created_date text, email text);
+
+CREATE TABLE accessbymember (member text, resource text, enabled text, updated_date text, level);
+
+CREATE TABLE logs (member text, resource text, event_date text, event_type text, message text);
+
+CREATE TABLE feespaid (member,amount,fee_date,fee_name,fee_group,fee_description);
+
+CREATE TABLE memberbycustomer (membername text, customerid text, paysystem text, memberid text);
+
+CREATE TABLE tags_by_member (
+	id INTEGER NOT NULL, 
+	tag_id VARCHAR(50), 
+	tag_type VARCHAR(50), 
+	tag_name VARCHAR(50), 
+	updated_date DATETIME, 
+	member_id INTEGER, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE
+);
+
+CREATE TABLE members (
+	id INTEGER NOT NULL, 
+	member VARCHAR(50), 
+	alt_email VARCHAR(50), 
+	email VARCHAR(50), 
+	firstname VARCHAR(50), 
+	lastname VARCHAR(50), 
+	phone VARCHAR(50), 
+	plan VARCHAR(50), 
+	updated_date DATETIME, 
+	access_enabled INTEGER, 
+	access_reason VARCHAR(50), 
+	active INTEGER, 
+	nickname VARCHAR(50), 
+	name VARCHAR(50), 
+	created_date DATETIME, 
+	PRIMARY KEY (id), 
+	UNIQUE (member)
+);
+
+CREATE TABLE waivers (
+	id INTEGER NOT NULL, 
+	waiver_id VARCHAR(50), 
+	member_id INTEGER, 
+	created_date DATETIME, 
+	email VARCHAR(50), 
+	firstname VARCHAR(50), 
+	lastname VARCHAR(50), 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(member_id) REFERENCES members (id)
+);
+
+CREATE TABLE subscriptions (
+	id INTEGER NOT NULL, 
+	paysystem VARCHAR(50), 
+	subid VARCHAR(50), 
+	customerid VARCHAR(50), 
+	name VARCHAR(50), 
+	email VARCHAR(50), 
+	plan VARCHAR(50), 
+
+	expires_date DATETIME, 
+	created_date DATETIME, 
+	updated_date DATETIME, 
+	checked_date DATETIME, 
+	active INTEGER, 
+	PRIMARY KEY (id)
+);
+
+CREATE TABLE users (
+	id INTEGER NOT NULL, 
+	is_active BOOLEAN DEFAULT '1' NOT NULL, 
+	email VARCHAR(25) DEFAULT '' NOT NULL, 
+	email_confirmed_at DATETIME, 
+	password VARCHAR(255) NOT NULL, 
+	created_on VARCHAR(50) DEFAULT 'now' NOT NULL, 
+	created_by VARCHAR(25) DEFAULT 'admin' NOT NULL, 
+	comment VARCHAR(255) DEFAULT '', 
+	api_key VARCHAR(255) DEFAULT 'AZYJZE464E6E', 
+	PRIMARY KEY (id), 
+	CHECK (is_active IN (0, 1)), 
+	UNIQUE (email)
+);
+
+CREATE TABLE roles (
+	id INTEGER NOT NULL, 
+	name VARCHAR(50), 
+	PRIMARY KEY (id), 
+	UNIQUE (name)
+);
+
+
+CREATE TABLE user_roles (
+	id INTEGER NOT NULL, 
+	user_id INTEGER, 
+	role_id INTEGER, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE, 
+	FOREIGN KEY(role_id) REFERENCES roles (id) ON DELETE CASCADE
+);
+

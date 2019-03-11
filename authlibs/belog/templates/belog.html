@@ -1,0 +1,134 @@
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+  <link href="{{ url_for('static', filename='css/bootstrap-datepicker3.min.css') }}" rel="stylesheet">
+	<script type="text/javascript" src="{{ url_for("static",filename="js/bootstrap-datepicker.min.js") }}"></script>
+{% endblock %}
+{% block widebody %}
+
+{% macro dobuttons() %}
+		<div class="content">
+			<span>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-asterisk"  onclick="location.href='{{ url_for('belog.belog') }}'" />
+			<button class="btn btn-lg btn-light glyphicon glyphicon-filter" aria-hidden="true" data-toggle="collapse" href="#filterCollapse" role="button" aria-expanded="false" aria-controls="filterCollapse" /></button>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-step-backward" onclick="location.href='{{ meta.first }}'" />
+			{% if meta.prev %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-left"  onclick="location.href='{{ meta.prev }}'" />
+			{% else %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-left disabled" />
+			{% endif %}
+			{% if meta.next %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-right" onclick="location.href='{{ meta.next }}'"  />
+			{% else %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-right disabled"  />
+			{% endif %}
+			<button class="btn btn-lg btn-light glyphicon glyphicon-step-forward"  onclick="location.href='{{ meta.last }}'"></button>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-download"  onclick="location.href='{{ meta.csvurl }}'"></button>
+
+			</span>
+			<span>{{ meta.displayoffset }} - {{ meta.lastoffset}} of {{ meta.count }}</span>
+		</div>
+{%- endmacro -%}
+  <div class=body>
+	<h2>Backend Logs</h2>
+		{{ dobuttons() }}
+
+
+		<div class="collapse" id="filterCollapse"> {# Filter Popup #}
+			<form method="GET">
+				<div class="card card-body" style="width: 50rem;">
+
+					<bkg-hr style="margin:1px" /><div class="form-row">Exclude Levels:</div>
+					<div class="form-row tightcbcell" id="nodeList"> {# Node Form Row #}
+						<div class="form-group">
+							<input type="checkbox" name="input_level_debug"><label>Debug</label>
+							<input type="checkbox" name="input_level_info"><label>Info</label>
+							<input type="checkbox" name="input_level_warning"><label>Warning</label>
+							<input type="checkbox" name="input_level_error"><label>Error</label>
+							<input type="checkbox" name="input_level_critical"><label>Critical</label>
+						</div>
+					</div> {#  Resource Form Row #}
+
+					<hr style="margin:1px" /><div class="form-row">Exclude Modules:</div>
+					<div class="form-row tightcbcell" id="nodeList"> {# Node Form Row #}
+						<div class="form-group">
+							<button type="button" class="btn btn-sm" onclick="ClearButton();" >Clear</button>
+							<button type="button" class="btn btn-sm" onclick="AllButton();" >All</button>
+							<button type="button" class="btn btn-sm" onclick="InvertButton();" >Invert</button>
+						</div>
+						<div class="form-group">
+								<div class="d-flex flex-wrap" id="module_checkbox_group">
+							{% for mod in modules %}
+									<div class="px-2">
+								<input type="checkbox" class="module_checkbox" name="input_module_{{ mod }}"><label>{{ mod }}</label>
+									</div>
+							{% endfor %}
+								</div>
+						</div>
+					</div> {#  Resource Form Row #}
+
+
+					<hr style="margin:1px" /><div class="form-row"><b>View Range</b></div>
+					<div class="form-row"> {# Datepicker Row #}
+						<div class="input-daterange input-group" id="datepicker">
+								<span class="input-group-addon">From</span>
+								<input type="text" class="input-sm form-control" name="input_date_start" autocomplete="off" />
+								<span class="input-group-addon">to</span>
+								<input type="text" class="input-sm form-control" name="input_date_end" autocomplete="off" />
+						</div>
+					</div> {# Datepicker row #}
+
+					<input style="margin-top:10px" class="btn btn-primary" type="submit" value="filter" />
+				</div> {# Filter Card #}
+			</form>
+		</div>
+	</div> {# Outer filter content #}
+
+
+	<table class="table table-sm">
+        <th>Level</th>
+        <th>What</th>
+        <th>Message</th>
+      </tr>
+  {% for l in logs %}
+	  <tr style="background-color:{{ l.color }}">
+		<td>{{ l.when }}</td>
+		<td>{{ l.level }}</td>
+		<td>{{ l.what }}</td>
+		<td>{{ l.message }}</td>
+	  </tr>
+  {% endfor %}
+	</table>
+		{{ dobuttons() }}
+
+<script type="text/javascript">
+	/* Init date picker */
+	$(document).ready(function () {
+		$('#datepicker').datepicker({
+				maxViewMode: 2,
+				todayBtn: true,
+				clearBtn: true,
+				todayHighlight: true
+		});
+	});
+
+function AllButton() {
+var x = document.querySelectorAll(".module_checkbox")
+				for (i=0;i<x.length;i++) {
+					 x[i].checked=true;
+				}
+}
+
+function InvertButton() {
+				var x = document.querySelectorAll(".module_checkbox")
+				for (i=0;i<x.length;i++) {
+					 x[i].checked=!x[i].checked;
+				}
+}
+function ClearButton() {
+				var x = document.querySelectorAll(".module_checkbox")
+				for (i=0;i<x.length;i++) {
+					 x[i].checked=false;
+				}
+}
+</script>
+{% endblock %}

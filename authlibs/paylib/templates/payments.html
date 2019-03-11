@@ -1,0 +1,52 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div>
+  <h2>Payment System Management</h2>
+	<table class="table table-sm">
+    <tr>
+        <td><div class="menubox">
+        <a class="btn btn-primary" href="{{ url_for('payments.test_payments') }}">Test Pay System</a>
+        <br>
+        Test Connection<br>(10-15 seconds)</div>
+        </td>
+        <td><div class="menubox"><a class="btn btn-primary" href="{{ url_for('payments.update_payments') }}">Update paysystem information</a>
+        <br>
+        Update Payment Data<br>(10-30 Seconds)</div>
+        </td>
+
+        <td><div class="menubox"><a class="btn btn-primary" href="{{ url_for('payments.payments_missing') }}">Fix Broken Payments</a>
+        <br>
+        Connect members &amp; payments</div>
+        </td>
+				{#
+        <td><div class="menubox"><a href="{{ url_for('payments.payments_fees') }}"><img class="menuimg" src="static/currency-symbol.png" alt="Schedule payment"></a>
+        <br>
+        Add Fee<br>(Manual entry)</div>
+        </td>
+				#}
+    </tr>
+	</table>
+	<div class="sectionhead">Payment system configuration</div>
+	<ul>
+	  <li>Modules active: {{ modules  }}</li>
+	</ul>
+	<div class="sectionhead">Test Connection</div>
+	Validates connectivity and access to the configured automated payment system. Run the test before trying to manually force an update.
+    <div class="sectionhead">Update Payment Data</div>
+	<ol>
+	  <li>Extract a list of all subscribers and their attributes from the Payment system</li>
+	  <li>Filter that list against known bad data</li>
+	  <li>Update the Members table to add any missing members</li>
+	  <li>Update the Members table to set the "Active" flag appropriately (expired payments = not active)</li>
+	  <li>Update the Members table with the correct Plan for each member (eg Hobbyist that changed to Pro, or vice-versa)</li>
+	  <li>Not explode. Hopefully.</li>
+	</ol>
+	If after running this update someone is still incorrectly set, seek help.
+	<div class="sectionhead">Fees</div>
+	View previously charged fees, create one-time fee or schedule recurring fees.
+	<div class="sectionhead">Troublsheooting</div>
+	
+  </div>
+
+{% endblock %}
+

@@ -1,0 +1,33 @@
+{% extends "layout_bootstrap.html" %}
+{% block search %}
+  <div class=body>
+	<div class="sectionhead">Waiver Data</div>
+		{% if current_user.privs("Useredit") or current_user.privs("Finance") %}
+    <a href="{{ url_for('waivers.waivers_update') }}">Update Waiver Data (May take a while)</a>
+		{% endif %}
+    <p></p>
+	<table>
+      <tr>
+	<th></th>
+	<th></th>
+        <th>Email</th>
+        <th>Firstname</th>
+        <th>Lastname</th>
+	<th>Created</th>
+	<th>Member</th>
+      </tr>
+      {% for w in waivers %}
+	  <tr>
+		  <td><span data-toggle="popover" class="glyphicon glyphicon-resize-small" /></td>
+		<td>{{ w.waiver.waiverid }}</td>
+		<td>{{ w.waiver.email }}</td>
+		<td>{{ w.waiver.firstname }}</td>
+		<td>{{ w.waiver.lastname }}</td>
+		<td>{{ w.waiver.created_date }}</td>
+		{% if w.waiver.member_id %}
+		<td><a href="{{ url_for("members.member_show",id=w.member) }}">{{ w.member }}</a></td>
+		{% endif %}
+	  </tr>
+      {% endfor %}
+	</table>
+{% endblock %}

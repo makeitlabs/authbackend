@@ -1,0 +1,22 @@
+
+{% macro input(name, label, placeholder='', small='',type='text') -%}
+			{% if readonly is not defined %}
+			{% set ph = placeholder %}
+			{% endif %}
+      <label for="input_{{ name }}">{{ label }}</label>
+			{% if rec[name] %}
+			{% set value = rec[name] %}
+			{% else %}
+			{% set value = "" %}
+			{% endif %}
+			{% if type == "boolean" %}
+				<input type="checkbox" {% if readonly is defined %} disabled  {% endif %} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" 
+				{% if value %} checked {% endif %}
+				>
+			{% else %}
+				<input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ value }}">
+			{% endif %}
+			{% if small != '' %}
+			<small>{{ small }}</small>
+			{% endif %}
+{%- endmacro %}

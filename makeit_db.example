@@ -1,0 +1,15 @@
+BEGIN;
+INSERT INTO "members" VALUES(1,'brad.goodman',"brad@bradgoodman.com","brad.goodman@makeitlabs.com",'Brad',"brad",'Goodman','6173201472','Hobbiest',1,NULL,1,'',NULL,'2019-01-07 19:14:26',NULL);
+INSERT INTO "members" VALUES(2,'john.smith',"jsmith@yexample.com","john.smith@makeitlabs.com",'John',"johnsmith",'Smith','1234567890','Hobbiest',1,NULL,0,'',NULL,'2019-01-07 19:17:26',NULL);
+INSERT INTO "members" VALUES(3,'guy.smiley',"guy@sessame.com","guy.smiley@makeitlabs.com",'Guy',"g.smi",'Smiley','5555551212','Pro',0,NULL,0,'',NULL,'2019-01-07 19:18:26',NULL);
+INSERT INTO "resources" VALUES(1,'laser','rabbit','brad@bradgoodman.com',NULL);
+INSERT INTO "resources" VALUES(2,'frontdoor','The Front Door','info@makeitlabs.com',NULL);
+INSERT INTO "resources" VALUES(3,'fullspectrum','Full Spectrum 40W Laser','brad@bradgoodman.com',NULL);
+INSERT INTO "resources" VALUES(4,'autolift','The Auto Lift','info@makeitlabs.com',NULL);
+INSERT INTO "accessbymember" VALUES(1,1,1,1,'2019-01-07 19:11:05.291519','2019-01-07 19:11:05.291519',"Comment","","","Brad",0);
+INSERT INTO "accessbymember" VALUES(2,1,2,1,'2019-01-07 19:11:05.291519','2019-01-07 19:11:05.291519',"Comment","","","Brad",0);
+INSERT INTO "accessbymember" VALUES(3,1,3,1,'2019-01-07 19:11:05.291519','2019-01-07 19:11:05.291519',"Comment","","","Brad",0);
+INSERT INTO "accessbymember" VALUES(4,2,1,1,'2019-01-07 19:11:05.291519','2019-01-07 19:11:05.291519',"Comment","","","Brad",0);
+INSERT INTO "accessbymember" VALUES(5,2,2,1,'2019-01-07 19:11:05.291519','2019-01-07 19:11:05.291519',"Comment","","","Brad",0);
+INSERT INTO "accessbymember" VALUES(6,3,1,1,'2019-01-07 19:11:05.291519','2019-01-07 19:11:05.291519',"Comment","","","Brad",0);
+COMMIT;

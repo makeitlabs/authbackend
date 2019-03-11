@@ -1,0 +1,54 @@
+{% extends "layout_bootstrap.html" %}
+{% block search %}
+  <form method="POST">
+  <div class=body>
+	<div class="sectionhead">Membership</div>
+	<h3>Membership info for {{ subscription.membership }}</h3>
+	<table class="table bkg">
+	  <tr>
+		<td>Membership ID</td>
+		<td>{{ subscription.membership }}</td>
+	  </tr>
+	  <tr>
+		<td>Subscrition ID</td>
+		<td>{{ subscription.subid }}</td>
+	  </tr>
+	  <tr>
+		<td>Plan</td>
+		<td>{{ subscription.plan }}</td>
+	  </tr>
+	  <tr>
+		<td>Customer ID</td>
+		<td>{{ subscription.customerid }}</td>
+	  </tr>
+	  <tr>
+		<td>Paysystem</td>
+		<td>{{ subscription.paysystem }}</td>
+	  </tr>
+	  <tr>
+		<td>Active</td>
+		<td>{{ subscription.active }}</td>
+	  </tr>
+	  <tr>
+		<td>Created Date </td>
+		<td>{{ subscription.created_date }}</td>
+	  </tr>
+	  <tr>
+		<td>Expires Date </td>
+		<td>{{ subscription.exipires_date }}</td>
+	  </tr>
+	  <tr>
+		<td>Updated Date </td>
+		<td>{{ subscription.updated_date }}</td>
+	  </tr>
+	  <tr>
+		<td>Check Date </td>
+		<td>{{ subscription.check_date }}</td>
+	  </tr>
+	  <tr>
+		<td>Member</td>
+		<td><a href="{{ url_for("members.member_show",id=member.member) }}">{{ member.member }}</a></td>
+	  </tr>
+	</table>
+  </div>
+{% endblock %}

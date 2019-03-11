@@ -1,0 +1,185 @@
+{# 
+vim:tabstop=2:expandtab:shiftwidth=2
+#}
+{% extends "layout_bootstrap.html" %}
+{% block search %}
+<div class=body>
+	{% include "member_header.html" %}
+	<div class="container"> {# outer container #}
+	<h3>Access</h3>
+	<form action="{{ url_for('members.member_setaccess',id=rec.id) }}" method="post">
+	  <table class="table table-sm">
+		<tr>
+		  <th>Resource</th>
+		  <th>Description</th>
+		  <th>Contact</th>
+		  <th>Allowed</th>
+		  <th>Permissions</th>
+		</tr>
+		{% for a in access %}
+		  <tr>
+			<td>{{ a.resource.name }}</td>
+			<td>{{ a.resource.description }}</td>
+			<td>{{ a.resource.owneremail }}</td>
+			<td>
+				{% if a.myPerms >= 1 %}
+				<input type="checkbox" 
+          id="checkbox_{{ a.resource.name }}"
+					onchange="javascript:doAllowCheckbox('{{ a.resource.name }}');" name="access_{{ a.resource.name }}" {{ 'checked' if (a.active == 1) else '' }} 
+				/>
+				<input type="hidden" 
+					name="orgaccess_{{ a.resource.name }}" value="{{ 'on' if (a.active == 1) else 'off' }}"
+				/>
+				{% else %}
+				{{ '&#10004;'|safe  if (a.active == 1) else '' }} 
+				{% endif %}
+			</td>			
+			{% if a.myPerms >= 2 %}
+			<td>
+			<select id="privs_{{ a.resource.name }}" style="display:{% if a.active == 1 %}inline{% else %}none{% endif %}" name="privs_{{ a.resource.name }}">
+				<option name="User" value="0" 
+				{{ 'selected' if (a.level == 0) else '' }}
+				/>User</option>
+
+				<option name="Trainer" value="1" 
+				{{ 'selected' if (a.level == 1) else '' }}
+			  	{{ 'disabled' if (a.myPerms <= 1) else '' }}
+				/>Trainer</option>
+
+				<option name="ARM" value="2" 
+				{{ 'selected' if (a.level == 2) else '' }}
+			  	{{ 'disabled' if (a.myPerms <= 2) else '' }}
+				/>Ass't RM</option>
+
+				<option name="RM" value="3" 
+				{{ 'selected' if (a.level == 3) else '' }}
+			  	{{ 'disabled' if (a.myPerms <= 3) else '' }}
+				/>RM</option>
+			</select>
+			</td>
+			{% else %}
+			<td>{{ a.levelText }}</td>
+			{% endif %}
+        <td>
+          {% if ((a.myPerms >= 2) and (a.active==1)) %}
+            {% if  (a.lockout_reason) %}
+              <a  href="javascript:dolockbutton('Unlock','{{ a.resource.name }}','{{ a.lockout_reason }}',{{ a.resource.id }});" class="btn btn-success">RESTORE</a>
+            {% else %}
+              <a href="javascript:dolockbutton('Lock','{{ a.resource.name }}','',{{ a.resource.id }});" class="btn btn-outline-info">SUSPEND</a>
+            {% endif %}
+          {% endif %}
+        </td>
+		  </tr>
+	    {% endfor %}
+	  </table>
+	 {% if current_user.privs("Admin") %}
+	 <hr />
+	 <h3>Assigned Roles</h3>
+	 <div class="container">
+		{% for r in roles %}
+			<div class="form-row">
+				<div class="form-col col-sm-1">
+					<input type="checkbox" id="role_{{ r.name }}" name="role_{{ r.name }}" {{ 'checked' if (r.id) else '' }} />
+				</div>
+					<label class="col-md-2 col-form-label" for="role_{{ r.name }}">{{ r.name }}</label>
+					<input type="hidden" name="orgrole_{{ r.name }}" value="{{ 'on' if (r.id) else 'off' }}" />
+			</div>
+		{% endfor %}
+	 </div>
+	 <hr />
+	 {% endif %}
+
+	 {% if current_user.privs("Useredit") %}
+	 <h3>Change Password</h3>
+	 <div class="container">
+		 <div class="row">
+			<div class="col-sm-2">
+				 Password:
+			</div>
+			<div class="col-sm-4">
+				<input type="password" name="password1" value="" size=20 />
+			</div>
+		</div>
+		 <div class="row">
+			<div class="col-sm-2">
+				 Reenter:
+			</div>
+			<div class="col-sm-4">
+				 <input type="password" name="password2" value="" size=20 />
+			</div>
+		</div>
+	 </div>
+	 {% endif %}
+  {% if allowsave %}
+	<input type=submit value="Save Changes"/>
+  {% endif %}
+	 <hr />
+	</form>
+	</div> {# Outer  contrainer #}
+</div> {# Body base contrainer #}
+
+{# LOCKOUT MODAL #}
+<!-- Modal -->
+<div class="modal fade" id="lockoutModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <form method="post">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">{{ rec.member }} Resource Suspension</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row-">
+            <span id="lockmodaltext">test</span>
+          </div>
+          <div class="form-row-">
+            <input type="text" id="lockout_reason" class="col-lg-12" name="lockout_reason" />
+          </div>
+            <input type="hidden" id="lockout_op" name="lockout_op" value=""/>
+            <input type="hidden" id="lockout_resource_id" name="lockout_resource_id" value=""/>
+            <input type="hidden" id="lockout_member_id" name="resource_id" value=""/>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" name="lockout" value="lockout">OK</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+{# LOCKOUT MODAL #}
+<script type="text/javascript">
+  function dolockbutton(action,name,reason,id){
+    var x = $('#lockmodaltext')[0];
+    var tb = $('#lockout_reason')[0];
+    $('#lockout_op')[0].value=action;
+    $('#lockout_resource_id')[0].value=id;;
+    $('#lockout_member_id')[0].value={{ rec.id }};;
+    if (action=="Lock") {
+      x.textContent="Specify reason you are suspending the member from this resource:";
+      tb.style.display='inline';
+    } else {
+      x.textContent="Restore this member's access to this resource?";
+      tb.style.display='none';
+    }
+    $('#lockoutModal').modal();
+  }
+
+  function doAllowCheckbox(resource) {
+    cb = $('#checkbox_'+resource)[0];
+    privs = $('#privs_'+resource)[0];
+    if (cb) { 
+      if (cb.checked) 
+        privs.style.display="inline";
+      else {
+        privs.style.display="none";
+      }
+    }
+      
+  }
+</script>
+
+{% endblock %}

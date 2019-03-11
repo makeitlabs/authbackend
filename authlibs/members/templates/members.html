@@ -1,0 +1,134 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+   <h2>Members</h2>
+   <script type="text/javascript">
+	function _nameStr(sname) {
+		var t = sname.replace(/\W+/g, "");
+		return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+	}
+	function setMemberId() {
+	  // Takes Firstname and Lastname to create memberid matching Google ID (hopefully)
+	  var fname = _nameStr(document.getElementById("fname_field").value);
+	  var lname = _nameStr(document.getElementById("lname_field").value);
+	  var mid = fname + "." + lname;
+	  document.getElementById("memberid_field").value = mid;
+	  console.log(mid);
+	}
+   </script>
+   
+<div class="containter"> <!-- Base -->
+	<div class="containter"> 
+{% with member_url=url_for("members.member_show",id="") %}
+		{% include 'userlist.html' %}
+{% endwith %}
+	</div>
+  {# The syntax below is template-specific, a length 'filter' is used in Jinja #}
+  {% if members|length > 0 %}
+    <div class="memberbox">
+	<h2>Matching Members:  {{ members|length }} </h2>
+	<table border=1>
+		<tr>
+		  <th>Member</td>
+		  <th>Access</td>
+		</tr>
+	{% for m in members %}
+	  <tr>
+		  <td>
+			<img src="static/create3.png" height="20" width="20" alt="Edit member" />
+			<a href="{{ url_for('member_show',id=m.member) }}">{{ m.firstname }} {{m.lastname}} ({{ m.member }})
+			</a>
+		  </td>
+		  <td>
+			<a href="{{ url_for('member_editaccess',id=m.member) }}">
+			<img src="static/create3.png" height="20" width="20" alt="Edit access" />Edit</a>
+		  </td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+  {% endif %}
+  <p></p>
+
+
+  <!-- ADD NEW MEMBER -->
+	{% if current_user.privs("Useredit") %}
+  <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#member-add-collapse" aria-expanded="false" aria-controls="member-add-collapse">
+    Add New Member
+  </button>
+  <div class="collapse" id="member-add-collapse">
+	<hr />
+  <h2> Add new member </h2>
+	<form action="{{ url_for('members.member_add') }}" method="post">
+		<div class="form-group row">
+				<label class="col-sm-2 col-form-label" for="firstname_field">First name</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="firstname" id="firstname_field" type="text">
+				</div>
+				<label class="col-sm-2 col-form-label" for="lastname_field">Last name</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="lastname" id="lastname_field" type="text">
+				</div>
+		</div>
+		<div class="form-group row">
+				<label class="col-sm-2 col-form-label" for="memberid_field">Member ID</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="memberid" id="memberid_field" type="text">
+					<small class="form-text text-muted">(If different than "First Last")</small>
+				</div>
+				<label class="col-sm-2 col-form-label" for="slackid">Slack ID (optional)</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="slackid" id="slackid" type="text">
+				</div>
+		</div>
+		<div class="form-group row">
+			 <label class="col-sm-2 col-form-label" for="plan">Plan:</label>
+				<div class="col-sm-4">
+					<div class="btn-group btn-group-toggle" data-toggle="buttons">
+						<label class="btn btn-secondary active">
+							<input type="radio" name="plan" value="hobbyist" id="option1" autocomplete="off" checked> Hobbyist
+						</label>
+						<label class="btn btn-secondary">
+							<input type="radio" name="plan" value="pro" id="option2" autocomplete="off"> Pro
+						</label>
+					</div>
+					<small class="form-text text-muted">ProDuo must be done via stripe</small>
+				</div>
+				<label class="col-sm-2 col-form-label" for="payment">Payment system:</label>
+				<div class="col-sm-4">
+					<div class="btn-group btn-group-toggle" data-toggle="buttons">
+						<label class="btn btn-secondary active">
+							<input type="radio" name="payment" value="manual" id="option1" autocomplete="off" checked> Manual
+						</label>
+						<label class="btn btn-secondary">
+							<input type="radio" name="payment" value="pinpayments" id="option2" autocomplete="off"> Pinpayments
+						</label>
+						<label class="btn btn-secondary">
+							<input type="radio" name="payment" value="stripe" id="option3" autocomplete="off"> Stripe
+						</label>
+					</div>
+				</div>
+		</div>
+		<div class="form-group row">
+				<label class="col-sm-2 col-form-label" for="alt_email">Primary Email</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="alt_email"/>
+					<small class="form-text text-muted"><b>Non</b> @makeitlabs.com email</small>
+				</div>
+				<label class="col-sm-2 col-form-label" for="phone">Phone</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="phone"/>
+				</div>
+		</div>
+
+	  <input type="submit" class="btn btn-primary" value="Create new member">
+	</form>
+	{% endif %} <!-- Useredit Privs -->
+
+
+
+	{% if current_user.privs("Useredit") %}
+	<a href="{{ url_for('slack_page') }}">Connect Slack Accounts</a>
+	{% endif %}
+  </div> <! -- Member Add Collapse -->
+</div> <!-- Base -->
+{% endblock %}

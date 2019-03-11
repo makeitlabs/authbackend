@@ -1,0 +1,80 @@
+{#    This is meant to be INCLUDED by another page.
+			Wrap this inside another div class-content block, 
+			and inside a form (if desiered)
+
+			This template is used for THREE different thins:
+			Create, Edit, or Display a record
+	
+			{% include 'template.html' %}
+
+			Or to include checkbox columns:
+
+			{% with add_checkboxes='1' %}
+			{% include 'userlist.html' %}
+			{% endwith %}
+
+#}
+
+<!-- Import any "with" parameters -->
+{% if member_url %}
+<script type="text/javascript">var MEMBER_URL="{{ url_for("members.member_show",id="") }}";</script>
+{% else %}
+<script type="text/javascript">var MEMBER_URL=null;</script>
+{% endif %}
+
+
+{% if readonly is defined and readonly  %}
+{% set ro="readonly" %}
+{% endif %}
+
+{% if rec is not defined %}
+{% set rec={} %}
+{% endif %}
+
+
+{% from 'global_macros.html' import input with context %}
+
+<div class="container">
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('member',"Member ID",'Firstname.Lastname',small='Typically First.Last') }}
+    </div>
+	</div>
+  <div class="form-row">
+    <div class="form-group col-md-5">
+			{{ input('firstname',"First Name") }}
+    </div>
+    <div class="form-group col-md-5">
+			{{ input('lastname',"Last Name") }}
+    </div>
+  </div>
+
+
+  <div class="form-row">
+    <div class="form-group col-md-5">
+			{{ input('access_enabled',"Access Enabled",type="boolean") }}
+    </div>
+    <div class="form-group col-md-5">
+			{{ input('access_reason',"Denial Reason",small="Reason for access denial. Blank if pending waiver. (Can auto-check when waiver completed)") }}
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('alt_email',"Primary Email",'person@example.com',small="Non makeitlabs email. Same as usd for payments",type="email") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('email',"MakeIt Email",'First.Last@makeitlabs.com',small="MakeIt Labs Gmail address") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('slack',"Slack ID",'first.last',small="User ID on MakeIt Labs Slack") }}
+    </div>
+    <div class="form-group col-md-6">
+			{{ input('phone',"Phone Number",'603-555-1212') }}
+    </div>
+  </div>
+</div>

@@ -1,39 +1,26 @@
-{% extends "layout.html" %}
+{% extends "layout_bootstrap.html" %}
 {% block body %}
-<div class="sectionhead">
-Welcome to the Admin interface.
+<div class="container-fluid">
+<h2>Admin Interface</h2>
 </div>
 <i>With great power comes great... current? Who knows.</i>
 <p></p>
-<div>
-<!-- Yes, I know Divs are way cooler. But Tables are nice for lazy coding. Deal. -->
-<table>
-    <tr>
-        <td><div class="menubox">
-        <a href="{{ url_for('members') }}"><img class="menuimg" src="static/office.png" alt="View, Create or Edit members and their access"></a>
-        <br>
-        Members and Access</div>
-        </td>
-        <td><div class="menubox"><a href="{{ url_for('payments') }}"><img class="menuimg" src="static/finance.png" alt="View or Test Payment System integration"></a>
-        <br>
-        Payment System</div>
-        </td>
-        <td><div class="menubox"><a href="{{ url_for('resources') }}"><img class="menuimg" src="static/building.png" alt="View, Create or Modify Resources"></a>
-        <br>
-        Resources</div>
-        </td>
-        <td><div class="menubox"><a href="{{ url_for('reports') }}"><img class="menuimg" src="static/data.png" alt="View reports"></a>
-        <br>
-        Reports</div>
-        </td>
-    </tr>
-    <tr>
-        <td><div class="menubox">
-        <a href="{{ url_for('waivers') }}"><img class="menuimg" src="static/contract.png" alt="View Waiver Data"></a>
-        <br>
-        Waivers</div>
-        </td>
-    </tr>
-</table>
-</div>
+
+<div class="d-flex flex-wrap">
+
+{% for m in menu %}
+	{% if m.img %}
+	<div class="menubox content hvr-grow-shadow">
+		<div class="my-10 p-0 mx-auto">
+			<a href="{{ m.url }}"><img class="menuimg" src="{{ m.img }}" alt="{{ m.alt }}"></a>
+		</div>
+		<div class="m-0 p-0 mx-auto ">
+			<div class="m-0 p-0 text-center">{{ m.title }}</div>
+			<div class="m-0 p-0 text-center">
+				<small>{{ m.alt }}</small>
+			</div>
+		</div>
+	</div>
+	{% endif %}
+{% endfor %}
 {% endblock %}

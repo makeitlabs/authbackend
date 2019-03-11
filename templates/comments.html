@@ -1,0 +1,59 @@
+{# 
+vim:tabstop=2
+include like:
+
+	{% with member_id=member.id %}
+	{% include "comments.html" %}
+	{% endwith %}
+ #}
+
+<hr />
+<div class="container">
+<h4>Comments</h4>
+	{% if comments|length == 0 %}
+		<div class="content">No Comments</div>
+	{% else %}
+	<table class="table table-sm">
+        <tr>
+            <th>When</th>
+            <th>By</th>
+            <th>Comment</th>
+        </tr>
+	{% for c in comments %}
+	  <tr>
+		<td>{{ c.when }}</td>
+		<td>{{ c.doneby }}</td>
+		<td>{{ c.comment }}</td>
+	  </tr>
+	{% endfor %}
+	</table>
+
+	{% endif %}
+	{% if allow_comments or not readonly %}
+		<div class="my-3 content">
+			<form method="POST" action="{{ url_for("comments.add_comment") }}">
+				<input type="hidden" name="redirect" value="{{ request.path }}" />
+				{% if member_id %}
+					<input type="hidden" name="member_id" value="{{ member_id }}" />
+				{% endif %}
+				{% if tool_id %}
+					<input type="hidden" name="tool_id" value="{{ tool_id }}" />
+				{% endif %}
+				{% if node_id %}
+					<input type="hidden" name="node_id" value="{{ node_id }}" />
+				{% endif %}
+				{% if resource_id %}
+					<input type="hidden" name="resource_id" value="{{ resource_id }}" />
+				{% endif %}
+				<div class="container">
+					<div class="input-group mb-3">
+						<input type="text" class="form-control" name="comment" placeholder="New Comment..." aria-label="Recipient's username" aria-describedby="basic-addon2">
+						<div class="input-group-append">
+							<input class="btn btn-outline-secondary" type="submit" value="Add" />
+						</div>
+					</div>
+				</div>
+			</form>
+		</div> 
+	{% endif %}
+</div>

@@ -1,0 +1,85 @@
+{#    This is meant to be INCLUDED by another page.
+			Wrap this inside another div class-content block, 
+			and inside a form (if desiered)
+
+			This template is used for THREE different thins:
+			Create, Edit, or Display a record
+	
+			{% include 'template.html' %}
+
+			Or to include checkbox columns:
+
+			{% with add_checkboxes='1' %}
+			{% include 'userlist.html' %}
+			{% endwith %}
+
+#}
+
+<!-- Import any "with" parameters -->
+<script type="text/javascript">var APIKEY_URL="{{ url_for("apikeys.apikeys_show",apikey="") }}";</script>
+
+
+{% if readonly is defined and readonly  %}
+{% set ro="readonly" %}
+{% endif %}
+
+{% if rec is not defined %}
+{% set rec={} %}
+{% endif %}
+
+
+{% macro input(name, label, placeholder='', small='', type='text') -%}
+			{% if readonly is not defined %}
+			{% set ph = placeholder %}
+			{% endif %}
+      <label for="input_{{ name }}">{{ label }}</label>
+      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ apikey[name] }}">
+			{% if small != '' %}
+			<small>{{ small }}</small>
+			{% endif %}
+{%- endmacro %}
+
+<script type="text/javascript">
+function clc(){
+	if (($('input[name=pwgen]:checked').val()) == "manual") {
+    $('#pwCollapse').removeClass("collapse");
+			} else  {
+    $('#pwCollapse').addClass("collapse");
+		}
+}
+
+</script>
+<div class="container">
+  <div class="form-row">
+    <div class="form-group col-md-8">
+			{{ input('name',"API Key Name",small="Who or what this key is used for - one word") }}
+    </div>
+    <div class="form-group col-md-8">
+			{{ input('username',"Username",small="Login Credentials") }}
+    </div>
+    <div class="form-group col-md-8">
+			<label for="chpassbtn">Change Password:</label>
+			<div class="btn-group btn-group-toggle" id="pass-btn-grp" data-toggle="buttons">
+				{% if not create %}
+					<label class="btn btn-secondary active">
+						<input type="radio" name="pwgen" onChange="clc();" value="nochange" id="option1"  autocomplete="off" checked> No Change
+					</label>
+				 {% endif %}
+			<label class="btn btn-secondary {% if create %} active {% endif %}">
+				<input type="radio" name="pwgen" onChange="clc();" value="auto" id="option3" autocomplete="off"> Auto-Generate
+			</label>
+			<label class="btn btn-secondary">
+				<input type="radio" name="pwgen" onChange="clc();" value="manual" id="option2" autocomplete="off"> Manual
+			</label>
+    </div>
+	</div>
+	<div id="pwCollapse" class="collapse form-row">
+		<div class="form-group col-lg-6">
+			{{ input('newpw1',"New Password",type="password") }}
+		</div>
+		<div class="form-group col-lg-6">
+			{{ input('newpw2',"Reenter Password",type="password") }}
+		</div>
+  </div>
+</div>  
+

@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+<h2>Tools</h2>
+{% block body %}
+{% if not edit  %}
+<div class="resourcelist">
+	<h2>Tools:  {{ tools|length }} available</h2>
+	<table border=1>
+        <tr>
+            <th>Tool Name</th>
+            <th>Front End</th>
+            <th>Tool Type</th>
+        </tr>
+	{% for tool in tools %}
+	  <tr>
+		<td><a href="{{ url_for('tools.toolcfg') }}/{{ tool.id }}">{{ tool.name }}</a></td>
+		<td>{{ tool.frontend }}</td>
+		<td><a href="{{ url_for('resources.resources',resource=tool.resource_id) }}">{{ tool.resname }}</a></td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+{% endif  %}
+{% if edit and  not add %}
+<div class="sectionhead">Edit Tool</div>
+{% else %}
+<div class="sectionhead">Add Tool</div>
+{% endif %}
+<xxxform action="{{ url_for('tools.toolcfg') }}" method="post" />
+<form  method="post">
+<table>
+    <tr>
+        <td>Tool Name (Short no spaces):</td>
+	<td><input type="text" name="name" value="{{ tool.name }}"/></td>
+    </tr>
+    <tr>
+        <td>NodeId (Derived from MAC address):</td>
+	<td><input type="text" name="frontend" value="{{ tool.frontend }}"/></td>
+    </tr>
+    <tr>
+        <td>Tool Type:</td>
+	<td>
+	<select name="tooltypeid">
+	{% for resource in resources %}
+	<option value="{{ resource.id }}">{{ resource.name }}</option>
+	{% endfor %}
+	</select>
+	</td>
+    </tr>
+</table>
+{% if not edit and  not add %}
+<input type="submit" value="Add" name="Add"/>
+{% endif %}
+{% if edit and  not add %}
+<input type="submit" value="Save" name="Save"/>
+{% endif %}
+</form>
+{% endblock %}

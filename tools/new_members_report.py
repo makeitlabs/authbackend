@@ -2,11 +2,24 @@ import sqlite3
 import json
 import time
 from slacker import Slacker
+import ConfigParser
+import argparse
+import string
 
-SlackChannel = '<Slack Channel>'
-SlackUser = '<Slack User>'
-SlackToken = '<Slack Token>'
-DBFILE = '/var/www/authbackend/makeit.db'
+parser = argparse.ArgumentParser(description='Weekly new members report script')
+parser.add_argument('--ini', help='location of .ini file')
+parser.add_argument('--days', type=int, default=7)
+parser.add_argument('--test', default=False, help='test output, do not send to slack')
+args = parser.parse_args()
+
+print args.days
+
+Config = ConfigParser.ConfigParser()
+Config.read(args.ini)
+
+SlackToken = Config.get('SlackReporter', 'BOT_API_TOKEN')
+SlackChannel = Config.get('SlackReporter', 'BOT_CHANNEL')
+SlackUser= Config.get('SlackReporter', 'BOT_NAME')
 
 def sendMsg(timestamp, text):
     if timestamp == 'now':
@@ -16,23 +29,25 @@ def sendMsg(timestamp, text):
     attachment_data = { 'text': text, 'mrkdwn_in':['text', 'pretext'] }
     attachments.append(attachment_data)
 
-    slack.chat.post_message(SlackChannel, '_' + timestamp + '_', username=SlackUser, attachments=json.dumps(attachments))
+    if args.test:
+        print json.dumps(attachments)
+    else:
+        slack.chat.post_message(SlackChannel, '_' + timestamp + '_', username=SlackUser, attachments=json.dumps(attachments))
 
 # init slack
 slack = Slacker(SlackToken)
 
-conn = sqlite3.connect(DBFILE)
+conn = sqlite3.connect('/var/www/authbackend-ng/makeit.db')
 
 c = conn.cursor()
 
-numdays = 7
 count = 0
 msg = ''
 
-for row in c.execute('''SELECT member,created_date from members where created_date between datetime('now',?) and datetime('now')''', ('-%d days' % numdays,)):
+for row in c.execute('''SELECT member,time_created from members where time_created between datetime('now',?) and datetime('now')''', ('-%d days' % args.days,)):
     msg = msg + row[0] + ' created on ' + row[1] + '\n'
     count = count + 1
 
-msg = ('\n%d total created in past %d days\n\n' % (count, numdays)) + msg
+msg = ('\n%d total created in past %d days\n\n' % (count, args.days)) + msg
 
 sendMsg('now', msg)

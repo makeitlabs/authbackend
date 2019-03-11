@@ -1,0 +1,58 @@
+{% extends "layout_bootstrap.html" %}
+{% block search %}
+  <form method="POST">
+  <div class=body>
+	<div class="sectionhead">Unassociated Subscriptions</div>
+    <a href="{{ url_for('logs.logs') }}">View All</a>
+    <p></p>
+	<h3>Subscription/Payment Records with no Members</h3>
+	<table class="table table-sm bkg">
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Membership ID</th>
+        <th>Active</th>
+      </tr>
+      {% for s in subscriptions %}
+	  <tr>
+		<td>{{ s.name }}</td>
+		<td>{{ s.email }}</td>
+		<td><a href="{{ url_for("payments.payment_membership",membership=s.membership) }}">{{ s.membership }}</a></td>
+		<td>{{ s.active }}</td>
+		{% if s.active == 'true' %}
+			<td><input type="radio" name="membership" value="{{ s.membership }}">Assign to Member</input></td>
+		{% endif %}
+	  </tr>
+      {% endfor %}
+<hr />
+	</table>
+	<h3>Members with no Subscription/Payment Records</h3>
+	<div>
+		<input type="text" name="memberfilter" label="Member" value=""><input type="submit" name="applymemberfilter" value="Search" />
+	</div>
+	<table class="table table-sm bkg">
+      <tr>
+        <th>Member ID</th>
+        <th>Stripe Name</th>
+        <th>Alternate Email</th>
+        <th>First</th>
+        <th>Last</th>
+      </tr>
+      {% for m in members %}
+	  <tr>
+		  <td><a href="{{ url_for('members.member_show',id=m.member) }}">{{ m.member }}</a></td>
+		<td>{{ m.stripe_name }}</td>
+		<td>{{ m.alt_email }}</td>
+		<td>{{ m.firstname }}</td>
+		<td>{{ m.lastname }}</td>
+		<td><input type="radio" name="member" value="{{ m.member }}">Assign to Subscription</input></td>
+	  </tr>
+      {% endfor %}
+	</table>
+	<div>
+	<p>To assign a subsription to a payment - select to appropriate radio boxes for each, then click "assign"</p>
+	<input type="submit" value="Assign" name="Assign" />
+	</div>
+  </div>
+  </form>
+{% endblock %}
