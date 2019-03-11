@@ -56,7 +56,11 @@
 		{% block head %} {% endblock %}
   </head>
 
-  <body>
+  <body
+		{% if DEPLOYTYPE %}
+    style="background-color:#ffffd0"
+    {% endif %}
+>
 
 
 <!-- NAVBAR -->
