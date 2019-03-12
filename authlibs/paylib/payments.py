@@ -11,6 +11,7 @@ from functools import wraps
 import json
 #from .. import requireauth as requireauth
 from .. import utilities as authutil
+from .. import google_admin 
 from ..utilities import _safestr as safestr
 from authlibs import eventtypes
 from authlibs import payments as pay
@@ -166,6 +167,7 @@ def payments_member(id):
             members m on m.member=p.member where p.member='%s'""" % pid
     #user = Subscription.query.filter(
     return render_template('payments_member.html',user=user)
+
 @blueprint.route('/reports', methods = ['GET'])
 @login_required
 @roles_required(['Admin','Finance'])
@@ -268,9 +270,49 @@ def relate_assign():
         flash ("Assigning subscription to existing member","success")
 
     elif 'new_stripe' in request.form:
-      flash ("Creating new member","success")
+      s = Subscription.query.filter(Subscription.membership == request.form['new_stripe']).one()
+      fn=""
+      ln=""
+      n=s.name.split(" ")
+      if len(n)==2:
+        fn=safestr(n[0]).title()
+        ln=safestr(n[1]).title()
+      elif len(n)==1:
+        flash("Single name given - Please check and correct","warning")
+        ln=safestr(n[0]).title()
+      else:
+        flash("Multi-part name given - Please check and correct","warning")
+        fn=safestr(n[0]).title()
+        ln=" ".join(n[1:])
+      newm={
+        'first':fn,
+        'last':ln,
+        'alt_email':s.email,
+        'member':fn+"."+ln,
+        'email':fn+"."+ln,
+        'plan':s.plan,
+        'rate_plan':s.rate_plan,
+        'membership':s.membership
+      }
+      return render_template('newmember.html',member=newm)
         
   return redirect(url_for('payments.relate'))
+
+@blueprint.route('/google_acct_avail/<string:name>', methods = ['GET'])
+@login_required
+@roles_required(['Admin','Finance'])
+def google_acct_avail(name):
+  try:
+    users = google_admin.searchEmail(name)
+  except BaseException as e:
+    logger.error("Google email search failed: "+str(e))
+    return json_dump({'status':'error'}), 200, {'Content-type': 'application/json'}
+    
+  status="in-use"
+  if len(users) == 0:
+    status="available"
+  #status must be "available" or "in-use"
+  return json_dump({'status':status}), 200, {'Content-type': 'application/json'}
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
