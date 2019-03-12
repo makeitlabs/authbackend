@@ -256,11 +256,15 @@ def relate_assign():
       return redirect(url_for('payments.relate'))
 
     if 'exist_stripe' in request.form:
-      mem = Member.query.filter(Member.member == request.form['member_radio']).one().id
-      memsub = Subscription.query.filter(Subscription.member_id == mem).all()
+      mem = Member.query.filter(Member.member == request.form['member_radio']).one()
+      memsub = Subscription.query.filter(Subscription.member_id == mem.id).all()
       if len(memsub) != 0:
         flash ("Member already has a membership","warning")
       else:
+        mem.membership=request.form['exist_stripe']
+        s = Subscription.query.filter(Subscription.membership == mem.membership).one()
+        s.member_id = mem.id
+        db.session.commit()
         flash ("Assigning subscription to existing member","success")
 
     elif 'new_stripe' in request.form:
