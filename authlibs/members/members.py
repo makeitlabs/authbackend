@@ -41,7 +41,7 @@ def members():
 
 @blueprint.route('/', methods= ['POST'])
 @login_required
-@roles_required(['Admin','Useredit'])
+@roles_required(['Admin','Finance','Useredit'])
 def member_add():
 		"""Controller method for POST requests to add a user"""
                         
@@ -69,7 +69,7 @@ def member_add():
 # memberedit
 @blueprint.route('/<string:id>/edit', methods = ['GET','POST'])
 @login_required
-@roles_required(['Admin','Useredit'])
+@roles_required(['Admin','Finance','Useredit'])
 def member_edit(id):
 		mid = authutil._safestr(id)
 		member = {}
@@ -384,7 +384,7 @@ def member_setaccess(id):
 
 @blueprint.route('/<string:id>/tags', methods = ['GET'])
 @login_required
-@roles_required(['Admin','Useredit'])
+@roles_required(['Admin','Finance','Useredit'])
 def member_tags(id):
 		"""Controller method to gather and display tags associated with a memberid"""
 		mid = safestr(id)

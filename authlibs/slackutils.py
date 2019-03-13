@@ -151,7 +151,7 @@ def get_unmatched_members():
 
 
 def create_routes(app):
-    @roles_required(['Admin','Useredit'])
+    @roles_required(['Admin','Finance','Useredit'])
     @app.route('/slack', methods=['GET','POST'])
     def slack_page():
         if "Undo" in request.form:

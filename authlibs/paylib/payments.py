@@ -249,6 +249,24 @@ def relate():
 @login_required
 @roles_required(['Admin','Finance'])
 def relate_assign():
+  if 'Create' in request.form:
+      newm={
+        'first':request.form['firstname'],
+        'last':request.form['lastname'],
+        'email':request.form['email'],
+        'plan':request.form['plan'],
+        'rate_plan':request.form['rate_plan'],
+        'membership':request.form['membership']
+      }
+      if 'no_email' in request.form: newm['no_email']=True
+      try:
+        users = google_admin.searchEmail(request.form['email'])
+      except BaseException as e:
+        flash("Error verifying gmail addr: "+str(e),"error")
+        logger.error("Error verifying gmail addr: "+str(e))
+        users=[]
+
+      return render_template('newmember.html',member=newm)
   if 'Assign' in request.form:
     if 'new_stripe' not in request.form and 'exist_stripe' not in request.form:
       flash ("Designate a subscription as \"New Member\" or \"Assign To\" an existing account","warning")
@@ -302,6 +320,7 @@ def relate_assign():
 @login_required
 @roles_required(['Admin','Finance'])
 def google_acct_avail(name):
+  users=[]
   try:
     users = google_admin.searchEmail(name)
   except BaseException as e:

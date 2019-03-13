@@ -34,7 +34,8 @@ def rfid_validate(ntag):
 	if ntag is None: return None
 	if len(ntag) != 10: return None
 	try:
-		result=int(ntag)
+		ttemp = int(ntag)
+		result=ntag
 	except:
 		return None
 	return result

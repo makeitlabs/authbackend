@@ -24,7 +24,7 @@
   <!-- ADD NEW MEMBER -->
   <div class="container">
   <h2> Add new member </h2>
-	<form action="{{ url_for('members.member_add') }}" method="post">
+	<form method="post">
 		<div class="form-group row">
 				<label class="col-sm-2 col-form-label" for="firstname_field">First name</label>
 				<div class="col-sm-4">
@@ -52,7 +52,7 @@
 				</div>
 				<label class="col-sm-2 col-form-label" for="phone">Phone</label>
 				<div class="col-sm-4">
-					<input class="form-control" name="phone"/>
+					<input class="form-control" name="phone" value="{{ member.phone }}"/>
 				</div>
 		</div>
 
@@ -70,8 +70,15 @@
 					</div>
 					<small class="form-text text-muted"><b>New</b> @makeitlabs.com email</small>
 				</div>
+				<div class="col-lg-4">
+<div class="custom-control custom-checkbox">
+  <input type="checkbox" class="custom-control-input" {% if member.no_email %} checked {% endif %} name="no_email" id="customCheck1">
+  <label class="custom-control-label" for="customCheck1">Do Not Create Email for User</label>
+					<small class="form-text text-muted">For Non-Member utility accounts</small>
+</div>
+				</div>
 		</div>
-	  <input type="submit" class="btn btn-primary" value="Create new member">
+	  <input type="submit" class="btn btn-primary" name="Create" value="Create new member">
 	</form>
 </div>
 
