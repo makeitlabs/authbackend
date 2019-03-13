@@ -1,0 +1,81 @@
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+<script type="text/javascript">var GOOGLE_ACCT_CHECK_URL="{{ url_for("payments.google_acct_avail",name="") }}";</script>
+<script type="text/javascript" src="{{ url_for("payments.static",filename="js/newmember.js") }}">
+</script>
+{% endblock %}
+{% block body %}
+<div class="body">
+   <script type="text/javascript">
+	function _nameStr(sname) {
+		var t = sname.replace(/\W+/g, "");
+		return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+	}
+	function setMemberId() {
+	  // Takes Firstname and Lastname to create memberid matching Google ID (hopefully)
+	  var fname = _nameStr(document.getElementById("fname_field").value);
+	  var lname = _nameStr(document.getElementById("lname_field").value);
+	  var mid = fname + "." + lname;
+	  document.getElementById("memberid_field").value = mid;
+	  console.log(mid);
+	}
+   </script>
+
+  <!-- ADD NEW MEMBER -->
+  <div class="container">
+  <h2> Add new member </h2>
+	<form action="{{ url_for('members.member_add') }}" method="post">
+		<div class="form-group row">
+				<label class="col-sm-2 col-form-label" for="firstname_field">First name</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="firstname" id="firstname_field" type="text" value="{{ member.first }}">
+				</div>
+				<label class="col-sm-2 col-form-label" for="lastname_field">Last name</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="lastname" id="lastname_field" type="text" value="{{ member.last }}">
+				</div>
+		</div>
+		<div class="form-group row">
+				<label class="col-sm-2 col-form-label" for="plan_field">Plan</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="plan" id="plan_field" readonly="true" type="text" value="{{ member.plan }}">
+				</div>
+				<label class="col-sm-2 col-form-label" for="rate_plan_field">Rate Plan</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="rate_plan" id="rate_plan_field" readonly="true" type="text" value="{{ member.rate_plan }}">
+				</div>
+		</div>
+		<div class="form-group row">
+				<label class="col-sm-2 col-form-label" for="membership_field">Pay via</label>
+				<div class="col-sm-4">
+					<input readonly="true" class="form-control" name="membership" id="membership_field" type="text" value="{{ member.membership }}">
+				</div>
+				<label class="col-sm-2 col-form-label" for="phone">Phone</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="phone"/>
+				</div>
+		</div>
+
+		<div class="form-group row">
+				<label class="col-sm-2 col-form-label" for="email">Email</label>
+				<div class="col-sm-6">
+					<div class="input-group">
+						<input id="member_email" class="form-control" name="email" value="{{ member.email }}"/>
+						<div class="input-group-append">
+							<span class="input-group-text" id="inputGroupPrepend">@makeitlabs.com</span>
+						</div>
+						<span id="recheck_status" style="color:black" class="mx-3 glyphicon glyphicon-time">Checking</span>
+						{# ok remove time #}
+						<a onclick="recheck();" class="btn btn-outline-info">Recheck</a>
+					</div>
+					<small class="form-text text-muted"><b>New</b> @makeitlabs.com email</small>
+				</div>
+		</div>
+	  <input type="submit" class="btn btn-primary" value="Create new member">
+	</form>
+</div>
+
+
+
+</div> <!-- Base -->
+{% endblock %}

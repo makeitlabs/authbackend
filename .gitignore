@@ -10,3 +10,4 @@ mqtt_messages.js
 newexampleschema
 *.swp
 run_auth.py
+*.sq3
