@@ -78,10 +78,14 @@ if __name__ == "__main__":
             print "MULTIPLE MATCHES for ",u,usr['email']
             multiple+=1
           if len(m)==1:
+            if u != m[0].slack:
+              print "CHANGE",m[0].slack,"NOW",usr['name'],usr['slack_id'],u
+            m[0].slack = usr['slack_id']
             match+=1
           else:
             print "NO MATCH for ",u,usr['email']
             nomatch+=1
+        db.session.commit()
       print "Multiple",multiple,"Match",match,"No-Match",nomatch,"Total",(match+nomatch+multiple)
 
       

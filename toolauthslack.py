@@ -121,7 +121,7 @@ def cancel_callbacks(ctx):
 def authorize_confirm(sc,user,ctx):
   req = requests.Session()
   url = url_base+"/api/v1/authorize"
-  data={'slack_id': user['user']['profile']['display_name']}
+  data={'slack_id': user['id']}
   data['resources']=[r['id'] for r in ctx['authorize_resources']]
   data['members']=[m['id'] for m in ctx['authorize_users']]
   data['level']=0
@@ -251,7 +251,7 @@ def api_cmd(sc,user,ctx,*s):
   return result
 
 def tools_cmd(sc,user,ctx,*s):
-  myid = safestr(user['user']['profile']['display_name'])
+  myid = safestr(user['id'])
   req = requests.Session()
   url = url_base+"/api/v1/slack/tools/"+str(myid)
   r = req.get(url, auth=(api_username,api_password))
@@ -261,7 +261,7 @@ def tools_cmd(sc,user,ctx,*s):
     return r.text
 
 def use_tool(sc,user,ctx,*s):
-  myid = safestr(user['user']['profile']['display_name'])
+  myid = safestr(user['id'])
   if (len(s)<2):
     print "Which tool or resource?"
   tool = s[1]
@@ -274,7 +274,7 @@ def use_tool(sc,user,ctx,*s):
     return r.text
 
 def whoami(sc,user,ctx,*s):
-  myid = safestr(user['user']['profile']['display_name'])
+  myid = safestr(user['id'])
   req = requests.Session()
   url = url_base+"/api/v1/slack/whoami/"+str(myid)
   r = req.get(url, auth=(api_username,api_password))
@@ -284,7 +284,7 @@ def whoami(sc,user,ctx,*s):
     return r.text
 
 def admin_commands(sc,user,ctx,*s):
-  myid = safestr(user['user']['profile']['display_name'])
+  myid = safestr(user['id'])
   req = requests.Session()
   url = url_base+"/api/v1/slack/admin/"+str(myid)
   data= {'command':s[1:]}
@@ -564,6 +564,7 @@ while keepgoing:
 				if 'type' in msg and (msg['type'] == "message"):
 					try:
 						text="???"
+            print msg
 						#print "Message from ",msg['user'],msg['text'],msg['channel']
 						chan = msg['channel']
 						if chan not in contexts:
