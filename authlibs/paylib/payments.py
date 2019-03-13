@@ -259,14 +259,39 @@ def relate_assign():
         'membership':request.form['membership']
       }
       if 'no_email' in request.form: newm['no_email']=True
+      # Last checks
+      error=False
+      if newm['first'] == "": 
+        flash("Must specify first name","warning") 
+        error=True
+      if newm['last'] == "": 
+        flash("Must specify last name","warning") 
+        error=True
+      if newm['email'] == "": 
+        flash("Must assign a new/unque Member ID/Email","warning") 
+        error=True
+      if Member.query.filter(Member.member.ilike(newm['email'])).count() != 0:
+        flash("Member ID/Email already in-use","warning") 
+        error=True
+      if error:
+        return render_template('newmember.html',member=newm)
+
       try:
         users = google_admin.searchEmail(request.form['email'])
+        if len(users) > 0:
+          flash("Email address already exists in Google","warning")
+          error=True
       except BaseException as e:
         flash("Error verifying gmail addr: "+str(e),"error")
         logger.error("Error verifying gmail addr: "+str(e))
-        users=[]
+        error=True
 
+      if error:
+        return render_template('newmember.html',member=newm)
+
+      flash("Created (Not really)","success") 
       return render_template('newmember.html',member=newm)
+
   if 'Assign' in request.form:
     if 'new_stripe' not in request.form and 'exist_stripe' not in request.form:
       flash ("Designate a subscription as \"New Member\" or \"Assign To\" an existing account","warning")
@@ -305,9 +330,8 @@ def relate_assign():
       newm={
         'first':fn,
         'last':ln,
-        'alt_email':s.email,
         'member':fn+"."+ln,
-        'email':fn+"."+ln,
+        'email':s.email,
         'plan':s.plan,
         'rate_plan':s.rate_plan,
         'membership':s.membership
@@ -320,18 +344,21 @@ def relate_assign():
 @login_required
 @roles_required(['Admin','Finance'])
 def google_acct_avail(name):
+  m = Member.query.filter(Member.member.ilike(name)).all()
+  if len(m) > 0:
+    return json_dump({'status':'error','message':'Member Exists'}), 200, {'Content-type': 'application/json'}
+
   users=[]
   try:
     users = google_admin.searchEmail(name)
   except BaseException as e:
     logger.error("Google email search failed: "+str(e))
-    return json_dump({'status':'error'}), 200, {'Content-type': 'application/json'}
+    return json_dump({'status':'error','message':'Error checking Google'}), 200, {'Content-type': 'application/json'}
     
-  status="in-use"
-  if len(users) == 0:
-    status="available"
+  if len(users) > 0:
+    return json_dump({'status':"error","message":"Exists in Google"}), 200, {'Content-type': 'application/json'}
   #status must be "available" or "in-use"
-  return json_dump({'status':status}), 200, {'Content-type': 'application/json'}
+  return json_dump({'status':"ok","message":"available"}), 200, {'Content-type': 'application/json'}
 
 def register_pages(app):
 	app.register_blueprint(blueprint)

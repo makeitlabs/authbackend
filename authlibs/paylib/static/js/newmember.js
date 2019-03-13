@@ -38,21 +38,12 @@ function recheck() {
 					rc[0].setAttribute("style","color:red");
 					rc[0].innerHTML="Error";
 				} 
-				else if (indata.status == "available") {
+				else if (indata.status == "ok") {
 					rc.addClass("glyphicon-ok");
 					rc[0].setAttribute("style","color:green");
 					rc[0].innerHTML="Available";
 				}
-				else if (indata.status == "in-use") {
-					rc.addClass("glyphicon-remove");
-					rc[0].setAttribute("style","color:red");
-					rc[0].innerHTML="In-Use";
-				}
-				else {
-					rc.addClass("glyphicon-remove");
-					rc[0].setAttribute("style","color:black");
-					rc[0].innerHTML="Unknown";
-				}
+				rc[0].innerHTML=indata.message;
 		 })
 			.fail(function(sender, message, details){
 				var rc = $("#recheck_status");

@@ -57,18 +57,20 @@
 		</div>
 
 		<div class="form-group row">
-				<label class="col-sm-2 col-form-label" for="email">Email</label>
-				<div class="col-sm-6">
+				<label class="col-sm-2 col-form-label" for="email">Email & Member ID</label>
+				<div class="col-sm-4">
 					<div class="input-group">
 						<input id="member_email" class="form-control" name="email" value="{{ member.email }}"/>
 						<div class="input-group-append">
 							<span class="input-group-text" id="inputGroupPrepend">@makeitlabs.com</span>
 						</div>
-						<span id="recheck_status" style="color:black" class="mx-3 glyphicon glyphicon-time">Checking</span>
 						{# ok remove time #}
 						<a onclick="recheck();" class="btn btn-outline-info">Recheck</a>
 					</div>
 					<small class="form-text text-muted"><b>New</b> @makeitlabs.com email</small>
+				</div>
+				<div class="col-lg-2">
+						<span id="recheck_status" style="color:black" class="mx-3 glyphicon glyphicon-time">Checking</span>
 				</div>
 				<div class="col-lg-4">
 <div class="custom-control custom-checkbox">
