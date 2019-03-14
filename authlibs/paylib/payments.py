@@ -15,6 +15,7 @@ from .. import google_admin
 from ..utilities import _safestr as safestr
 from authlibs import eventtypes
 from authlibs import payments as pay
+from datetime import datetime
 from .. import membership
 
 from authlibs.templateCommon import *
@@ -289,8 +290,35 @@ def relate_assign():
       if error:
         return render_template('newmember.html',member=newm)
 
-      flash("Created (Not really)","success") 
-      return render_template('newmember.html',member=newm)
+      ## Everything is good - CREATE new member!
+      member = Member(member=newm['email'],email=newm['email']+'@makeitlabs.com',
+          alt_email="billy@example.com",firstname=newm['first'],lastname=newm['last'],
+          access_enabled=0,active=1,membership=newm['membership'],
+          email_confirmed_at=datetime.utcnow())
+      db.session.add(member)
+      db.session.flush()
+      s = Subscription.query.filter(Subscription.membership == newm['membership']).one()
+      s.member_id = member.id
+      ts = time.time()
+      password = "%s-%d" % (newm['last'],ts - (len(newm['email']) * 314))
+      print "Create with password %s and email to %s" % (password,newm['email'])
+      try:
+        user = google_admin.createUser(newm['first'],newm['last'],newm['email'],newm['alt_email'],password,True) #TODO FIX
+        google_admin.sendWelcomeEmail(user,password,newm['alt_email'])
+        flash("UNCOMMENT CREATE USER CODE!!!","warning")
+      except BaseException as e:
+        logger.error("Error create Google act: "+str(e))
+        flash("Error create Google act: "+str(e),"warning")
+        error=True
+
+      if error:
+        db.session.rollback()
+        return render_template('newmember.html',member=newm)
+      else:
+        db.session.commit()
+        flash("Created","success") 
+      # TODO Create Google
+        return redirect(url_for('members.member_show',id=newm['email']))
 
   if 'Assign' in request.form:
     if 'new_stripe' not in request.form and 'exist_stripe' not in request.form:
@@ -331,10 +359,11 @@ def relate_assign():
         'first':fn,
         'last':ln,
         'member':fn+"."+ln,
-        'email':s.email,
+        'email':fn+"."+ln,
         'plan':s.plan,
         'rate_plan':s.rate_plan,
-        'membership':s.membership
+        'membership':s.membership,
+        'alt_email':s.email
       }
       return render_template('newmember.html',member=newm)
         
@@ -348,7 +377,6 @@ def google_acct_avail(name):
   if len(m) > 0:
     return json_dump({'status':'error','message':'Member Exists'}), 200, {'Content-type': 'application/json'}
 
-  users=[]
   try:
     users = google_admin.searchEmail(name)
   except BaseException as e:

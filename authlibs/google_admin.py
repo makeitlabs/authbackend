@@ -36,6 +36,7 @@ TEST_EMAIL = 'bill.schongar@makeitlabs.com'
 DOMAIN = "makeitlabs.com"
 
 def searchEmail(emailstr):
+    #return ([])
     """Search for a specific email address in the DOMAIN domain"""
     service = _buildAdminService()
     query_str = "email:%s orgUnitPath=/" % emailstr
