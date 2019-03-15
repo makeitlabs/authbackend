@@ -241,7 +241,7 @@ def resource_showusers(resource):
 		authusers = authusers.order_by(AccessByMember.level.desc())
 		authusers = authusers.all()
 		accrec=[]
-		now = datetime.datetime.now()
+		now = datetime.datetime.utcnow()
 		for x in authusers:
 			level = accessLevelToString(x[3],blanks=[0,-1])
 			lu1=""
