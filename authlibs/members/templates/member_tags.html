@@ -31,7 +31,7 @@
     <tr class="table-row collapse" id="row_collapse_{{ tag.id }}">
 	    <td  colspan=4>
 	Hash: 	{{ tag.longhash }}
-		{% if current_user.privs('Admin') %}
+		{% if current_user.privs('Admin','Finance') %}
 		Raw Fob ID: {{ tag.tag_ident }}
 		{% endif %}
 		</td>
@@ -47,7 +47,7 @@
   <div class="sectionhead"><h4>Add tag</h4></div>
   <form id="form_add" class="form-inline" action="{{ url_for('members.member_tagadd',id=mid) }}" method="post">
 	<label class="my-1 mr-1" for="newtagname">Tag Name</label>	
-	 <input  class="form-control mb-2 mr-sm-2" id="newtagname" name="newtagname" type="Text" value="" /></td>
+	 <input  class="form-control mb-2 mr-sm-2" id="newtagname" name="newtagname" type="Text" value="keyfob" /></td>
 
 	<label class="my-1 mr-1" for="newtagtype">Tag Type</label>	
 	 <select class="custom-select my-1 my-sm-1" id="newtagtype" name="newtagtype"><option value="rfid">RFID</option><option value="nfc">NFC</option></select>
