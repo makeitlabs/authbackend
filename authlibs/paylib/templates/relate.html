@@ -18,8 +18,8 @@
 				<td>{{ s.created_date }}</td>
 				<td><a class="btn btn-secondary" href="{{ url_for("payments.payment_membership",membership=s.membership) }}">Detail</a></td>
 				<td>{{ s.rate_plan }}</td>
-				<td><input type="radio" name="exist_stripe" value="{{ s.membership }}">&nbsp;Assign to...</input></td>
-				<td><input type="radio" name="new_stripe" value="{{ s.membership }}">&nbsp;Create New Membership</input></td>
+				<td><input type="radio" name="do_sub" value="assign:{{ s.membership }}">&nbsp;Assign to...</input></td>
+				<td><input type="radio" name="do_sub" value="create:{{ s.membership }}">&nbsp;Create New Membership</input></td>
 				</tr>
 					{% endfor %}
 			</table>

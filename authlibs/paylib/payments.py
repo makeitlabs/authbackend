@@ -257,6 +257,7 @@ def relate_assign():
         'email':request.form['email'],
         'plan':request.form['plan'],
         'rate_plan':request.form['rate_plan'],
+        'alt_email':request.form['alt_email'],
         'membership':request.form['membership']
       }
       if 'no_email' in request.form: newm['no_email']=True
@@ -301,15 +302,16 @@ def relate_assign():
       s.member_id = member.id
       ts = time.time()
       password = "%s-%d" % (newm['last'],ts - (len(newm['email']) * 314))
-      print "Create with password %s and email to %s" % (password,newm['email'])
-      try:
-        user = google_admin.createUser(newm['first'],newm['last'],newm['email'],newm['alt_email'],password,True) #TODO FIX
-        google_admin.sendWelcomeEmail(user,password,newm['alt_email'])
-        flash("UNCOMMENT CREATE USER CODE!!!","warning")
-      except BaseException as e:
-        logger.error("Error create Google act: "+str(e))
-        flash("Error create Google act: "+str(e),"warning")
-        error=True
+      if current_app.config['globalConfig'].DeployType.lower() != "production":
+          flash("Skipping Google Create - Non Production","warning")
+      else:
+        try:
+          user = google_admin.createUser(newm['first'],newm['last'],newm['email'],newm['alt_email'],password)
+          google_admin.sendWelcomeEmail(user,password,newm['alt_email'])
+        except BaseException as e:
+          logger.error("Error create Google act: "+str(e))
+          flash("Error create Google act: "+str(e),"warning")
+          error=True
 
       if error:
         db.session.rollback()
@@ -321,27 +323,27 @@ def relate_assign():
         return redirect(url_for('members.member_show',id=newm['email']))
 
   if 'Assign' in request.form:
-    if 'new_stripe' not in request.form and 'exist_stripe' not in request.form:
+    if 'do_sub' not in request.form:
       flash ("Designate a subscription as \"New Member\" or \"Assign To\" an existing account","warning")
       return redirect(url_for('payments.relate'))
-    if 'exist_stripe' in request.form and 'member_radio' not in request.form:
+    (action,membership) = request.form['do_sub'].split(":",1)
+    if action == "assign"  and 'member_radio' not in request.form:
       flash ("You must (search for and select) a Member to Assign a subscription to","warning")
       return redirect(url_for('payments.relate'))
 
-    if 'exist_stripe' in request.form:
+    if action == "assign":
       mem = Member.query.filter(Member.member == request.form['member_radio']).one()
       memsub = Subscription.query.filter(Subscription.member_id == mem.id).all()
       if len(memsub) != 0:
         flash ("Member already has a membership","warning")
       else:
-        mem.membership=request.form['exist_stripe']
+        mem.membership=membership
         s = Subscription.query.filter(Subscription.membership == mem.membership).one()
         s.member_id = mem.id
         db.session.commit()
         flash ("Assigning subscription to existing member","success")
-
-    elif 'new_stripe' in request.form:
-      s = Subscription.query.filter(Subscription.membership == request.form['new_stripe']).one()
+    elif action == "create":
+      s = Subscription.query.filter(Subscription.membership == membership).one()
       fn=""
       ln=""
       n=s.name.split(" ")
@@ -366,6 +368,8 @@ def relate_assign():
         'alt_email':s.email
       }
       return render_template('newmember.html',member=newm)
+    else:
+      flash("No action specified","warning")
         
   return redirect(url_for('payments.relate'))
 
