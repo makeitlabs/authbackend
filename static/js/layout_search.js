@@ -32,10 +32,12 @@ function layout_search_keypress(){
 				//el.onclick="window.location="+data[x]['url'];
 				el.setAttribute("data-target",data[x]['url'])
 				el.setAttribute("href",data[x]['url'])
+				console.log(data[x]['title'],data[x]['url']);
 				el.className="dropdown-item content layout_search_item nav-item nav-link";
-				el.innerHTML = data[x]['title']+"<br /><small>"+data[x]['in']+"</small>";
+				el.innerHTML = data[x]['title']+"<br /><small href=\""+data[x]['url']+"\">"+data[x]['in']+"</small>";
 				lst.appendChild(el);
 			}
+			console.log("---");
 $( ".layout_search_item" ).on('click',function(event) {
   window.location=event.target.getAttribute('href');
 });
