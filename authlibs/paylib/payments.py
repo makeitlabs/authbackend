@@ -258,7 +258,8 @@ def relate_assign():
         'plan':request.form['plan'],
         'rate_plan':request.form['rate_plan'],
         'alt_email':request.form['alt_email'],
-        'membership':request.form['membership']
+        'membership':request.form['membership'],
+        'no_email':False
       }
       if 'no_email' in request.form: newm['no_email']=True
       # Last checks
@@ -278,20 +279,26 @@ def relate_assign():
       if error:
         return render_template('newmember.html',member=newm)
 
-      try:
-        users = google_admin.searchEmail(request.form['email'])
-        if len(users) > 0:
-          flash("Email address already exists in Google","warning")
-          error=True
-      except BaseException as e:
-        flash("Error verifying gmail addr: "+str(e),"error")
-        logger.error("Error verifying gmail addr: "+str(e))
-        error=True
+      if not newm['no_email']:
+        if current_app.config['globalConfig'].DeployType.lower() == "production":
+          try:
+            users = google_admin.searchEmail(request.form['email'])
+            if len(users) > 0:
+              flash("Email address already exists in Google","warning")
+              error=True
+          except BaseException as e:
+            flash("Error verifying gmail addr: "+str(e),"error")
+            logger.error("Error verifying gmail addr: "+str(e))
+            error=True
 
       if error:
         return render_template('newmember.html',member=newm)
 
       ## Everything is good - CREATE new member!
+      if newm['no_email']:
+        email=None
+      else:
+        email=newm['email']+'@makeitlabs.com'
       member = Member(member=newm['email'],email=newm['email']+'@makeitlabs.com',
           alt_email="billy@example.com",firstname=newm['first'],lastname=newm['last'],
           access_enabled=0,active=1,membership=newm['membership'],
@@ -300,18 +307,19 @@ def relate_assign():
       db.session.flush()
       s = Subscription.query.filter(Subscription.membership == newm['membership']).one()
       s.member_id = member.id
-      ts = time.time()
-      password = "%s-%d" % (newm['last'],ts - (len(newm['email']) * 314))
-      if current_app.config['globalConfig'].DeployType.lower() != "production":
-          flash("Skipping Google Create - Non Production","warning")
-      else:
-        try:
-          user = google_admin.createUser(newm['first'],newm['last'],newm['email'],newm['alt_email'],password)
-          google_admin.sendWelcomeEmail(user,password,newm['alt_email'])
-        except BaseException as e:
-          logger.error("Error create Google act: "+str(e))
-          flash("Error create Google act: "+str(e),"warning")
-          error=True
+      if not newm['no_email']:
+        ts = time.time()
+        password = "%s-%d" % (newm['last'],ts - (len(newm['email']) * 314))
+        if current_app.config['globalConfig'].DeployType.lower() != "production":
+            flash("Skipping Google Create - Non Production","warning")
+        else:
+          try:
+            user = google_admin.createUser(newm['first'],newm['last'],newm['email'],newm['alt_email'],password)
+            google_admin.sendWelcomeEmail(user,password,newm['alt_email'])
+          except BaseException as e:
+            logger.error("Error create Google act: "+str(e))
+            flash("Error create Google act: "+str(e),"warning")
+            error=True
 
       if error:
         db.session.rollback()
