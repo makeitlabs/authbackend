@@ -65,8 +65,8 @@ def getSubscriptionsJSON():
     #pickle.dump(subs,open("slack_prod_data.pickle","w"))
     #subs = pickle.load(open("slack_prod_data.pickle"))
     #print(subs)
-    #import json
-    #json.dump(subs,open("/tmp/stripe.json","w"),indent=2)
+    import json
+    json.dump(subs,open("/tmp/stripe_output.json","w"),indent=2)
     subscribers = list()
     noemail = list()
     notactive = list()

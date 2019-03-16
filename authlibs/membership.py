@@ -202,7 +202,7 @@ def createMissingMemberAccounts(members,isTest=True,searchGoogle=False):
     for m in members:
         # Handle duplicate names through numeric additions
         logger.warn("Check Google member account for %s (%s)" % (m.member,m.alt_email))
-        if searchGoogle and googleEmailExists(m):
+        if searchGoogle and not isTest and googleEmailExists(m):
           msg = "Manual intervention required: %s (%s) needs an account created. Memberid %s is not used, but has an account." % (m.stripe_name, m.alt_email, m.id)
           logger.error(msg)
           continue
