@@ -173,6 +173,10 @@ def logs():
                     if ('format' in request.values):
                                     format=request.values['format']
 
+                    # TODO - eventually allow a way to show active/inactive messages
+                    if ('activity' not in request.values):
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_ACTIVE.id)
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_INACTIVE.id)
 
                     # Limits and offsets ONLY after all filters have been applied
 
