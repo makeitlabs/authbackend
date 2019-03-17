@@ -55,7 +55,7 @@ def delta(daysago,tm,short=False):
 		agostr = "{0} Hours".format(roundunit(daysago.seconds / 3600.0))
 		if tm: ctxstr = tm.strftime("%I:%M %p")
 	elif (daysago.days < 7):
-		agostr = "{0} Days".format(roundunit(daysago.days))
+		agostr = "{0} Days".format(roundunit(daysago.total_seconds()/(3600*24)))
 		if tm: ctxstr = tm.strftime("%a %I:%M %p")
 	elif (daysago.days < 21):
 		agostr = "{0} Days".format(roundunit(daysago.days))
