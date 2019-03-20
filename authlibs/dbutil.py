@@ -130,7 +130,7 @@ def _addSubscriptionData(subs,paytype):
                 if s.active.lower() != "true"  and sub['active'].lower() == "true":
                     pass
                     print "REPLACING w/ INACTIVE record for ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires']
-                if s.active.lower() == "true"  and sub['active'].lower() != "true":
+                elif s.active.lower() == "true"  and sub['active'].lower() != "true":
                     # skip if old was active, but new is inactive
                     print "SKIPPING INACTIVE record for ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires']
                     continue 
