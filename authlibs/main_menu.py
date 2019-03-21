@@ -68,7 +68,6 @@ def get_raw_menu():
             {
                     'privs':'Finance',
                     'url':url_for('reports.blacklist'),
-                    'img':url_for("static",filename="data.png"),
                     'alt':"Ignored payments",
                     'title':"Blacklists"
             },
