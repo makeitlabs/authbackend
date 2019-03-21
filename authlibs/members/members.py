@@ -203,7 +203,8 @@ def member_show(id):
 			 if subscription.active:
 				 meta['is_inactive'] = True
 
-		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta,page="view")
+		 tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
+		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta,page="view",tags=tags)
 	 else:
 		flash("Member not found",'warning')
 		return redirect(url_for("members.members"))
