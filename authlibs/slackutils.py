@@ -138,15 +138,15 @@ def get_unmatched_slack_ids():
         if 'found' in users[x]: 
             found+=1
         else:
-            missing.append({'name':x,'email':users[x]['email']})
-    logger.info( "SLACK DB: TOTAL"+str(len(users))+" FOUND IN MEMBERS: "+str(found)+" "+str(ORPHANS)+" "+str(len(missing)))
+            missing.append({'name':x,'email':users[x]['email'],'slack_id':users[x]['slack_id']})
+    #logger.info( "SLACK DB: TOTAL "+str(len(users))+" FOUND IN MEMBERS: "+str(found)+"  "+str(len(missing)))
     #for x in missing:
     #    print "MSNG",x,users[x]['email']
     return missing
 
 def get_unmatched_members():
     members =   Member.query.filter((Member.slack == "") | (Member.slack == None)).all()
-    logger.debug( "Members without slack records: %s " % len(members))
+    #logger.debug( "Members without slack records: %s " % len(members))
     return members
 
 
@@ -182,6 +182,7 @@ def create_routes(app):
           flash("Could not reach slack. Communication or configuration error","warning")
           slacks=[]
           members={}
+        print "RENDERING"
         return render_template('slack.html',slacks=slacks,members=members)
 
 def cli_slack(cmd,**kwargs):

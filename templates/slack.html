@@ -1,6 +1,53 @@
 {% extends "layout_bootstrap.html" %}
+{% block head %}
+<script type="text/javascript">
+function dosearchkey() {
+	var searchstr = document.getElementById("search_string").value.toLowerCase();
+	for (let x of $("tr.slack_record")) {
+		var found=false;
+		if (searchstr == "")
+			found=true;
+		else {
+			mbs= x.getElementsByTagName("td");
+			//console.log(mbs[1].innerHTML,mbs[2].innerHTML);
+			if (mbs[1].innerHTML.toLowerCase().includes(searchstr)) found=true;
+			if (mbs[2].innerHTML.toLowerCase().includes(searchstr)) found=true;
+		}
+		if (found) 
+			x.style.visibility="visible";
+		else
+			x.style.visibility="collapse";
+		
+	}
+	for (let x of $("tr.member_record")) {
+		var found=false;
+		if (searchstr == "")
+			found=true;
+		else {
+			mbs= x.getElementsByTagName("td");
+			//console.log(mbs[1].innerHTML,mbs[2].innerHTML);
+			if (mbs[1].innerHTML.toLowerCase().includes(searchstr)) found=true;
+			if (mbs[2].innerHTML.toLowerCase().includes(searchstr)) found=true;
+		}
+		if (found) 
+			x.style.visibility="visible";
+		else
+			x.style.visibility="collapse";
+		
+	}
+}
+</script>
+{% endblock %}
 {% block search %}
   <div class=body>
+  <div class="form-group">
+    <label for="exampleFormControlInput1">Search:</label>
+    <input type="text" 
+			onkeypress="dosearchkey();" 
+			onclick="dosearchkey();" 
+			onvaluechanged="dosearchkey();" 
+			class="form-control" id="search_string" placeholder="">
+  </div>
 	<div class="sectionhead">Disconnected Slack Accounts</div>
    <form method="POST">
 	   <input type="submit" name="Link" value="Link" />
@@ -8,35 +55,47 @@
     <div>
     <span style="display:inline-block;vertical-align:top">
 	<table class="bkg">
+		<thead>
       <tr>
         <th>Slack ID</th>
+        <th>Name</th>
         <th>Email</th>
       </tr>
+		</thead>
+		<tbody id="slack_entries">
       {% for s in slacks %}
-	  <tr>
-		<td>{{ s.name }}</td>
-		<td>{{ s.email }}</td>
-		<td><input type="radio" name="slack" value="{{ s.name }}" /></td>
-	  </tr>
+				<tr class="slack_record">
+					{# DO NOT REFORMAT without changing javascipt above! #}
+					<td>{{ s.slack_id }}</td>
+					<td>{{ s.name }}</td>
+					<td>{{ s.email }}</td>
+					<td><input type="radio" name="slack" value="{{ s.slack_id }}" /></td>
+				</tr>
       {% endfor %}
+		</tbody>
 	</table>
     </span>
 
 
     <span style="display:inline-block;vertical-align:top;border-left-color:black;border-left-width:3px;border-left-style:solid">
 	<table class="bkg">
+		<thead>
       <tr>
 	      <th></th>
         <th>Member</th>
         <th>Alt Email</th>
       </tr>
+		</thead>
+		<tbody id="member_entries">
       {% for m in members %}
-	  <tr>
-		  <td><input type="radio" name="member" value="{{ m.member }}" /></td>
-		<td>{{ m.member }}</td>
-		<td>{{ m.alt_email }}</td>
-	  </tr>
+				<tr class="member_record">
+					{# DO NOT REFORMAT without changing javascipt above! #}
+					<td><input type="radio" name="member" value="{{ m.member }}" /></td>
+					<td>{{ m.member }}</td>
+					<td>{{ m.alt_email }}</td>
+				</tr>
       {% endfor %}
+		</tbody>
 	</table>
     </span>
     </div>
