@@ -25,7 +25,8 @@ def graph_by_day(id,days):
 	tools = Tool.query.filter(Tool.resource_id==id).all()
 	r = Resource.query.filter(Resource.id==id).one()
 
-	if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	#if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	if not current_user.privs('HeadRM','RATT') and not accesslib.user_is_authorizor(member=current_user,level=2):
 		return "NOAccess",403
 
 	now = datetime.datetime.now()
@@ -84,7 +85,8 @@ def unused(id):
 	tools = Tool.query.filter(Tool.resource_id==id).all()
 	r = Resource.query.filter(Resource.id==id).one()
 
-	if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	#if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	if not current_user.privs('HeadRM','RATT') and not accesslib.user_is_authorizor(member=current_user,level=2):
 		return "NOAccess",403
 
 	now = datetime.datetime.now()
@@ -132,7 +134,8 @@ def weekUsers(id):
 	tools = Tool.query.filter(Tool.resource_id==id).all()
 	r = Resource.query.filter(Resource.id==id).one()
 
-	if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	#if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	if not current_user.privs('HeadRM','RATT') and not accesslib.user_is_authorizor(member=current_user,level=2):
 		return "NOAccess",403
 
 	now = datetime.datetime.now()
@@ -192,7 +195,8 @@ def weekUsers(id):
 def weekCalendar(id):
 	dow=['Mon','Tues','Wed','Thurs','Fri','Sat','Sun']
 	r = Resource.query.filter(Resource.id==id).one()
-	if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	#if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	if not current_user.privs('HeadRM','RATT') and not accesslib.user_is_authorizor(member=current_user,level=2):
 		return "NOAccess",403
 
 	days=7

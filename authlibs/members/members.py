@@ -550,7 +550,7 @@ def bkgtest():
         result[n]=getResourcePrivs(resourcename=n)
     return json_dump(result,indent=2), 200, {'Content-type': 'application/json'}
 
-@blueprint.route('/admin', methods=['GET'])
+@blueprint.route('/admin_roles', methods=['GET'])
 @login_required
 @roles_required('Admin')
 def admin_page():

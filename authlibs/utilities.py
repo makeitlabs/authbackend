@@ -127,7 +127,7 @@ def getResourcePrivs(resource=None,resourceid=None,member=None,resourcename=None
 
     if (member and member.privs('HeadRM')):
         level=AccessByMember.LEVEL_ADMIN
-    if member and member.active.lower() != "true": 
+    if member and (not member.active or member.active.lower() != "true"): 
         level=0
     else:
         try:

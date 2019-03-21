@@ -73,10 +73,6 @@ def get_raw_menu():
                     'title':"Blacklists"
             },
             {
-                    'url':url_for('reports.reports'),
-                    'title':"Reports"
-            },
-            {
                     'privs':'Admin',
                     'url':url_for('members.admin_page'),
                     'title':"Admin Roles",
