@@ -289,8 +289,7 @@ def logs():
                      logs = generate(fmt=format)
                 elif format == "csv":
                     resp=Response(generate(fmt=format),mimetype='text/csv')
-                    resp.headers['Content-Disposition']='attachment'
-                    resp.headers['filename']='log.csv'
+                    resp.headers['Content-Disposition']='attachment; filename=log.csv'
                     return resp
                 else:
                     flash ("Invalid format requested","danger")

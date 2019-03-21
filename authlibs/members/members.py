@@ -467,6 +467,40 @@ def member_tagdelete(tag_ident):
                 flash("Tag deleted","success")
                 return redirect(url_for("members.member_tagadd",id=mid))
 
+def generate_member_report(members):
+	fields=[ 'member', "email", "alt_email", "firstname", "lastname", "phone",
+					"plan", "access_enabled", "access_reason", "active", "rate_plan", "active"]
+	s=""
+	for f in fields:
+		s += "\""+str(f)+"\","
+	yield s+"\n"
+
+	for m in members:
+		s = ""
+		values = (m.Member.email, m.Member.alt_email, m.Member.firstname, m.Member.lastname,
+			m.Member.phone, m.Member.plan, m.Member.access_enabled, m.Member.access_reason,
+			m.Member.active)
+		if m.Subscription:
+			values += (m.Subscription.rate_plan, m.Subscription.active)
+		for f in values:
+				s += "\""+str(f)+"\","
+		yield s+"\n"
+
+@blueprint.route('/member_report')
+@login_required
+@roles_required(['Admin','Finance','Useredit'])
+def member_report():
+		members=db.session.query(Member,Subscription)
+		members = members.outerjoin(Subscription).outerjoin(Waiver).all()
+		meta={}
+
+		if 'download' in request.values:
+			resp=Response(generate_member_report(members),mimetype='text/csv')
+			resp.headers['Content-Disposition']='attachment; filename=members.csv'
+			return resp
+		else:
+			return render_template('member_report.html',members=members,meta=meta)
+
 @blueprint.route('/tags/lookup', methods = ['GET','POST'])
 @login_required
 @roles_required(['Admin','Finance','Useredit'])

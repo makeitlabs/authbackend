@@ -66,6 +66,11 @@ def get_raw_menu():
                     'title':"Payments"
             },
             {
+                    'privs':'Useredit',
+                    'url':url_for('members.member_report'),
+                    'title':"Member Reports"
+            },
+            {
                     'privs':'Finance',
                     'url':url_for('reports.blacklist'),
                     'alt':"Ignored payments",
