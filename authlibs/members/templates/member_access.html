@@ -90,26 +90,32 @@ vim:tabstop=2:expandtab:shiftwidth=2
 	 {% endif %}
 
 	 {% if current_user.privs("Useredit") %}
-	 <h3>Change Password</h3>
-	 <div class="container">
-		 <div class="row">
-			<div class="col-sm-2">
-				 Password:
-			</div>
-			<div class="col-sm-4">
-				<input type="password" name="password1" value="" size=20 />
-			</div>
-		</div>
-		 <div class="row">
-			<div class="col-sm-2">
-				 Reenter:
-			</div>
-			<div class="col-sm-4">
-				 <input type="password" name="password2" value="" size=20 />
-			</div>
-		</div>
-	 </div>
+     <a class="btn btn-primary" data-toggle="collapse" href="#changePWcollapse" role="button" aria-expanded="false" aria-controls="changePWcollapse">Local GUI Password</a>
+  <div class="my-5 collapse multi-collapse" id="changePWcollapse">
+     <h3>Change Local RATT GUI Password</h3>
+     <div class="container">
+    <small>This is for "local", (i.e. non-oath) RATT GUI web logins <i>only</i>. This should normally <b>not</b> be set, and
+    only exists to allow admins GUI access in the event that the lab systems cannot reach oauth servers</small>
+       <div class="row">
+        <div class="col-sm-2">
+           Password:
+        </div>
+        <div class="col-sm-4">
+          <input type="password" name="password1" value="" size=20 />
+        </div>
+      </div>
+       <div class="row">
+        <div class="col-sm-2">
+           Reenter:
+        </div>
+        <div class="col-sm-4">
+           <input type="password" name="password2" value="" size=20 />
+        </div>
+      </div>
+     </div>
+    </div> {# Collapse #}
 	 {% endif %}
+
   {% if allowsave %}
 	<input type=submit value="Save Changes"/>
   {% endif %}

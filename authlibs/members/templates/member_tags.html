@@ -31,7 +31,7 @@
     <tr class="table-row collapse" id="row_collapse_{{ tag.id }}">
 	    <td  colspan=4>
 	Hash: 	{{ tag.longhash }}
-		{% if current_user.privs('Admin','Finance') %}
+		{% if current_user.privs('Admin','Finance','Useredit') %}
 		Raw Fob ID: {{ tag.tag_ident }}
 		{% endif %}
 		</td>
