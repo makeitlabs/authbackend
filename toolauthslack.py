@@ -571,7 +571,8 @@ while keepgoing:
 				break
 			#print "READ",l
 			for msg in l:
-				if 'type' in msg and (msg['type'] == "message"):
+				# DMs all have a channel that starts with 'D'. Listen only to these.
+				if 'type' in msg and (msg['type'] == "message") and 'channel' in msg and msg['channel'][0] == 'D':
 					try:
 						text="???"
             #print msg
