@@ -29,6 +29,10 @@
 		</div>
 {%- endmacro -%}
   <div class=body>
+	<p><button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#git-collapse" aria-expanded="false" aria-controls="kvopt-add-collapse">git info</button></p>
+	<div class="collapse" id="git-collapse">
+			<pre>{{ gitinfo }}</pre>
+	</div>
 	<h2>Backend Logs</h2>
 		{{ dobuttons() }}
 
