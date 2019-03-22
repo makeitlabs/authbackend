@@ -176,6 +176,7 @@ def addMissingMembers(missing):
             mm.lastname = nameparts['last']
             mm.alt_email = p.email
             mm.active = p.active
+            mm.plan = p.plan
             mm.stripe_name = p.name # TODO BKG FIX - Depricate - use first and last names only
             mm.time_created = p.created_date
             mm.time_updated = p.created_date
