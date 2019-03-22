@@ -36,6 +36,7 @@ def waivers_update():
 		"""(Controller) Update list of waivers in the database. Can take a while."""
 		updated = addNewWaivers()
 		flash("Waivers added: %s" % updated)
+		connect_waivers()
 		return redirect(url_for('waivers.waivers'))
 
 ###
