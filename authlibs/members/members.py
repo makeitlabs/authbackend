@@ -204,8 +204,19 @@ def member_show(id):
 			 if subscription.active:
 				 meta['is_inactive'] = True
 
+			
+		 groupmembers=[]
+		 if subscription:
+		   groupmembers=Subscription.query.filter(Subscription.subid == subscription.subid).filter(Subscription.id != subscription.id)
+		   groupmembers=groupmembers.join(Member,Member.id == Subscription.member_id)
+		   groupmembers=groupmembers.add_column(Member.member)
+		   groupmembers=groupmembers.add_column(Member.firstname)
+		   groupmembers=groupmembers.add_column(Member.lastname)
+		   groupmembers=groupmembers.all()
+
+
 		 tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
-		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta,page="view",tags=tags)
+		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta,page="view",tags=tags,groupmembers=groupmembers)
 	 else:
 		flash("Member not found",'warning')
 		return redirect(url_for("members.members"))

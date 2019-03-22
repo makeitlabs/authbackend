@@ -151,6 +151,17 @@
 	</div>
 </div>
 
+{% if groupmembers|length > 0 %}
+<div class="my-3 sectionhead"><h4>In Group Membership with:</h4></div>
+	<div class="container">
+		<lu>
+{% for x in groupmembers %}
+				<li><a href="{{ url_for("members.member_show",id=x.member) }}">{{ x.firstname }} {{ x.lastname }}</a></li>
+{% endfor %}
+		</lu>
+	</div> 
+{% endif%}
+
 <hr />
 <h3>Resource Access</h3>
 
