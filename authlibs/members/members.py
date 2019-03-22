@@ -112,6 +112,7 @@ def member_edit(id):
 				m.member= f['input_member']
 				m.firstname= f['input_firstname']
 				m.lastname= f['input_lastname']
+				m.nickname= f['input_nickname']
 				#TODO REMOVE MISSING FIELD CHEKCS HERE
 				if 'input_plan' in f: m.plan= f['input_plan']
 				if 'input_payment' in f: m.payment= f['input_payment']
