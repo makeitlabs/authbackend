@@ -491,7 +491,7 @@ def generate_member_report(members):
 @roles_required(['Admin','Finance','Useredit'])
 def member_report():
 		members=db.session.query(Member,Subscription)
-		members = members.outerjoin(Subscription).outerjoin(Waiver).all()
+		members = members.join(Subscription).join(Waiver).all()
 		meta={}
 
 		if 'download' in request.values:

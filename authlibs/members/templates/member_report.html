@@ -57,9 +57,13 @@
       {% for m in members %}
 				<tr>
 					<td>
-						<a href="{{ url_for("members.member_show",id=m.Member.member) }}">
+						{% if m.Member.member %}
+										<a href="{{ url_for("members.member_show",id=m.Member.member) }}">
+						{% endif %}
 						{{ m.Member.member }}
-						</a>
+						{% if m.Member.member %}
+										</a>
+						{% endif %}
 					</td>
 					<td>{{ m.Member.email }}</td>
 					<td>{{ m.Member.alt_email }}</td>
