@@ -28,7 +28,10 @@
 			{{ meta.waiver }}
 			{{ rec.waiver_date }}
 			{% else %}
-			<div class="alert-warning">No Waiver</div>
+			<div class="alert-warning">
+							No Waiver
+							<a href="{{ url_for("members.link_waiver",id=rec.id) }}" class="btn btn-primary">Find Waiver</a>
+			</div>
 			{% endif %}
 </div>
 
