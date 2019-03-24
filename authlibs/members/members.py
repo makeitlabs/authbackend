@@ -215,6 +215,34 @@ def member_show(id):
 def getAccessLevel(user,resource):
 		pass
 
+@blueprint.route('/<string:id>/waiver', methods = ['GET','POST'])
+@login_required
+def link_waiver(id):
+	mid = safestr(id)
+	member = db.session.query(Member).filter(Member.id == mid).one_or_none()
+	if not member:
+		flash("Invalid Member","danger")
+		return redirect(url_for('members.members'))
+	if 'LinkWaiver' in request.form:
+		w = Waiver.query.filter(Waiver.id == request.form['waiverid']).one()
+		w.member_id = member.id
+		if member.access_enabled == 0:
+			if ((member.access_reason is None) or (member.access_reason == "")):
+				member.access_enabled=1
+				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,member_id=member.id,commit=0)
+			else:
+				flash("Access still disabled - had been disabled because: "+str(member.access_reason),"danger")
+		db.session.commit()
+		flash("Linked waiver","success")
+		return redirect(url_for('members.member_show',id=member.member))
+	else:
+		waivers=Waiver.query.order_by(Waiver.id.desc())
+		waivers = waivers.outerjoin(Member).add_column(Member.member.label("memb"))
+		if 'showall' not in request.values:
+			waivers = waivers.limit(50)
+		waivers = waivers.all()
+		return render_template('link_waiver.html',rec=member,waivers=waivers)
+
 @blueprint.route('/<string:id>/access', methods = ['GET'])
 @login_required
 def member_editaccess(id):

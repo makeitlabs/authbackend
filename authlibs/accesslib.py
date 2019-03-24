@@ -106,13 +106,13 @@ def determineAccess(u,resource_text):
                 warning = "Membership Past due - no expiration date"
             allowed = 'false'
         elif u['enabled'] == 0:
-            if u['reason'] is not None:
+            if u['reason'] and u['reason'].strip() != "":
                 # This indicates an authorized admin has a specific reason for denying access to ALL resources
                 warning = "This account has been disabled for a specific reason: %s. %s" % (u['reason'],c['board'])
             else:
                 warning = "This account is not enabled. It may be newly added and not have a waiver on file. %s" % c['board']
             allowed = 'false'
-        elif u['lockout_reason'] is not None:
+        elif u['lockout_reason'] and u['lockout_reason'].strip() != "":
             warning = u['lockout_reason']
             allowed = 'false'
         elif u['allowed'] == 'denied':

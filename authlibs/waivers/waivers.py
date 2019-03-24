@@ -22,7 +22,7 @@ blueprint = Blueprint("waivers", __name__, template_folder='templates', static_f
 @blueprint.route('/', methods=['GET'])
 @login_required
 def waivers():
-		waivers = Waiver.query
+		waivers = Waiver.query.order_by(Waiver.id.desc())
 		waivers = waivers.add_column(Member.member).outerjoin(Member,Member.id == Waiver.member_id)
 		res=[]
 		for (waiver,member) in waivers.all():
