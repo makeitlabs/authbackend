@@ -299,6 +299,18 @@ class KVopt(db.Model):
     displayOrder = db.Column(db.Integer, default=100)
 
     valid_kinds=['string','integer','boolean']
+
+class MaintSched(db.Model):
+    __tablename__ = 'maintsched'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(50))
+    desc = db.Column(db.String(100))
+    realtime_span = db.Column(db.Integer())
+    machinetime_span = db.Column(db.Integer())
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+
+
 ##
 ## LOGS
 ##
