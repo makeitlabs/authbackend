@@ -335,6 +335,23 @@ def logging(resource):
 		else:
 				abort(401)
 
+@blueprint.route('/<string:resource>/maintenance', methods=['GET'])
+@login_required
+def maintenance(resource):
+	"""(Controller) Display information about a given resource"""
+	r = Resource.query.filter(Resource.name==resource).one_or_none()
+	tools = Tool.query.filter(Tool.resource_id==r.id).all()
+	if not r:
+		flash("Resource not found")
+		return redirect(url_for('resources.resources'))
+
+	readonly=True
+	if accesslib.user_privs_on_resource(member=current_user,resource=r) >= AccessByMember.LEVEL_ARM:
+		readonly=False
+
+	tools=Tool.query.filter(Tool.resource_id==r.id).all()
+	maint=MaintSched.query.filter(MaintSched.resource_id==r.id).all()
+	return render_template('maintenance.html',resource=r,readonly=readonly,tools=tools,maint=maint)
 
 def _get_resources():
 	q = db.session.query(Resource.name,Resource.owneremail, Resource.description, Resource.id)

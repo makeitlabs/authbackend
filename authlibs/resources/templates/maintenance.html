@@ -1,0 +1,17 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div class="sectionhead"><h2>{{ resource.name }} Maintenance</h2></div>
+<div class="body">
+	{% for t in tools %}
+	<div class="content">
+		<hr />
+		<h3>{{ t.name }}</h3>
+		<div class="content ml-3">
+			{% for m in maint %}
+				<p>{{ m.desc }}</p>
+			{% endfor %}
+		</div>
+	</div>
+	{% endfor %}
+</div>
+{% endblock %}
