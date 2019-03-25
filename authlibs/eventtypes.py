@@ -174,6 +174,11 @@ class RATTBE_LOGEVENT_TOOL_LOGOUT:
     desc="Logged-out"
 		slack_icon=":arrow_left:"
 
+class RATTBE_LOGEVENT_TOOL_MAINTENANCE_DONE:
+    id=3016
+    desc="Maintenance Done"
+		slack_icon=":wrench:"
+
 class RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED:
     id=4000
     desc='Resource access granted'

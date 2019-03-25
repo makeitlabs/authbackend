@@ -62,7 +62,11 @@ def resource_show(resource):
 		readonly=False
 
 	cc=comments.get_comments(resource_id=r.id)
-	return render_template('resource_edit.html',rec=r,readonly=readonly,tools=tools,comments=cc)
+
+	maint=[]
+	for m in MaintSched.query.filter(MaintSched.resource_id==r.id).all():
+	
+	return render_template('resource_edit.html',rec=r,readonly=readonly,tools=tools,comments=cc,maint=maint)
 
 @blueprint.route('/<string:resource>/usage', methods=['GET'])
 @login_required
@@ -173,6 +177,51 @@ def resource_usage_reports(resource):
 		return resp
 
 	return render_template('resource_usage_reports.html',rec=r,readonly=readonly,tools=tools,records=records,fields=fields,meta=meta)
+
+@blueprint.route('/<string:resource>/addmaint', methods=['POST'])
+@login_required
+def add_maint(resource):
+	print "RESOURCE",resource
+	r = Resource.query.filter(Resource.name==resource).one_or_none()
+	if not r:
+		flash("Error: Resource not found")
+		return redirect(url_for('resources.resources'))
+	print "ADD MAINT",request.form
+	m = MaintSched()
+	m.resource_id = r.id
+	if (request.form['input_maint_time_span'].strip() != ""):
+		try:
+			v=  int(request.form['input_maint_time_span'].strip())
+		except:
+			v=0
+		if (v <= 0):
+			flash("Error: Invalid time value entered")
+			return redirect(url_for('resources.resources'))
+			
+		m.realtime_span = v
+		m.realtime_unit = request.form['input_maint_time_interval']
+		
+	if (request.form['input_maint_runtime_span'].strip() != ""):
+		try:
+			v=  int(request.form['input_maint_runtime_span'].strip())
+		except:
+			v=0
+		if (v <= 0):
+			flash("Error: Invalid time value entered")
+			return redirect(url_for('resources.resources'))
+		m.machinetime_span = v
+		m.machinetime_unit = request.form['input_maint_runtime_interval']
+	
+	m.name = request.form['input_maint_name'].strip()
+	if m.name == "":
+			flash("Error: No \"name\" specified")
+			return redirect(url_for('resources.resources'))
+	m.name = m.name.replace(" ","-")
+	m.desc = request.form['input_maint_desc'].strip()
+	db.session.add(m)
+	flash("Added","success")
+	db.session.commit()
+	return redirect(url_for('resources.resource_show',resource=r.name))
 
 @blueprint.route('/<string:resource>', methods=['POST'])
 @login_required

@@ -307,7 +307,9 @@ class MaintSched(db.Model):
     name = db.Column(db.String(50))
     desc = db.Column(db.String(100))
     realtime_span = db.Column(db.Integer())
+    realtime_unit = db.Column(db.String(12))
     machinetime_span = db.Column(db.Integer())
+    machinetime_unit = db.Column(db.String(12))
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
 

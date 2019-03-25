@@ -12,6 +12,49 @@
   </form>
 
 	<hr />
+	<div class="container"> <!-- Maintenance Records -->
+	<h3>Maintenance Items</h3>
+	{% if not maint %}
+		<p>There are no maintenance items specified</p>
+	{% else %}
+		<table class="table">
+			<tr>
+				<th>Short Name</th>
+				<th>Description</th>
+				<th>Calendar Interval</th>
+				<th>Run-time Interval</th>
+			</tr>
+	{% for t in maint %}
+			<tr>
+				<td>{{ t.name }}</td>
+				<td>{{ t.desc }}</td>
+				<td>
+					{% if t.realtime_span %}
+						{{ t.realtime_span }}
+						{{ t.realtime_unit }}
+					{% endif %}
+				</td>
+				<td>
+					{% if t.machinetime_span %}
+						{{ t.machinetime_span }}
+						{{ t.machinetime_unit }}
+					{% endif %}
+				</td>
+			</tr>
+	{% endfor %}
+		</table>
+	{% endif %}
+
+  <!-- Button trigger for "Delete" modal -->
+	<button type="button" class="btn btn-info" data-toggle="collapse" data-target="#addMaintCollapse">
+		Add Maintenance Item
+	</button>
+	<div class="collapse" id="addMaintCollapse" >
+		{% include 'maint_form.html' %}
+	</div>
+	</div> <!-- Maintenance Records -->
+
+	<hr />
 	<div class="container"> <!-- Tools -->
 	<h3>Tools</h3>
 	{% if not tools %}
@@ -31,6 +74,7 @@
 		</table>
 	{% endif %}
 	</div> <!-- Tools -->
+
 	{% if readonly is not defined or not readonly %} <!-- WE CAN EDIT -->
   <div class="sectionhead">
 	  <p />
