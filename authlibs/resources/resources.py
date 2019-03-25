@@ -63,9 +63,8 @@ def resource_show(resource):
 
 	cc=comments.get_comments(resource_id=r.id)
 
-	maint=[]
-	for m in MaintSched.query.filter(MaintSched.resource_id==r.id).all():
-	
+	maint= MaintSched.query.filter(MaintSched.resource_id==r.id).all()
+
 	return render_template('resource_edit.html',rec=r,readonly=readonly,tools=tools,comments=cc,maint=maint)
 
 @blueprint.route('/<string:resource>/usage', methods=['GET'])
@@ -186,7 +185,6 @@ def add_maint(resource):
 	if not r:
 		flash("Error: Resource not found")
 		return redirect(url_for('resources.resources'))
-	print "ADD MAINT",request.form
 	m = MaintSched()
 	m.resource_id = r.id
 	if (request.form['input_maint_time_span'].strip() != ""):
