@@ -24,9 +24,9 @@ function SortableTable (tableEl) {
             var itm = this.getInnerText(this.tbody[0].rows[1].cells[column]);
                 var sortfn = this.sortCaseInsensitive;
 
-                if (null != (this.tbody[0].rows[1].cells[column].getAttribute("sortValue"))) sortfn= this.sortValue;
-                if (itm.match(/\d\d[-]+\d\d[-]+\d\d\d\d/)) sortfn = this.sortDate; // date format mm-dd-yyyy
                 if (itm.replace(/^\s+|\s+\$/g,"").match(/^[\d\.]+\$/)) sortfn = this.sortNumeric;
+                if (itm.match(/\d\d[-]+\d\d[-]+\d\d\d\d/)) sortfn = this.sortDate; // date format mm-dd-yyyy
+                if (null != (this.tbody[0].rows[1].cells[column].getAttribute("sortvalue"))) sortfn= this.sortValue;
 
                 this.sortColumnIndex = column;
 
@@ -59,8 +59,13 @@ function SortableTable (tableEl) {
         }
 
         this.sortValue = function(a,b) {
-                aa = parseInt(a.cells[thisObject.sortColumnIndex].getAttribute("sortValue"));
-                bb = parseInt(b.cells[thisObject.sortColumnIndex].getAttribute("sortValue"));
+                aa = parseInt(a.cells[thisObject.sortColumnIndex].getAttribute("sortvalue"));
+                bb = parseInt(b.cells[thisObject.sortColumnIndex].getAttribute("sortvalue"));
+								console.log(aa,bb);
+								if (isNaN(aa)) 
+									aa=0;
+								if (isNaN(bb))
+									bb=0;
                 if (aa==bb) return 0;
                 if (aa<bb) return -1;
                 return 1;

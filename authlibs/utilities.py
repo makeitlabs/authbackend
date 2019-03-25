@@ -193,7 +193,7 @@ def send_tool_remove_lockout(toolname,node):
 
 			# Remove the persistant "lock" messsage (retain=False)
       topic= gc.mqtt_base_topic+"/control/node/%s/personality/lock" % (node)
-      mqtt_pub.single(topic,None, retain=False,hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
+      mqtt_pub.single(topic,None, retain=True,hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
 
 			# Send the unlock message
       topic= gc.mqtt_base_topic+"/control/node/%s/personality/unlock" % (node)

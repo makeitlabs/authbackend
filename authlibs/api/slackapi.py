@@ -11,25 +11,33 @@ from authlibs.waivers.waivers import cli_waivers,connect_waivers
 import slackapi
 import random,string
 
-def make_sure_tool_arm(toolname,member):
-  t = Tool.query.filter(Tool.name.ilike(toolname))
-  t = t.outerjoin(Resource,Resource.id == Tool.resource_id)
-  t = t.outerjoin(AccessByMember,((AccessByMember.member_id == member.id) & (AccessByMember.resource_id == Resource.id)))
-  t = t.add_column(AccessByMember.level)
-  t = t.one_or_none()
-  if not t: return ":question: No tool found"
-  if t.level is None: return ":no_entry: No privileges on that resource type"
-  if (t.level < AccessByMember.LEVEL_ARM): return ":no_entry: Insufficent privileges on that resource type"
+def get_tool_by_name(toolname):
+  t = Tool.query.filter(Tool.name.ilike(toolname)).one_or_none()
+  if t: return t
+  return Tool.query.filter(Tool.short.ilike(toolname)).one_or_none()
 
-  return None
+  
+# Returns an error string OR a tool
+def make_sure_tool_arm(toolname,member):
+  t = get_tool_by_name(toolname)
+  if not t: return ":question: No tool found"
+
+  r = Resource.query.filter(Resource.id == t.resource_id)
+  r = r.outerjoin(AccessByMember,((AccessByMember.member_id == member.id) & (AccessByMember.resource_id == Resource.id)))
+  r = r.add_column(AccessByMember.level)
+  r = r.one_or_none()
+  if not r: return ":question: No tool found"
+  if r.level is None: return ":no_entry: No privileges on that resource type"
+  if (r.level < AccessByMember.LEVEL_ARM): return ":no_entry: Insufficent privileges on that resource type"
+
+  return t
 
 def lock(cmd,member):
   if len(cmd) < 3:
     return ":question: Usage: `lock {tool} {reason}`"
-  x =  make_sure_tool_arm(cmd[1],member)
-  if x: return x
+  r =  make_sure_tool_arm(cmd[1],member)
+  if type(r)==str: return r
   reasonstr = " ".join(cmd[2:])
-  r = Tool.query.filter(Tool.name.ilike(cmd[1])).one()
   r.lockout=reasonstr
   authutil.log(eventtypes.RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED.id,tool_id=r.id,message=r.lockout,doneby=member.id,commit=0)
   node = Node.query.filter(Node.id == r.node_id).one()
@@ -40,9 +48,8 @@ def lock(cmd,member):
 def unlock(cmd,member):
   if len(cmd) < 2:
     return ":question: Usage: `unlock {tool}`"
-  x =  make_sure_tool_arm(cmd[1],member)
-  if x: return x
-  r = Tool.query.filter(Tool.name.ilike(cmd[1])).one()
+  r =  make_sure_tool_arm(cmd[1],member)
+  if type(r)==str: return r
   r.lockout=None
   authutil.log(eventtypes.RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED.id,tool_id=r.id,message=r.lockout,doneby=member.id,commit=0)
   node = Node.query.filter(Node.id == r.node_id).one()

@@ -1,0 +1,120 @@
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+<script type="text/javascript">
+function dosearchkey() {
+	var searchstr = document.getElementById("search_string").value.toLowerCase();
+	for (let x of $("tr.bodyrow")) {
+		var found=false;
+		if (searchstr == "")
+			found=true;
+		else {
+			mbs= x.getElementsByTagName("td");
+			//console.log(mbs[1].innerHTML,mbs[2].innerHTML);
+			if (mbs[1].innerHTML.toLowerCase().includes(searchstr)) found=true;
+			if (mbs[2].innerHTML.toLowerCase().includes(searchstr)) found=true;
+			if (mbs[3].innerHTML.toLowerCase().includes(searchstr)) found=true;
+		}
+		if (found) 
+			//x.style.visibility="visible";
+			x.style.display="table-row";
+		else
+			//x.style.visibility="collapse";
+			x.style.display="none";
+		
+	}
+}
+  function doLinkButton(waiverid,desc){
+    $('#waiverid')[0].value=waiverid;
+    $('#memberid')[0].value={{ rec.id }};
+    $('#waiver_desc')[0].innerHTML=desc;
+    $('#linkModal').modal();
+		console.log("MODAL");
+  }
+</script>
+{% endblock %}
+{% block search %}
+  <div class=body>
+	<div class="sectionhead"><h2>Link Member Waiver</h2></div>
+	<div class="content">
+	<b>Link Member:</b> {{ rec.firstname }} {{ rec.lastname }} {{ rec.member }}
+	</div>
+	<div class="sectionhead"><h3>Waiver Data</h3></div>
+		{% if current_user.privs("Useredit") or current_user.privs("Finance") %}
+    <a href="{{ url_for('waivers.waivers_update') }}">Update Waiver Data (May take a while)</a>
+		{% endif %}
+    <p></p>
+  <div class="form-group">
+    <label for="exampleFormControlInput1">Search:</label>
+    <input type="text" 
+			onkeypress="dosearchkey();" 
+			onclick="dosearchkey();" 
+			onvaluechanged="dosearchkey();" 
+			onkeydown="dosearchkey();" 
+			class="form-control" id="search_string" placeholder="">
+  </div>
+	<table>
+			<thead>
+      <tr>
+	<th></th>
+        <th>Email</th>
+        <th>Firstname</th>
+        <th>Lastname</th>
+	<th>Created</th>
+	<th>Member</th>
+      </tr>
+			</thead>
+			<tbody>
+      {% for w in waivers %}
+	  <tr class="bodyrow">
+			<td>
+							{% if not w.Waiver.member_id %}
+				<a  class="btn btn-info" href="javascript:doLinkButton({{ w.Waiver.id }},'{{ w.Waiver.firstname }} {{ w.Waiver.lastname }} <br />{{ w.Waiver.email }}');">
+							<span data-toggle="popover" class="glyphicon glyphicon-resize-small" />
+				</a>
+							{% endif %}
+			</td>
+		<td>{{ w.Waiver.email }}</td>
+		<td>{{ w.Waiver.firstname }}</td>
+		<td>{{ w.Waiver.lastname }}</td>
+		<td>{{ w.Waiver.created_date }}</td>
+		{% if w.Waiver.member_id %}
+		<td><a href="{{ url_for("members.member_show",id=w.memb) }}">{{ w.memb }}</a></td>
+		{% endif %}
+	  </tr>
+      {% endfor %}
+		</tbody>
+	</table>
+	<td><a href="?showall=1">Show More</a></td>
+</div> {# body div ?? #}
+
+		{# UNLINK MODAL #}
+
+				<!-- Modal -->
+				<div class="modal fade" id="linkModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+					<div class="modal-dialog" role="document">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h5 class="modal-title" id="exampleModalLabel">Waiver for member {{ rec.member }}</h5>
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+									<span aria-hidden="true">&times;</span>
+								</button>
+							</div>
+							<div class="modal-body">
+								<p>Link the waiver listed as:</p>
+								<p id="waiver_desc"></p>
+								<p> Are you sure you want to do this? </p>
+							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+								<form method="POST" action="{{ url_for("members.link_waiver",id=rec.id) }}">
+								<input type="hidden" id="memberid" name="memberid" value="{{ rec.id }}" />
+								<input type="hidden" id="waiverid" name="waiverid" value="" />
+								<input class='btn btn-danger' type="submit" name="LinkWaiver" value="Link Waiver" />
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+
+		{# UNLINK MODAL #}
+{% endblock %}
