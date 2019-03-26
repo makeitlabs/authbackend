@@ -349,9 +349,79 @@ def maintenance(resource):
 	if accesslib.user_privs_on_resource(member=current_user,resource=r) >= AccessByMember.LEVEL_ARM:
 		readonly=False
 
+	tooldata={}
 	tools=Tool.query.filter(Tool.resource_id==r.id).all()
 	maint=MaintSched.query.filter(MaintSched.resource_id==r.id).all()
-	return render_template('maintenance.html',resource=r,readonly=readonly,tools=tools,maint=maint)
+
+	# Find date of last maintenances
+	for t in tools:
+		tooldata[t.name]={}
+		tooldata[t.name]['maint']={}
+		for m in maint:
+			tooldata[t.name]['maint'][m.name]={}
+			tooldata[t.name]['maint'][m.name]['desc']=m.desc
+
+			log = Logs.query.filter(Logs.tool_id == t.id)
+			log = log.filter(Logs.event_type == eventtypes.RATTBE_LOGEVENT_TOOL_MAINTENANCE_DONE.id)
+			log = log.filter(Logs.message == m.name)
+			log = log.order_by(Logs.time_reported)
+			log = log.limit(1)
+			log = log.one_or_none()
+
+			tooldata[t.name]['maint'][m.name]['lastdone']=log.time_reported if log else None
+
+			# If there is a log entry, find machine time since then
+			# if not, find total machine time
+
+			usage = UsageLog.query.filter(UsageLog.tool_id==t.id)
+			if (log):
+				usage = usage.filter(UsageLog.time_reported > log.time_reported)
+			usage = usage.add_column(func.sum(UsageLog.activeSecs).label('activeSecs'))
+			usage = usage.one_or_none()
+
+			machine_units=None
+			if m.machinetime_span:
+				tooldata[t.name]['maint'][m.name]['run_interval']="%s %s" % (m.machinetime_span,m.machinetime_unit)
+				activeSecs = usage.activeSecs if usage else 0
+				if m.machinetime_unit == "hours":
+					tooldata[t.name]['maint'][m.name]['activeTime']="%s Hrs." % int(activeSecs/3600)
+					remain_span =  int(m.machinetime_span) - int(activeSecs/3600)
+					machine_units="Hrs."
+				elif m.machinetime_unit == "minutes":
+					tooldata[t.name]['maint'][m.name]['activeTime']="%s Min." % int(activeSecs/60)
+					remain_span =  int(m.machinetime_span) - int(activeSecs/60)
+					machine_units="Min."
+				elif m.machinetime_unit == "days":
+					tooldata[t.name]['maint'][m.name]['activeTime']="%s Days" % int(activeSecs/(3600*24))
+					remain_span =  int(m.machinetime_span) - int(activeSecs/(3600*24))
+					machine_units="Days"
+				elif m.machinetime_unit == "weeks":
+					tooldata[t.name]['maint'][m.name]['activeTime']="%s Weeks" % int(activeSecs/(3600*24*7))
+					remain_span =  int(m.machinetime_span) - int(activeSecs/(3600*24*7))
+					machine_units="Weeks"
+				elif m.machinetime_unit == "months":
+					tooldata[t.name]['maint'][m.name]['activeTime']="%s Months" % int(activeSecs/(3600*24*30))
+					remain_span =  int(m.machinetime_span) - int(activeSecs/(3600*24*30))
+					machine_units="Months"
+				else:
+					tooldata[t.name]['maint'][m.name]['activeTime']="%s Sec." % int(activeSecs)
+					remain_span =  int(m.machinetime_span) - int(activeSecs)
+					machine_units="Sec."
+			else:
+				activeSecs = usage.activeSecs if usage else 0
+				tooldata[t.name]['maint'][m.name]['activeTime']="%s Hrs." % int(activeSecs/3600)
+
+			if machine_units:
+				if (remain_span < 0):
+					tooldata[t.name]['maint'][m.name]['active_remain']="%s %s OVERDUE" % (-remain_span,machine_units)
+				else:
+					tooldata[t.name]['maint'][m.name]['active_remain']="%s %s Remaining" % (remain_span,machine_units)
+
+			if m.realtime_span:
+				tooldata[t.name]['maint'][m.name]['calendar_interval']="%s %s" % (m.realtime_span,m.realtime_unit)
+
+		print "RETURNING TOOLDATA",tooldata
+	return render_template('maintenance.html',resource=r,readonly=readonly,tools=tools,maint=maint,tooldata=tooldata)
 
 def _get_resources():
 	q = db.session.query(Resource.name,Resource.owneremail, Resource.description, Resource.id)

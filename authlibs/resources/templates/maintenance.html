@@ -1,3 +1,5 @@
+{# vim:tabstop=2:shiftwidth=2:expandtab 
+#}
 {% extends "layout_bootstrap.html" %}
 {% block body %}
 <div class="sectionhead"><h2>{{ resource.name }} Maintenance</h2></div>
@@ -7,8 +9,49 @@
 		<hr />
 		<h3>{{ t.name }}</h3>
 		<div class="content ml-3">
+				<div class="form-row my-3">
+          <div class="col-sm-3">
+            <b>Maintenance</b>
+          </div>
+          <div class="col-sm-3">
+            <b>Last Done</b>
+          </div>
+          <div class="col-sm-3">
+            <b>Machine Time</b>
+          </div>
+          <div class="col-sm-3">
+            <b>Calendar Time</b>
+          </div>
+				</div>
 			{% for m in maint %}
-				<p>{{ m.desc }}</p>
+				<div class="form-row my-3">
+          <div class="col-sm-3">
+            {{ m.desc }}<br />
+            ({{ m.name }})
+          </div>
+          <div class="col-sm-3">
+            {% if tooldata[t.name]['maint'][m.name]['lastdone'] %}
+            {{ tooldata[t.name]['maint'][m.name]['lastdone'] }}
+            {% else %}
+            --
+            {% endif %}
+          </div>
+          <div class="col-sm-3">
+            {{ tooldata[t.name]['maint'][m.name]['activeTime'] }} Since Last<br />
+            {% if tooldata[t.name]['maint'][m.name]['run_interval'] %}
+            Required every {{ tooldata[t.name]['maint'][m.name]['run_interval'] }}
+            {% endif %}
+            {% if tooldata[t.name]['maint'][m.name]['active_remain'] %}
+            <br /> {{ tooldata[t.name]['maint'][m.name]['active_remain'] }} 
+            {% endif %}
+    
+          </div>
+          <div class="col-sm-3">
+            {% if tooldata[t.name]['maint'][m.name]['calendar_interval'] %}
+            Required every {{ tooldata[t.name]['maint'][m.name]['calendar_interval'] }}
+            {% endif %}
+          </div>
+				</div>
 			{% endfor %}
 		</div>
 	</div>
