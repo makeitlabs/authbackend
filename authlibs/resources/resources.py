@@ -335,6 +335,24 @@ def logging(resource):
 		else:
 				abort(401)
 
+@blueprint.route('/<string:resource>/maintenance', methods=['POST'])
+@login_required
+def maintenance_post(resource):
+	"""(Controller) Display information about a given resource"""
+	r = Resource.query.filter(Resource.name==resource).one_or_none()
+	tools = Tool.query.filter(Tool.resource_id==r.id).all()
+	if not r:
+		flash("Resource not found")
+		return redirect(url_for('resources.resources'))
+
+	if accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+		flash("No privilages","danger")
+		return redirect(url_for('resources.maintenance',resource=resource))
+
+	flash("Maintenance recorded","success")
+	print request.form
+	return redirect(url_for('resources.maintenance',resource=resource))
+	
 @blueprint.route('/<string:resource>/maintenance', methods=['GET'])
 @login_required
 def maintenance(resource):
@@ -420,8 +438,10 @@ def maintenance(resource):
 			if m.realtime_span:
 				tooldata[t.name]['maint'][m.name]['calendar_interval']="%s %s" % (m.realtime_span,m.realtime_unit)
 
+		current_datetime=datetime.datetime.strftime(datetime.datetime.now(),"%Y-%m-%dT%H:%M")
+		print current_datetime
 		print "RETURNING TOOLDATA",tooldata
-	return render_template('maintenance.html',resource=r,readonly=readonly,tools=tools,maint=maint,tooldata=tooldata)
+	return render_template('maintenance.html',resource=r,readonly=readonly,tools=tools,maint=maint,tooldata=tooldata,current_datetime=current_datetime)
 
 def _get_resources():
 	q = db.session.query(Resource.name,Resource.owneremail, Resource.description, Resource.id)
