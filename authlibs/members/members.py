@@ -125,12 +125,12 @@ def member_edit(id):
 				m.email= f['input_email']
 				if 'input_access_enabled' in f:
 					if m.access_enabled != 1:
-						authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCSSS_ENABLED.id,message=f['input_access_reason'],member_id=m.id,doneby=current_user.id,commit=0)
+						authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id,message=f['input_access_reason'],member_id=m.id,doneby=current_user.id,commit=0)
 					m.access_enabled=1
 					m.access_reason= None
 				else:
 					if m.access_enabled != 0:
-						authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCSSS_DISABLED.id,member_id=m.id,doneby=current_user.id,commit=0)
+						authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,member_id=m.id,doneby=current_user.id,commit=0)
 					m.access_enabled=0
 					m.access_reason= f['input_access_reason']
 				db.session.commit()
@@ -237,10 +237,11 @@ def link_waiver(id):
 	if 'LinkWaiver' in request.form:
 		w = Waiver.query.filter(Waiver.id == request.form['waiverid']).one()
 		w.member_id = member.id
+		authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,doneby=current_user.id,member_id=member.id,commit=0)
 		if member.access_enabled == 0:
-			authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,doneby=current_user.id,member_id=member.id,commit=0)
 			if ((member.access_reason is None) or (member.access_reason == "")):
 				member.access_enabled=1
+				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id,message="Waiver accepted",member_id=member.id,doneby=current_user.id,commit=0)
 			else:
 				flash("Access still disabled - had been disabled because: "+str(member.access_reason),"danger")
 		db.session.commit()
