@@ -238,9 +238,9 @@ def link_waiver(id):
 		w = Waiver.query.filter(Waiver.id == request.form['waiverid']).one()
 		w.member_id = member.id
 		if member.access_enabled == 0:
+			authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,doneby=current_user.id,member_id=member.id,commit=0)
 			if ((member.access_reason is None) or (member.access_reason == "")):
 				member.access_enabled=1
-				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,member_id=member.id,commit=0)
 			else:
 				flash("Access still disabled - had been disabled because: "+str(member.access_reason),"danger")
 		db.session.commit()
