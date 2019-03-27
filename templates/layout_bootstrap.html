@@ -57,7 +57,9 @@
   </head>
 
   <body
-		{% if DEPLOYTYPE %}
+		{% if BACKGROUND_COLOR %}
+    style="background-color:{{ BACKGROUND_COLOR }}"
+		{% elif DEPLOYTYPE %}
     style="background-color:#ffffd0"
     {% endif %}
 >
