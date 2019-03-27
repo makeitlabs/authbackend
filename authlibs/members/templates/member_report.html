@@ -46,6 +46,7 @@
         <th>Alt Email <i class="glyphicon glyphicon-sort"></i></th>
         <th>First <i class="glyphicon glyphicon-sort"></i></th>
         <th>Last <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Slack <i class="glyphicon glyphicon-sort"></i></th>
         <th>Phone <i class="glyphicon glyphicon-sort"></i></th>
         <th>Plan <i class="glyphicon glyphicon-sort"></i></th>
         <th>Acess Enabled <i class="glyphicon glyphicon-sort"></i></th>
@@ -71,6 +72,11 @@
 					<td>{{ m.Member.alt_email }}</td>
 					<td>{{ m.Member.firstname }}</td>
 					<td>{{ m.Member.lastname }}</td>
+					<td>
+							{% if m.Member.slack %}
+							{{ m.Member.slack }}
+							{% endif %}
+					</td>
 					<td>{{ m.Member.phone }}</td>
 					<td>{{ m.Member.plan }}</td>
 					<td>{{ m.Member.access_enabled }}</td>
