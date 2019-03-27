@@ -84,7 +84,13 @@
 					<td>{{ m.Member.active }}</td>
 					<td>{{ m.Subscription.rate_plan }}</td>
 					<td>{{ m.Subscription.active }}</td>
-					<td>{{ m.Waiver.created_date }}</td>
+					<td>
+							{% if m.Waiver.created_date %}
+							{{ m.Waiver.created_date }}
+							{% else %}
+							<a href="{{ url_for('members.link_waiver',id=m.Member.id) }}">Fix Waiver</a>
+							{% endif %}
+					</td>
 				</tr>
       {% endfor %}
 			</tbody>
