@@ -37,6 +37,7 @@
 	<a class="btn btn-lg btn-outline-secondary" href="?download"><span class="glyphicon glyphicon-download"></span></a>
 </p>
 
+<h2>	{{ members|length }} Members  </h2>
 
 	<table  id="memberTable" style="font-size:10px" class="table table-compact supercompact">
       <thead>
@@ -52,6 +53,7 @@
         <th>Active <i class="glyphicon glyphicon-sort"></i></th>
         <th>Active Rate <i class="glyphicon glyphicon-sort"></i></th>
         <th>Subscription <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Waiver <i class="glyphicon glyphicon-sort"></i></th>
       </thead>
 			<tbody>
       {% for m in members %}
@@ -76,6 +78,7 @@
 					<td>{{ m.Member.active }}</td>
 					<td>{{ m.Subscription.rate_plan }}</td>
 					<td>{{ m.Subscription.active }}</td>
+					<td>{{ m.Waiver.created_date }}</td>
 				</tr>
       {% endfor %}
 			</tbody>

@@ -509,7 +509,7 @@ def member_tagdelete(tag_ident):
 
 def generate_member_report(members):
 	fields=[ 'member', "email", "alt_email", "firstname", "lastname", "phone",
-					"plan", "access_enabled", "access_reason", "active", "rate_plan", "active"]
+					"plan", "slack_id","access_enabled", "access_reason", "active", "rate_plan", "sub_active",'Waiver']
 	s=""
 	for f in fields:
 		s += "\""+str(f)+"\","
@@ -517,11 +517,15 @@ def generate_member_report(members):
 
 	for m in members:
 		s = ""
-		values = (m.Member.email, m.Member.alt_email, m.Member.firstname, m.Member.lastname,
-			m.Member.phone, m.Member.plan, m.Member.access_enabled, m.Member.access_reason,
+		values = (m.Member.member,m.Member.email, m.Member.alt_email, m.Member.firstname, m.Member.lastname,
+			m.Member.phone, m.Member.plan, m.Member.slack, m.Member.access_enabled, m.Member.access_reason,
 			m.Member.active)
 		if m.Subscription:
 			values += (m.Subscription.rate_plan, m.Subscription.active)
+		else:
+			values += ("","")
+		if m.Waiver:
+			values += (m.Waiver.created_date,)
 		for f in values:
 				s += "\""+str(f)+"\","
 		yield s+"\n"
@@ -530,8 +534,8 @@ def generate_member_report(members):
 @login_required
 @roles_required(['Admin','Finance','Useredit'])
 def member_report():
-		members=db.session.query(Member,Subscription)
-		members = members.join(Subscription).join(Waiver).all()
+		members=db.session.query(Member,Subscription,Waiver)
+		members = members.join(Subscription,isouter=True).join(Waiver,isouter=True).all()
 		meta={}
 
 		if 'download' in request.values:
