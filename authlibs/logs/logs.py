@@ -178,6 +178,15 @@ def logs():
                       q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_ACTIVE.id)
                       q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_INACTIVE.id)
 
+                    if ('hidetoolusage' in request.values):
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_POWEROFF.id)
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_POWERON.id)
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_LOGIN.id)
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_LOGOUT.id)
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_LOGIN_COMBO.id)
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_PROHIBITED.id)
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_COMBO_FAILED.id)
+
                     # Limits and offsets ONLY after all filters have been applied
 
                     offset=0
