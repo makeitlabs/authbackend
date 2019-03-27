@@ -273,6 +273,7 @@ class Node(db.Model):
     __tablename__ = 'nodes'
     __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
+    last_ping = db.Column(db.DateTime(timezone=True))
     name = db.Column(db.String(20))
     mac = db.Column(db.String(20))
 

@@ -1,8 +1,10 @@
-# vim:shiftwidth=2:expandtab
+# vim:shiftwidth=2
 
 
 from ..templateCommon import  *
 from authlibs.comments import comments
+from datetime import datetime
+from authlibs import ago
 
 blueprint = Blueprint("nodes", __name__, template_folder='templates', static_folder="static",url_prefix="/nodes")
 
@@ -12,7 +14,13 @@ blueprint = Blueprint("nodes", __name__, template_folder='templates', static_fol
 @login_required
 def nodes():
 	"""(Controller) Display Nodes and controls"""
-	nodes = _get_nodes()
+	now=datetime.now()
+	nodes = []
+	for x in Node.query.all():
+		a = [None,None]
+		if x.last_ping:
+			a = ago.ago(now,x.last_ping)
+		nodes.append({'name':x.name,'mac':x.mac,'when':a[0],'ago':a[1]})
 	access = {}
 	resources=Resource.query.all()
 	return render_template('nodes.html',nodes=nodes,editable=True,node={},resources=resources)
@@ -175,12 +183,6 @@ def logging(node):
 				return render_template('node_log.html',entries=entries)
 		else:
 				abort(401)
-
-
-def _get_nodes():
-	q = db.session.query(Node.name,Node.mac,Node.id)
-	# q = q.add_column(Resource.name.label("resource_name")).join(Resource,Resource.id==Node.resource_id)
-	return q.all()
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
