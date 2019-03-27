@@ -42,6 +42,7 @@
           <div class="col-sm-3">
             {% if tooldata[t.name]['maint'][m.name]['lastdone'] %}
             {{ tooldata[t.name]['maint'][m.name]['lastdone'] }}
+            <br />{{ tooldata[t.name]['maint'][m.name]['clock_time_ago'] }} Ago
             {% else %}
             --
             {% endif %}
@@ -52,13 +53,16 @@
             Required every {{ tooldata[t.name]['maint'][m.name]['run_interval'] }}
             {% endif %}
             {% if tooldata[t.name]['maint'][m.name]['active_remain'] %}
-            <br /> {{ tooldata[t.name]['maint'][m.name]['active_remain'] }} 
+            <br />Remain: {{ tooldata[t.name]['maint'][m.name]['active_remain'] }} 
             {% endif %}
     
           </div>
           <div class="col-sm-3">
             {% if tooldata[t.name]['maint'][m.name]['calendar_interval'] %}
             Required every {{ tooldata[t.name]['maint'][m.name]['calendar_interval'] }}
+            {% endif %}
+            {% if tooldata[t.name]['maint'][m.name]['clock_time_remaining'] %}
+            <br />{{ tooldata[t.name]['maint'][m.name]['clock_time_remaining'] }}
             {% endif %}
           </div>
 				</div>

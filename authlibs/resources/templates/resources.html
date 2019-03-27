@@ -21,6 +21,7 @@
 		  
 		  <a class="btn btn-outline-info" href="{{ url_for('resources.resource_usage',resource=resource.name) }}" class="btn btn-link">GRAPHS</a>
 		  <a class="btn btn-outline-info" href="{{ url_for('resources.resource_usage_reports',resource=resource.name) }}" class="btn btn-link">REPORTS</a>
+		  <a class="btn btn-outline-info" href="{{ url_for('resources.maintenance',resource=resource.name) }}" class="btn btn-link">MAINTENANCE</a>
 		</td>
 	  </tr>
 	{% endfor %}

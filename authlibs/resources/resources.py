@@ -340,17 +340,26 @@ def logging(resource):
 def maintenance_post(resource):
 	"""(Controller) Display information about a given resource"""
 	r = Resource.query.filter(Resource.name==resource).one_or_none()
-	tools = Tool.query.filter(Tool.resource_id==r.id).all()
 	if not r:
 		flash("Resource not found")
 		return redirect(url_for('resources.resources'))
+
+	tool = Tool.query.filter(Tool.name==request.form['tool'])
+	tool = tool.filter(Tool.resource_id == r.id).one()
 
 	if accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
 		flash("No privilages","danger")
 		return redirect(url_for('resources.maintenance',resource=resource))
 
-	flash("Maintenance recorded","success")
-	print request.form
+	if request.form['LogMaint'] == "LogMaint":
+		print request.form
+		dt = datetime.datetime.strptime(request.form['input_maint_log_datetime'], "%Y-%m-%dT%H:%M")
+		print dt
+		# ([('tool', u'laser-rabbit'), ('maint', u'optics-all'), ('input_maint_log_datetime', u'2019-03-26T18:00'), ('LogMaint', u'LogMaint')])
+		authutil.log(eventtypes.RATTBE_LOGEVENT_TOOL_MAINTENANCE_DONE.id,
+			tool_id=tool.id,message=request.form['maint'],doneby=current_user.id,commit=0,when=dt)
+		flash("Maintenance recorded","success")
+		db.session.commit()
 	return redirect(url_for('resources.maintenance',resource=resource))
 	
 @blueprint.route('/<string:resource>/maintenance', methods=['GET'])
@@ -386,7 +395,12 @@ def maintenance(resource):
 			log = log.limit(1)
 			log = log.one_or_none()
 
-			tooldata[t.name]['maint'][m.name]['lastdone']=log.time_reported if log else None
+			last_reported=None
+			if log and log.time_reported:
+				tooldata[t.name]['maint'][m.name]['lastdone']=log.time_reported
+				tooldata[t.name]['maint'][m.name]['clock_time_done']=datetime.datetime.now()-log.time_reported
+				print "CTD IS",tooldata[t.name]['maint'][m.name]['clock_time_done']
+				last_reported = log.time_reported
 
 			# If there is a log entry, find machine time since then
 			# if not, find total machine time
@@ -431,15 +445,43 @@ def maintenance(resource):
 
 			if machine_units:
 				if (remain_span < 0):
-					tooldata[t.name]['maint'][m.name]['active_remain']="%s %s OVERDUE" % (-remain_span,machine_units)
+					tooldata[t.name]['maint'][m.name]['active_remain']="%s %s <b>OVERDUE</b>" % (-remain_span,machine_units)
 				else:
 					tooldata[t.name]['maint'][m.name]['active_remain']="%s %s Remaining" % (remain_span,machine_units)
 
 			if m.realtime_span:
 				tooldata[t.name]['maint'][m.name]['calendar_interval']="%s %s" % (m.realtime_span,m.realtime_unit)
+				if 'clock_time_done' in tooldata[t.name]['maint'][m.name]:
+					ctd = tooldata[t.name]['maint'][m.name]['clock_time_done'].total_seconds()
+					if m.realtime_unit == "hours":
+						tooldata[t.name]['maint'][m.name]['clock_time_ago']="{0:.1f} Hrs.".format (ctd/3600)
+						ctr=(m.realtime_span-(ctd/3600))
+					elif m.realtime_unit == "minutes":
+						tooldata[t.name]['maint'][m.name]['clock_time_ago']="{0} Min.".format (int(ctd/60))
+						ctr=(m.realtime_span-(ctd/60))
+					elif m.realtime_unit == "days":
+						tooldata[t.name]['maint'][m.name]['clock_time_ago']="{0:.1f} Days".format (ctd/(3600*24))
+						ctr=(m.realtime_span-(ctd/(3600*24)))
+					elif m.realtime_unit == "weeks":
+						tooldata[t.name]['maint'][m.name]['clock_time_ago']="{0:.1f} Weeks".format (ctd/(3600*24*7))
+						ctr=(m.realtime_span-(ctd/(3600*24*7)))
+					elif m.realtime_unit == "months":
+						tooldata[t.name]['maint'][m.name]['clock_time_ago']="{0:.1f} Months".format (ctd/(3600*24*30))
+						ctr=(m.realtime_span-(ctd/(3600*24*30)))
+					elif m.realtime_unit == "years":
+						tooldata[t.name]['maint'][m.name]['clock_time_ago']="{0:.1f} Years".format (ctd/(3600*24*365))
+						ctr=(m.realtime_span-(ctd/(3600*24*365)))
+					else:
+						tooldata[t.name]['maint'][m.name]['clock_time_ago']="{0} Sec.".format (int(ctd))
+						ctr=(m.realtime_span-(ctd))
+					if (ctr > 0):
+						tooldata[t.name]['maint'][m.name]['clock_time_remaining'] = "{0:.1f} {1} Remaining".format(ctr,m.realtime_unit)
+					else:
+						tooldata[t.name]['maint'][m.name]['clock_time_remaining'] = "<b>Overdue</b> {0:.1f} {1}".format(-ctr,m.realtime_unit)
+					print "CTA", tooldata[t.name]['maint'][m.name]['clock_time_ago']
+						
 
 		current_datetime=datetime.datetime.strftime(datetime.datetime.now(),"%Y-%m-%dT%H:%M")
-		print current_datetime
 		print "RETURNING TOOLDATA",tooldata
 	return render_template('maintenance.html',resource=r,readonly=readonly,tools=tools,maint=maint,tooldata=tooldata,current_datetime=current_datetime)
 
