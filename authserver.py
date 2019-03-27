@@ -479,6 +479,8 @@ with app.app_context():
 
     if app.config['globalConfig'].DeployType.lower() != "production":
         app.jinja_env.globals['DEPLOYTYPE'] = app.config['globalConfig'].DeployType
+    if app.config['globalConfig'].backgroundColor:
+        app.jinja_env.globals['BACKGROUND_COLOR'] = app.config['globalConfig'].backgroundColor
     if  args.command:
         cli.cli_command(extras,app=app,um=app.user_manager)
         sys.exit(0)

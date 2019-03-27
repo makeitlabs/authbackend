@@ -104,6 +104,9 @@ class GlobalConfig(object):
   AdminUser = Config.get('General','AdminUser')
   AdminPasswd = Config.get('General','AdminPassword')
   DeployType = Config.get('General','Deployment')
+  backgroundColor=None
+  if Config.has_option('General','backgroundColor'):
+    backgroundColor = Config.get('General','backgroundColor')
   DefaultLogin = Config.get('General','DefaultLogin')
   Debug = Config.getboolean('General','Debug')
   HelpURL = Config.get('General','HelpURL')
