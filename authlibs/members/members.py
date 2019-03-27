@@ -249,8 +249,10 @@ def link_waiver(id):
 	else:
 		waivers=Waiver.query.order_by(Waiver.id.desc())
 		waivers = waivers.outerjoin(Member).add_column(Member.member.label("memb"))
+		"""
 		if 'showall' not in request.values:
 			waivers = waivers.limit(50)
+		"""
 		waivers = waivers.all()
 		return render_template('link_waiver.html',rec=member,waivers=waivers)
 

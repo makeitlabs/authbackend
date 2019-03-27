@@ -3,17 +3,23 @@
 <script type="text/javascript">
 function dosearchkey() {
 	var searchstr = document.getElementById("search_string").value.toLowerCase();
+	searchstr = searchstr.replace(/^\s+/g, '');
+	searchstr = searchstr.replace(/\s+$/g, '');
+	var showunlinked = document.getElementById("showunlinked_cb").checked;
+	console.log(showunlinked);
 	for (let x of $("tr.bodyrow")) {
 		var found=false;
+		mbs= x.getElementsByTagName("td");
 		if (searchstr == "")
 			found=true;
 		else {
-			mbs= x.getElementsByTagName("td");
 			//console.log(mbs[1].innerHTML,mbs[2].innerHTML);
 			if (mbs[1].innerHTML.toLowerCase().includes(searchstr)) found=true;
 			if (mbs[2].innerHTML.toLowerCase().includes(searchstr)) found=true;
 			if (mbs[3].innerHTML.toLowerCase().includes(searchstr)) found=true;
 		}
+		if (!showunlinked && !x.getAttribute("unlinked"))
+			found=false;
 		if (found) 
 			//x.style.visibility="visible";
 			x.style.display="table-row";
@@ -46,11 +52,12 @@ function dosearchkey() {
   <div class="form-group">
     <label for="exampleFormControlInput1">Search:</label>
     <input type="text" 
-			onkeypress="dosearchkey();" 
-			onclick="dosearchkey();" 
-			onvaluechanged="dosearchkey();" 
+			oninput="dosearchkey();" 
+			onpaste="dosearchkey();" 
 			onkeydown="dosearchkey();" 
 			class="form-control" id="search_string" placeholder="">
+		<label for="showunlinked_cb">Show Unlinked</label>
+		<input id="showunlinked_cb" onclick="dosearchkey();" type="checkbox" />
   </div>
 	<table>
 			<thead>
@@ -65,7 +72,7 @@ function dosearchkey() {
 			</thead>
 			<tbody>
       {% for w in waivers %}
-	  <tr class="bodyrow">
+	  <tr class="bodyrow" {% if not w.Waiver.member_id %} unlinked=1 {% else %} style="display:none" {% endif %} >
 			<td>
 							{% if not w.Waiver.member_id %}
 				<a  class="btn btn-info" href="javascript:doLinkButton({{ w.Waiver.id }},'{{ w.Waiver.firstname }} {{ w.Waiver.lastname }} <br />{{ w.Waiver.email }}');">
@@ -84,7 +91,7 @@ function dosearchkey() {
       {% endfor %}
 		</tbody>
 	</table>
-	<td><a href="?showall=1">Show More</a></td>
+	{# <td><a href="?showall=1">Show More</a></td> #}
 </div> {# body div ?? #}
 
 		{# UNLINK MODAL #}
