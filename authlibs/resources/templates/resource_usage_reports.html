@@ -4,6 +4,7 @@
 {% block head %}
   <link href="{{ url_for('static', filename='css/bootstrap-datepicker3.min.css') }}" rel="stylesheet">
 	<script type="text/javascript" src="{{ url_for("static",filename="js/bootstrap-datepicker.min.js") }}"></script>
+	<script type="text/javascript" src="{{ url_for("static",filename="js/sorttable.js") }}"></script>
 {% endblock %}
 {% block body %}
 <div class="body"><h3>{{ rec.name }} Usage Reports</h3></div>
@@ -42,23 +43,29 @@
 	<div class="container">
     {% if records %}
 			<button class="btn btn-lg btn-light glyphicon glyphicon-download"  onclick="location.href='{{ meta.csvurl }}'"></button>
-      <table class="table table-sm">
-        <tr>
+      <table id="reportTable" class="table table-sm">
+        <thead>
           {% for f in fields %}
             <th
                 {% if f['type'] == 'num' %}style="text-align:right"{% endif %}
-            >{{ f['name'] }}</th>
+            >{{ f['name'] }}
+            <span class="glyphicon glyphicon-sort"></span>
+          </th>
           {% endfor %} {# fields #}
-        </tr>
-        {% for r in records %}
-          <tr>
-            {% for f in fields %}
-              <td
-                {% if f['type'] == 'num' %}style="text-align:right"{% endif %}
-              >{{ r[f['name']] }}</td>
-            {% endfor %} {# fields #}
-          </tr>
-        {% endfor %} {# records #}
+        </thead>
+        <tbody>
+          {% for r in records %}
+            <tr>
+              {% for f in fields %}
+                {% set ff = f['name']+"_secs" %}
+                <td
+                  {% if f['type'] == 'num' %}style="text-align:right"{% endif %}
+                  {% if r[ff]  %}sortvalue={{ r[ff] }}{% endif %}
+                >{{ r[f['name']] }}</td>
+              {% endfor %} {# fields #}
+            </tr>
+          {% endfor %} {# records #}
+        </tbody>
       </table>
     {% endif %} {# records #}
   </div>
@@ -76,5 +83,6 @@
 				todayHighlight: true
 		});
 	});
+var sortTable = new SortableTable(document.getElementById('reportTable'), 100);
 </script>
 {% endblock %}

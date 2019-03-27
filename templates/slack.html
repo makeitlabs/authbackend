@@ -30,10 +30,11 @@ function dosearchkey() {
 			if (mbs[2].innerHTML.toLowerCase().includes(searchstr)) found=true;
 		}
 		if (found) 
-			x.style.visibility="visible";
+			//x.style.visibility="visible";
+			x.style.display="table-row";
 		else
-			x.style.visibility="collapse";
-		
+			//x.style.visibility="collapse";
+			x.style.display="none";
 	}
 }
 </script>
@@ -46,6 +47,7 @@ function dosearchkey() {
 			onkeypress="dosearchkey();" 
 			onclick="dosearchkey();" 
 			onvaluechanged="dosearchkey();" 
+			onkeydown="dosearchkey();" 
 			class="form-control" id="search_string" placeholder="">
   </div>
 	<div class="sectionhead">Disconnected Slack Accounts</div>
