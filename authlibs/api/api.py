@@ -342,6 +342,7 @@ def api_v1_authorize():
       db.session.add(ac)
     
   db.session.commit()
+  authutil.kick_backend()
   return json_dump({'result':'success'}), 200, {'Content-type': 'application/json'}
 
 @blueprint.route('/v1/mac/<string:mac>/config', methods=['GET'])
