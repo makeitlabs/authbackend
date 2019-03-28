@@ -58,7 +58,7 @@
       </thead>
 			<tbody>
       {% for m in members %}
-				<tr>
+				<tr class="brad-table-row-hover">
 					<td>
 						{% if m.Member.member %}
 										<a href="{{ url_for("members.member_show",id=m.Member.member) }}">
