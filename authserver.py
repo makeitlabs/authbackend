@@ -389,12 +389,19 @@ def create_routes():
 
         return redirect(url_for('index'))
 
+    @app.after_request
+    def remove_if_invalid(response):
+      if "__invalidate__" in session:
+        response.delete_cookie(app.session_cookie_name)
+      return response
+
     @app.route('/logout')
     @login_required
     def logout():
        """Seriously? What do you think logout() does?"""
        logout_user()
        session.clear()
+       session["__invalidate__"] = True
        flash("Thanks for visiting, you've been logged out.")
        return redirect(url_for('login'))
 
