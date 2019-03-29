@@ -127,3 +127,19 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#007db9e8', e
 .brad-table-row-hover:hover  {
 	background-color:#ffff80
 }
+
+.greenbar-table  tr:nth-child(even)  {
+	background-color:#ffffff
+}
+
+.greenbar-table  tr:nth-child(odd)  {
+	background-color:#e0ffe0
+}
+
+.greenbar-table  tr:hover  {
+	background-color:#ffff80
+}
+.greenbar-table  thead th  {
+	background-color:#80e080
+}
+
