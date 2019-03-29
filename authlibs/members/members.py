@@ -485,6 +485,7 @@ def unassociate():
 		mem=Member.query.filter(Member.id==mid).one()
 		mem.membership=None
 		sub=Subscription.query.filter(Subscription.member_id==mid).one()
+		authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_PAYMENT_UNLINKED.id,member_id=mid,doneby=current_user.id,commit=0)
 		sub.member_id=None
 		db.session.commit()
 		flash ("Subscription unassociated","success")
