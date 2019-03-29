@@ -411,7 +411,10 @@ def create_routes():
        request.set_cookie(app.session_cookie_name,"")
        return redirect("https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue="+rd)
        """
-       resp = make_response(redirect("https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue="+rd))
+
+       # HARD logout (log out of google)
+       #resp = make_response(redirect("https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue="+rd))
+       resp = make_response(redirect(url_for("login")))
        resp.set_cookie(app.session_cookie_name, '')
        resp.set_cookie("remember_token", '')
        return resp
