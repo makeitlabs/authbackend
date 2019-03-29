@@ -80,6 +80,8 @@ def member_edit(id):
 
 		if request.method=="POST" and 'Unlink' in  request.form:
 				s = Subscription.query.filter(Subscription.membership==request.form['membership']).one()
+				if s.member_id:
+					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_PAYMENT_UNLINKED.id,member_id=s.member_id,doneby=current_user.id,commit=0)
 				s.member_id = None
 				db.session.commit()
 				btn = '''<form method="POST">
@@ -97,6 +99,7 @@ def member_edit(id):
 		elif request.method=="POST" and 'DeleteMember' in  request.form:
 				if current_user.privs("Finance"):
 					flash (Markup("WARNING: Slack and GMail accounts have <b>not</b> been deleted"),"danger")
+					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_RECORD_DELETED.id,member_id=mid,doneby=current_user.id,commit=0)
 					m=Member.query.filter(Member.id==mid).one()
 					for s in Subscription.query.filter(Subscription.member_id == m.id).all():
 						s.member_id=None
@@ -250,7 +253,7 @@ def link_waiver(id):
 	if 'LinkWaiver' in request.form:
 		w = Waiver.query.filter(Waiver.id == request.form['waiverid']).one()
 		w.member_id = member.id
-		authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,doneby=current_user.id,member_id=member.id,commit=0)
+		authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_LINKED.id,doneby=current_user.id,member_id=member.id,commit=0)
 		if member.access_enabled == 0:
 			if ((member.access_reason is None) or (member.access_reason == "")):
 				member.access_enabled=1
@@ -458,7 +461,7 @@ def member_tags(id):
 @login_required
 def update_backends():
 		authutil.kick_backend()
-		flash("Backend Update Request Send")
+		flash("Backend Update Request Sent")
 		return redirect(url_for('index'))
 
 def add_member_tag(mid,ntag,tag_type,tag_name):

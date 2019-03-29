@@ -50,6 +50,8 @@ def payments_missing(assign=None):
     """Find subscriptions with no members"""
     if 'Undo' in request.form:
         s = Subscription.query.filter(Subscription.membership == request.form['membership']).one()
+        if s.member_id:
+          authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_PAYMENT_UNLINKED.id,message="Undo",member_id=s.member_id,doneby=current_user.id,commit=0)
         s.member_id = None
         authutil.kick_backend()
         db.session.commit()
@@ -64,6 +66,7 @@ def payments_missing(assign=None):
             m.membership=request.form['membership']
             s = Subscription.query.filter(Subscription.membership == request.form['membership']).one()
             s.member_id = db.session.query(Member.id).filter(Member.member == request.form['member'])
+            authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_PAYMENT_LINKED.id,member_id=m.id,doneby=current_user.id,commit=0)
             db.session.commit()
             btn = '<form method="POST"><input type="hidden" name="membership" value="%s" /><input type="submit" value="Undo" name="Undo" /></form>' % request.form['membership']
             authutil.kick_backend()

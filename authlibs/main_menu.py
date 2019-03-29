@@ -24,6 +24,12 @@ def get_raw_menu():
             {
                     'checkfunc':rm_check,
                     'privs':'RATT',
+                    'url':url_for('members.update_backends'),
+                    'title':"Backend Update ACLs"
+            },
+            {
+                    'checkfunc':rm_check,
+                    'privs':'RATT',
                     'url':url_for('resources.resources'),
                     'img':url_for("static",filename="building.png"),
                     'alt':"View, Create or Modify Resources Classifactions",
@@ -67,7 +73,7 @@ def get_raw_menu():
             },
             {
                     'privs':'Useredit',
-                    'url':url_for('members.member_report'),
+                      'url':url_for('members.member_report'),
                     'title':"Member Reports"
             },
             {
@@ -133,10 +139,10 @@ def main_menu():
 def index_page():
   result = []
   for m in get_raw_menu():
+    if 'importance' not in m: m['importance']="zzz"
     if 'checkfunc' in m and m['checkfunc'](current_user):
         result.append(m)
     elif 'privs' not in m:
-        if 'importance' not in m: m['importance']="zzz"
         result.append(m)
     else:
         if current_user.privs(m['privs']):
