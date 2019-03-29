@@ -405,7 +405,8 @@ def create_routes():
        logout_user()
        session.clear()
        session["__invalidate__"] = True
-       flash("Thanks for visiting, you've been logged out.")
+       if current_app.config['globalConfig'].DefaultLogin.lower() == "local":
+         flash("You've been logged out.")
        rd = request.base_url.replace('logout','login')
        """
        request.set_cookie(app.session_cookie_name,"")
