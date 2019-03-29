@@ -394,6 +394,7 @@ def create_routes():
     def logout():
        """Seriously? What do you think logout() does?"""
        logout_user()
+       session.clear()
        flash("Thanks for visiting, you've been logged out.")
        return redirect(url_for('login'))
 
