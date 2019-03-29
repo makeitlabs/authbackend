@@ -403,7 +403,9 @@ def create_routes():
        session.clear()
        session["__invalidate__"] = True
        flash("Thanks for visiting, you've been logged out.")
-       return redirect(url_for('login'))
+       rd = request.base_url.replace('logout','login')
+       return redirect("https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue="+rd)
+       #return redirect(url_for('login'))
 
     @app.route("/index")
     @app.route('/')
