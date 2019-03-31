@@ -77,6 +77,11 @@ def get_raw_menu():
                     'title':"Member Reports"
             },
             {
+                    'privs':'Logout (Soft)',
+                      'url':url_for('logout_soft'),
+                    'title':"Logout (Soft)"
+            },
+            {
                     'privs':'Finance',
                     'url':url_for('reports.blacklist'),
                     'alt':"Ignored payments",
