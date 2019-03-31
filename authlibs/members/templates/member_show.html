@@ -70,10 +70,13 @@
 	<div class="col-sm-2">
 			Affined to membership
 	</div>
-	<div class="col-sm-4">
+	<div class="col-sm-9">
 			{{ rec.membership }}
 	</div>
-	<div class="col-sm-5">
+	<div class="col-sm-2">
+			Subscription:
+	</div>
+	<div class="col-sm-9">
 			<a href="{{ url_for("payments.payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a>
 	</div>
 	{% if current_user.privs("Finance") %}
