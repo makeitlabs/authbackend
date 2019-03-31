@@ -1,4 +1,4 @@
-# vim:shiftwidth=2:expandtab
+# vim:tabstop=2:shiftwidth=2:expandtab
 
 from ..templateCommon import *
 
@@ -411,20 +411,20 @@ def api_v1_members():
 @blueprint.route('/v1/members/<string:id>', methods=['GET'])
 @api_only
 def api_v1_showmember(id):
-		"""(API) Return details about a member, currently JSON only"""
-		mid = safestr(id)
-		#outformat = request.args.get('output','json')
-                outformat = 'json'
-                m = Member.query.filter(Member.member==mid).one_or_none()
-                if not m:
-				return "Does not exist", 404, {'Content-type': 'application/json'}
-                output = {'member': m.member,
-                        'plan': m.plan,
-                        'alt_email': m.plan,
-                        'firstname': m.firstname,
-                        'lastname': m.lastname,
-                        'phone': m.phone}
-		return json_dump(output), 200, {'Content-type': 'application/json'}
+  """(API) Return details about a member, currently JSON only"""
+  mid = safestr(id)
+  #outformat = request.args.get('output','json')
+  outformat = 'json'
+  m = Member.query.filter(Member.member==mid).one_or_none()
+  if not m:
+    return "Does not exist", 404, {'Content-type': 'application/json'}
+  output = {'member': m.member,
+    'plan': m.plan,
+    'alt_email': m.plan,
+    'firstname': m.firstname,
+    'lastname': m.lastname,
+    'phone': m.phone}
+  return json_dump(output), 200, {'Content-type': 'application/json'}
 
 @blueprint.route('/v1/memberprivs/<string:id>', methods=['GET'])
 @api_only

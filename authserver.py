@@ -21,7 +21,7 @@ TODO:
 
 import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
-	abort, render_template, flash, Response, Markup
+	abort, render_template, flash, Response, Markup, make_response
 # NEwer login functionality
 from werkzeug.contrib.fixers import ProxyFix
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
@@ -389,13 +389,38 @@ def create_routes():
 
         return redirect(url_for('index'))
 
+    @app.after_request
+    def remove_if_invalid(response):
+      if "__invalidate__" in session:
+        response.delete_cookie(app.session_cookie_name)
+        response.delete_cookie("remeber_token")
+      return response
+
     @app.route('/logout')
     @login_required
     def logout():
        """Seriously? What do you think logout() does?"""
+       #print session
+       #print dir(session)
        logout_user()
-       flash("Thanks for visiting, you've been logged out.")
-       return redirect(url_for('login'))
+       session.clear()
+       session["__invalidate__"] = True
+       if current_app.config['globalConfig'].DefaultLogin.lower() == "local":
+         flash("You've been logged out.")
+       rd = request.base_url.replace('logout','login')
+       """
+       request.set_cookie(app.session_cookie_name,"")
+       return redirect("https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue="+rd)
+       """
+
+       # HARD logout (log out of google oauth)
+       resp = make_response(redirect("https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue="+rd))
+       # SOFT logout (log out of us)
+       #resp = make_response(redirect(url_for("login")))
+       resp.set_cookie(app.session_cookie_name, '')
+       resp.set_cookie("remember_token", '')
+       return resp
+       #return redirect(url_for('login'))
 
     @app.route("/index")
     @app.route('/')
