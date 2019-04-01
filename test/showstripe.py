@@ -29,10 +29,11 @@ parser=argparse.ArgumentParser()
 parser.add_argument("-d","--download",help="Download Stripe data",action="store_true")
 parser.add_argument("-l","--long",help="Log format",action="store_true")
 parser.add_argument("--plan",help="Show Plan Data",action="store_true")
+parser.add_argument("--csv",help="Show Plan Data",action="store_true")
 parser.add_argument("--period",help="Show Current Period",action="store_true")
 parser.add_argument("--id",help="Show Identifiers",action="store_true")
 parser.add_argument("--metadata",help="Show Sub Metadata",action="store_true")
-(args,extras) = parser.parse_known_args(sys.argv[1:])
+args= parser.parse_args()
 
 
 if args.download:
@@ -40,11 +41,12 @@ if args.download:
 
 j = json.load(open("/tmp/stripe_output.json"))
 # active True None 1552616181 None None
+first=True
 for x in j:
 	#print x['status'], x['plan']['active'], x['ended_at'], x['created'], x['canceled_at'], x['cancel_at']
 	if 'plan' in x and x['plan'] and 'active' in x['plan']:
 		datetime.utcfromtimestamp(x['current_period_start']).strftime('%Y-%m-%d')
-		if x['status'] not in ():
+		if x['status'] not in (): # Weird unused filter
 			pa = {
 				'customer':str(x['customer']),
 				'id':str(x['id']),
@@ -71,8 +73,8 @@ for x in j:
 				'period_end_full':"-" if not x['current_period_end'] else datetime.utcfromtimestamp(x['current_period_end']).strftime('%Y-%m-%d %H:%M %P'),
 				'period_start_raw':x['current_period_start'],
 				'period_end_raw':x['current_period_end'],
-				'email':x['metadata']['emails'] if 'emails' in x['metadata'] else "--",
-				'name':x['metadata']['names'] if 'names' in x['metadata'] else "--",
+				'email':x['metadata']['emails'].strip() if 'emails' in x['metadata'] else "--",
+				'name':x['metadata']['names'].strip() if 'names' in x['metadata'] else "--",
 				'metadata':x['metadata'] 
 			}
 			if args.long:
@@ -94,8 +96,22 @@ plan id:          {plan_id}
 """.format(**pa)
 
 
+			elif args.csv:
+				out=[]
+				if first:
+					for v in sorted(pa):
+						out += [v]
+					print ",".join(out)
+					out=[]
+					first=False
+				for v in sorted(pa):
+					out += [str(x[v]) if v in x else ""]
+				print ",".join(out)
 			else:
-				fmtstr= "{status:10s} {active:6} end: {ended_at:10s}  cr: {created:10s}  cncld: {canceled_at:10s}  cncl: {cancel_at:10s} cape:{cape:1s}  {email:20.20s} {name:20.20s}"
+				fmtstr= "{status:10s} {active:6} end: {ended_at:10s}  cr: {created:10s}  cncld: {canceled_at:10s}  cncl: {cancel_at:10s} cape:{cape:1s}"
+				fmtstr+=" {email:20.20s} "
+				fmtstr+=" {name:20.20s}"
+				#fmtstr += " raw: {created_raw}"
 				if args.plan: fmtstr += " {plan_id:5.5s}"
 				if args.plan: fmtstr += " {plan_name:10.10s}"
 				if args.period: fmtstr += " ps: {period_start:10s}  pe: {period_end:10s}"
