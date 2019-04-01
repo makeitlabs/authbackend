@@ -134,8 +134,8 @@
 	<div class="col-sm-2">
 			Updated
 	</div>
-	<div class="col-sm-6">
-			{{ subscription.updated_date }}
+	<div class="col-sm-8">
+			{# subscription.updated_date #} {{ meta.sub_updated_local }}
 	</div>
 </div>
 		 
@@ -144,8 +144,8 @@
 	<div class="col-sm-2">
 			Created
 	</div>
-	<div class="col-sm-6">
-			{{ subscription.created_date }}
+	<div class="col-sm-8">
+			{# subscription.created_date #} {{ meta.sub_created_local }}
 	</div>
 </div>
 	   
@@ -153,12 +153,12 @@
 	<div class="col-sm-2">
 			Expires
 	</div>
-	<div class="col-sm-2">
+	<div class="col-sm-8">
 			<div 
 			{% if meta.is_expired %}
 				class="alert-warning"
 			{% endif %}
-			> {{ subscription.expires_date }}
+			> {# subscription.expires_date #} {{ meta.sub_expires_local }}
 			</div>
 	</div>
 </div>

@@ -123,15 +123,10 @@ def chargeFee(module,memberid,name,group,description,amount):
     else:
         raise RuntimeError('Invalid payment module')
 
-def _isFutureDate(datestr):
-   try:
-      d = datetime.datetime.strptime(datestr,"%Y-%m-%dT%H:%M:%SZ")
-      if (d > datetime.datetime.today()):
+def _isFutureDate(d):
+      if (d > datetime.datetime.utcnow()):
          return True
       else:
-         return False
-   except:
-         logger.error("Date parsing exception for date %s" % datestr)
          return False
 
 def _selfTest():

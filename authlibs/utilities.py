@@ -42,7 +42,7 @@ def rfid_validate(ntag):
 
 def _utcTimestampToDatetime(ts):
     """Convert a UTC timestamp to my local time"""
-    return datetime.fromtimestamp(ts).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.utcfromtimestamp(ts).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 def _safeemail(unsafe_str):
     """Sanitize email addresses strings used in some oeprations"""

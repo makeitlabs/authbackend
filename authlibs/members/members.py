@@ -187,19 +187,13 @@ def member_show(id):
  
 	 if res:
 		 (member,subscription) = res
-		 """
-		 print "Created",subscription.created_date,type(subscription.created_date)
-		 print "Expires",subscription.expires_date,type(subscription.expires_date)
-		 print "Updated",subscription.updated_date,type(subscription.updated_date)
+
 		 utc = dateutil.tz.gettz('UTC')
 		 eastern = dateutil.tz.gettz('US/Eastern')
-		 sub_updated_date=subscription.updated_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
-		 sub_created_date=subscription.created_date.replace(tzinfo=eastern).astimezone(utc).replace(tzinfo=None)
-		 sub_expires_date=subscription.expires_date.replace(tzinfo=eastern).astimezone(utc).replace(tzinfo=None)
-		 print "Sub Updated",sub_updated_date
-		 print "Sub Created",sub_created_date
-		 print "Sub Created",sub_expires_date
-		 """
+		 meta['sub_updated_local']=subscription.updated_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None).strftime("%a, %b %d, %Y %I:%M %p (Local)")
+		 meta['sub_created_local']=subscription.created_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None).strftime("%a, %b %d, %Y %I:%M %p (Local)")
+		 meta['sub_expires_local']=subscription.expires_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None).strftime("%a, %b %d, %Y %I:%M %p (Local)")
+
 		 (warning,allowed,dooraccess)=getDoorAccess(member.id)
 		 access=db.session.query(Resource).outerjoin(AccessByMember).outerjoin(Member)
 		 access = access.filter(Member.id == member.id)

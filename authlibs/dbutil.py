@@ -134,9 +134,9 @@ def _addSubscriptionData(subs,paytype):
                     # skip if old was active, but new is inactive
                     print "SKIPPING INACTIVE record for ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires']
                     continue 
-                elif s.expires_date < authutil.parse_datetime(sub['expires']):
+                elif s.expires_date < sub['expires']:
                     print "REPLACING NEWER EXPIRE records ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires'],sub['active'],"VS Created",s.created_date,"expires",s.expires_date,s.active
-                elif s.created_date > authutil.parse_datetime(sub['created']):
+                elif s.created_date > sub['created']:
                     #print "Old",s.created_date
                     #print "New",authutil.parse_datetime(sub['created'])
                     print "SKIPPING older records ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires'],sub['active'],"VS Created",s.created_date,"expires",s.expires_date,s.active
@@ -153,14 +153,14 @@ def _addSubscriptionData(subs,paytype):
             s.email = sub['email']
             s.plan = sub['plantype']
             s.rate_plan = sub['planname']
-            s.expires_date = authutil.parse_datetime(sub['expires'])
-            s.created_date = authutil.parse_datetime(sub['created'])
-            s.updated_date = authutil.parse_datetime(sub['updatedon'])
+            s.expires_date = sub['expires']
+            s.created_date = sub['created']
+            s.updated_date = sub['updatedon']
             s.membership = sub['membership']
-            s.checked_date = datetime.now()
+            s.checked_date = datetime.utcnow()
             s.active = sub['active']
             users.append((sub['name'],sub['active'],sub['email'],paytype,sub['plantype'],sub['customerid'],sub['subid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
-            print "ADDING record for",sub['email'],sub['name']
+            print "ADDING record for",sub['email'],sub['name'],"CREATED",s.created_date,"UPDATED",s.updated_date,"EXPIRES",s.expires_date
     #db.session.commit() 
 
 
