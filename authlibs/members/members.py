@@ -518,6 +518,7 @@ def member_tagdelete(tag_ident):
                 db.session.add(Logs(member_id=mid,event_type=eventtypes.RATTBE_LOGEVENT_MEMBER_TAG_UNASSIGN.id,doneby=current_user.id,message=t.longhash))
                 db.session.delete(t)
                 db.session.commit()
+                authutil.kick_backend()
                 flash("Tag deleted","success")
                 return redirect(url_for("members.member_tagadd",id=mid))
 
