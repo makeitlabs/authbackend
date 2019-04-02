@@ -200,7 +200,7 @@ def api_slack_open(tool,slackid):
   else:
     q=Tool.query.filter(((Tool.name.ilike(tool)) | (Tool.short.ilike(tool))))
     q = q.join(Resource,Tool.resource_id == Resource.id).add_column(Resource.description)
-    q = q.join(Node,Node.id == Tool.node_id).add_column(Node.name)
+    q = q.join(Node,Node.id == Tool.node_id).add_column(Node.mac)
     q = q.outerjoin(AccessByMember,((AccessByMember.resource_id == Resource.id) & (AccessByMember.member_id == r[0].id))).add_column(AccessByMember.level)
     q = q.one_or_none()
 

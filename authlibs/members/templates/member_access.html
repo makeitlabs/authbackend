@@ -85,12 +85,23 @@ vim:tabstop=2:expandtab:shiftwidth=2
 					<input type="hidden" name="orgrole_{{ r.name }}" value="{{ 'on' if (r.id) else 'off' }}" />
 			</div>
 		{% endfor %}
+    {% if rec.password %}
+			<div class="form-row">
+				<div class="form-col col-sm-2">
+        <b>Local GUI login enabled</b>
+        </div>
+				<div class="form-col col-sm-8">
+					<label for="revoke_local_login">Disable Local GUI Access:</label>
+					<input type="checkbox" id="revoke_local_login" name="revoke_local_login" />
+        </div>
+      </div>
+    {% endif %}
+     <a class="btn btn-outline-secondary" data-toggle="collapse" href="#changePWcollapse" role="button" aria-expanded="false" aria-controls="changePWcollapse">Local GUI Password</a>
 	 </div>
 	 <hr />
 	 {% endif %}
 
 	 {% if current_user.privs("Useredit") %}
-     <a class="btn btn-primary" data-toggle="collapse" href="#changePWcollapse" role="button" aria-expanded="false" aria-controls="changePWcollapse">Local GUI Password</a>
   <div class="my-5 collapse multi-collapse" id="changePWcollapse">
      <h3>Change Local RATT GUI Password</h3>
      <div class="container">
@@ -117,7 +128,7 @@ vim:tabstop=2:expandtab:shiftwidth=2
 	 {% endif %}
 
   {% if allowsave %}
-	<input type=submit value="Save Changes"/>
+	<input type=submit class="btn btn-primary" value="Save Changes"/>
   {% endif %}
 	 <hr />
 	</form>
