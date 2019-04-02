@@ -8,6 +8,7 @@ import accesslib
 def get_raw_menu():
     return [
             {
+                    'checkfunc':rm_check,
                     'url':url_for('authorize.authorize'),
                     'img':url_for("static",filename="menu_key.png"),
                     'title':"Authorize Members",
@@ -77,7 +78,6 @@ def get_raw_menu():
                     'title':"Member Reports"
             },
             {
-                    'privs':'Logout (Soft)',
                       'url':url_for('logout_soft'),
                     'title':"Logout (Soft)"
             },
@@ -125,32 +125,34 @@ def get_raw_menu():
     ]
 
 def rm_check(user):
-  if user.privs("HeadRM"): return True
   if accesslib.user_is_authorizor(user,level=2): return True
   return False
 
 def main_menu():
   result = []
   for m in get_raw_menu():
+    allow = False
     if 'checkfunc' in m and m['checkfunc'](current_user):
-        result.append(m)
-    elif 'privs' not in m:
-        result.append(m)
-    else:
-        if current_user.privs(m['privs']):
-            result.append(m)
+      allow = True
+    if 'privs' in m and  current_user.privs(m['privs']):
+      allow = True
+    if 'privs' not in m and 'checkfunc' not in m:
+      allow = True
+    if allow:
+      result.append(m)
   return sorted(result,key=lambda x:x['title'])
 
 def index_page():
   result = []
   for m in get_raw_menu():
+    allow = False
     if 'importance' not in m: m['importance']="zzz"
     if 'checkfunc' in m and m['checkfunc'](current_user):
-        result.append(m)
-    elif 'privs' not in m:
-        result.append(m)
-    else:
-        if current_user.privs(m['privs']):
-            if 'importance' not in m: m['importance']="zzz"
-            result.append(m)
+      allow = True
+    elif 'privs' in m and current_user.privs(m['privs']):
+      allow = True
+    if 'privs' not in m and 'checkfunc' not in m:
+      allow = True
+    if allow:
+      result.append(m)
   return sorted(result,key=lambda x:(str(x["importance"])+"-"+x['title']))
