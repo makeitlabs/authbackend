@@ -33,6 +33,7 @@ parser.add_argument("--csv",help="Show Plan Data",action="store_true")
 parser.add_argument("--period",help="Show Current Period",action="store_true")
 parser.add_argument("--id",help="Show Identifiers",action="store_true")
 parser.add_argument("--metadata",help="Show Sub Metadata",action="store_true")
+parser.add_argument("--custom",help="Custom format")
 args= parser.parse_args()
 
 
@@ -101,21 +102,24 @@ plan id:          {plan_id}
 				if first:
 					for v in sorted(pa):
 						out += [v]
-					print ",".join(out)
+					print ",".join(["\""+xx+"\"" for xx in out])
 					out=[]
 					first=False
 				for v in sorted(pa):
-					out += [str(x[v]) if v in x else ""]
-				print ",".join(out)
+					out += [str(pa[v]) if (v in pa and pa[v]) else ""]
+				print ",".join(["\""+v.replace('"','\\"')+"\"" for v in out])
 			else:
-				fmtstr= "{status:10s} {active:6} end: {ended_at:10s}  cr: {created:10s}  cncld: {canceled_at:10s}  cncl: {cancel_at:10s} cape:{cape:1s}"
-				fmtstr+=" {email:20.20s} "
-				fmtstr+=" {name:20.20s}"
-				#fmtstr += " raw: {created_raw}"
-				if args.plan: fmtstr += " {plan_id:5.5s}"
-				if args.plan: fmtstr += " {plan_name:10.10s}"
-				if args.period: fmtstr += " ps: {period_start:10s}  pe: {period_end:10s}"
-				if args.id: fmtstr += " cust: {customer:20.20s}  id: {id:20.20s}"
-				if args.metadata: fmtstr += " meta: {metadata:20.20s}"
+				if args.custom:
+					fmtstr = args.custom
+				else:
+					fmtstr= "{status:10s} {active:6} end: {ended_at:10s}  cr: {created:10s}  cncld: {canceled_at:10s}  cncl: {cancel_at:10s} cape:{cape:1s}"
+					fmtstr+=" {email:20.20s} "
+					fmtstr+=" {name:20.20s}"
+					#fmtstr += " raw: {created_raw}"
+					if args.plan: fmtstr += " {plan_id:5.5s}"
+					if args.plan: fmtstr += " {plan_name:10.10s}"
+					if args.period: fmtstr += " ps: {period_start:10s}  pe: {period_end:10s}"
+					if args.id: fmtstr += " cust: {customer:20.20s}  id: {id:20.20s}"
+					if args.metadata: fmtstr += " meta: {metadata:20.20s}"
 				print fmtstr.format(**pa)
 
