@@ -424,7 +424,9 @@ def member_setaccess(id):
 								elif acc and newcheck == False and p>=myPerms:
 										flash("You aren't authorized to disable %s privs on %s" % (alstr,r),'warning')
 
-								if (p>=myPerms):
+								if acc.level == p:
+										pass # No change
+								elif (p>=myPerms):
 										flash("You aren't authorized to grant %s privs on %s" % (alstr,r),'warning')
 								elif (acc.level >= myPerms):
 										flash("You aren't authorized to demote %s privs on %s" % (alstr,r),'warning')
