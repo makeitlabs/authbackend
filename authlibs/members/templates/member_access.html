@@ -43,17 +43,17 @@ vim:tabstop=2:expandtab:shiftwidth=2
 
 				<option name="Trainer" value="1" 
 				{{ 'selected' if (a.level == 1) else '' }}
-			  	{{ 'disabled' if (a.myPerms <= 1) else '' }}
+			  	{{ 'disabled' if ((a.myPerms <= 1) and (a.level != 1))  else '' }}
 				/>Trainer</option>
 
 				<option name="ARM" value="2" 
 				{{ 'selected' if (a.level == 2) else '' }}
-			  	{{ 'disabled' if (a.myPerms <= 2) else '' }}
+			  	{{ 'disabled' if ((a.myPerms <= 2) and (a.level != 2))  else '' }}
 				/>Ass't RM</option>
 
 				<option name="RM" value="3" 
 				{{ 'selected' if (a.level == 3) else '' }}
-			  	{{ 'disabled' if (a.myPerms <= 3) else '' }}
+			  	{{ 'disabled' if ((a.myPerms <= 3) and (a.level != 3))  else '' }}
 				/>RM</option>
 			</select>
 			</td>
