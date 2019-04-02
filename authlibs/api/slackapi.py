@@ -41,7 +41,7 @@ def lock(cmd,member):
   r.lockout=reasonstr
   authutil.log(eventtypes.RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED.id,tool_id=r.id,message=r.lockout,doneby=member.id,commit=0)
   node = Node.query.filter(Node.id == r.node_id).one()
-  authutil.send_tool_lockout(r.name,node.name,r.lockout)
+  authutil.send_tool_lockout(r.name,node.mac,r.lockout)
   db.session.commit()
   return ":lock: %s now locked." % r.name
 
@@ -53,7 +53,7 @@ def unlock(cmd,member):
   r.lockout=None
   authutil.log(eventtypes.RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED.id,tool_id=r.id,message=r.lockout,doneby=member.id,commit=0)
   node = Node.query.filter(Node.id == r.node_id).one()
-  authutil.send_tool_remove_lockout(r.name,node.name)
+  authutil.send_tool_remove_lockout(r.name,node.mac)
   db.session.commit()
   return ":unlock: %s now unlocked." % r.name
 

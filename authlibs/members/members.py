@@ -321,6 +321,10 @@ def member_setaccess(id):
 		if ((member.id == current_user.id) and not (current_user.privs('Admin'))):
 				flash("You can't change your own access",'warning')
 				return redirect(url_for('members.member_editaccess',id=mid))
+		if ('revoke_local_login' in request.form) and request.form['revoke_local_login']=='on':
+				member.password=None
+				flash("Local GUI Access Revoked")
+			
 		if (('password1' in request.form and 'password2' in request.form) and
 				(request.form['password1'] != "") and 
 				current_user.privs('Admin')):
