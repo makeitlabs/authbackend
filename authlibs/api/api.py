@@ -532,6 +532,54 @@ def api_cron_nightly():
   logger.info("Nightly CRON finished")
   return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
 
+@blueprint.route('/v1/last_tool_event', methods=['GET'])
+@api_only
+def api_toollog():
+  evts = eventtypes.get_events()
+  findevents = (
+    eventtypes.RATTBE_LOGEVENT_TOOL_ACTIVE.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_INACTIVE.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_POWERON.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_POWEROFF.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_LOGIN_COMBO.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_LOGIN.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_LOGOUT.id)
+  result={}
+  t = Logs.query.filter(Logs.tool_id is not None)
+  t = Logs.query.filter(Logs.event_type .in_(findevents))
+  t = t.order_by(Logs.time_reported.desc())
+  t = t.group_by(Logs.tool_id)
+  tools = t.all()
+
+  users = []
+  for x in tools:
+    users.append(x.member_id)
+
+  names={}
+  for tn in Tool.query.all():
+    names[tn.id] = tn.name
+
+  members={}
+  for m in Member.query.filter(Member.id.in_(users)).all():
+    if m.nickname:
+      members[m.id] = m.nickname+" "+m.lastname
+    else:
+      members[m.id] = m.firstname+" "+m.lastname
+
+  for t in tools:
+    result[t.tool_id] = {
+       'tool_id':t.tool_id,
+       'time_reported':t.time_reported.strftime("%Y-%m-%d %H:%M:%S"), 
+       'event_code':t.event_type, 
+       'event_text':evts[t.event_type] if t.event_type in evts else '', 
+       'tool_name': names[t.tool_id] if t.tool_id in names else '', 
+       'member_name':members[t.member_id] if t.member_id in members else ''
+  
+     }
+  return json_dump(result,200, {'Content-type': 'text/plain'},indent=2)
+
 #####
 ##
 ##  CLI handlers for API access
