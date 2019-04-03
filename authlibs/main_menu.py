@@ -78,7 +78,7 @@ def get_raw_menu():
                     'title':"Member Reports"
             },
             {
-                      'url':url_for('logout_soft'),
+                    'url':url_for('logout_soft'),
                     'title':"Logout (Soft)"
             },
             {
