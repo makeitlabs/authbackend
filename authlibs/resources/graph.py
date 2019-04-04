@@ -237,15 +237,65 @@ def weekCalendar(id):
 	for r in range(0,7):	
 		weekdays.append(dow[(startdate.weekday()+r)%7])
 
-	# print "START",startdate
-	# print "END",enddate
-	# print "MIN SPAN",(enddate-startdate).total_seconds()
+	startdate = startdate+datetime.timedelta(seconds=1)
+	#print "START",startdate
+	#print "END",enddate
+	#print "MIN SPAN",(enddate-startdate).total_seconds()
+	memberids=set()
+	usertimes={}
+	palettes = [
+	"#a7cee2",
+	"#2479b2",
+	"#b3df8d",
+	"#37a032",
+	"#f9999a",
+	"#e11424",
+	"#fcbe74",
+	"#fd7e1e",
+	"#c9b2d5",
+	"#6a3e98",
+	"#b0582d"]
 	for x in q.all():
+		print startdate," minus ",x.time," seconds ",((x.time-startdate).total_seconds())
+		#print "Delta ",((x.time-startdate))
+		#print "Minutes ",int(((x.time-startdate).total_seconds())/60)
+		#print "ENABLED SECS ",x.enabled
 		startmin = int(((x.time-startdate).total_seconds())/60)
-		endmin = startmin +x.enabled
-		usage.append({'member':x.memberid,'startmin':startmin,'endmin':endmin})
+		endmin = startmin +int(x.enabled/60)
+		#print "endmin",endmin
+		#print x.time
+		innertext="Member "+str(x.memberid)
+		memberids.add(x.memberid)
+		if x.memberid not in usertimes:
+			usertimes[x.memberid]=int(x.enabled)
+		else:
+			usertimes[x.memberid]+=int(x.enabled)
+		usage.append({'member':x.memberid,'startmin':startmin,'endmin':endmin,'text':innertext,'color':palettes[10]})
+
+	# Add Names
+	members = Member.query.filter(Member.id.in_(memberids)).all()
+	membernames = {}
+	for x in members:
+		if x.nickname:
+			membernames[x.id]=x.nickname +" "+x.lastname
+		else:
+			membernames[x.id]=x.firstname +" "+x.lastname
+	for u in usage:
+		if u['member'] in membernames:
+			u['text']=membernames[u['member']]
+
+
+	legend=[]
+	for (i,x) in enumerate(sorted(usertimes,key=lambda y:usertimes[y],reverse=True)[:9]):
+		#print x,usertimes[x]
+		legend.append({'name':membernames[x],'color':palettes[i]})
+		for u in usage:
+			if u['member'] == x: u['color'] = palettes[i]
+
 	fd = open(blueprint.static_folder+"/WeekUsage.svg")
-	result = json_dumps({"data":fd.read(),"usage":usage,"weekdays":weekdays})
+	#print json_dumps(usage,indent=2)
+	#print json_dumps(legend,indent=2)
+	result = json_dumps({"data":fd.read(),"usage":usage,"weekdays":weekdays,'legend':legend})
 	return	result,200
 
 def register_pages(app):
