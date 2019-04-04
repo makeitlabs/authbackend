@@ -256,7 +256,7 @@ def weekCalendar(id):
 	"#6a3e98",
 	"#b0582d"]
 	for x in q.all():
-		print startdate," minus ",x.time," seconds ",((x.time-startdate).total_seconds())
+		#print startdate," minus ",x.time," seconds ",((x.time-startdate).total_seconds())
 		#print "Delta ",((x.time-startdate))
 		#print "Minutes ",int(((x.time-startdate).total_seconds())/60)
 		#print "ENABLED SECS ",x.enabled
@@ -288,7 +288,10 @@ def weekCalendar(id):
 	legend=[]
 	for (i,x) in enumerate(sorted(usertimes,key=lambda y:usertimes[y],reverse=True)[:9]):
 		#print x,usertimes[x]
-		legend.append({'name':membernames[x],'color':palettes[i]})
+		if x in membernames:
+			legend.append({'name':membernames[x],'color':palettes[i]})
+		else:
+			legend.append({'name':"Member "+str(x),'color':palettes[i]})
 		for u in usage:
 			if u['member'] == x: u['color'] = palettes[i]
 
