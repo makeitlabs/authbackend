@@ -80,8 +80,8 @@ function calendarButton(button,url) {
 					var xoffset=22.5
 					var width=17.37;
 					var xscale=2;
-					var yscale=15.15; //??/
-					var yoffset=56;
+					var yscale=15.6; //??/
+					var yoffset=56.5;
 					var h= (u['endmin']-u['startmin'])/yscale;
 					var x = xoffset+((Math.floor(u['startmin']/1440))*width);
 					var y = ((u['startmin'] % 1440)/yscale)+yoffset;

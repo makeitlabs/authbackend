@@ -255,12 +255,15 @@ def weekCalendar(id):
 	"#c9b2d5",
 	"#6a3e98",
 	"#b0582d"]
+	eastern = dateutil.tz.gettz('US/Eastern')
+	utc = dateutil.tz.gettz('UTC')
 	for x in q.all():
 		#print startdate," minus ",x.time," seconds ",((x.time-startdate).total_seconds())
 		#print "Delta ",((x.time-startdate))
 		#print "Minutes ",int(((x.time-startdate).total_seconds())/60)
 		#print "ENABLED SECS ",x.enabled
-		startmin = int(((x.time-startdate).total_seconds())/60)
+		localstarttime = x.time.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
+		startmin = int(((localstarttime-startdate).total_seconds())/60)
 		endmin = startmin +int(x.enabled/60)
 		#print "endmin",endmin
 		#print x.time
@@ -270,7 +273,17 @@ def weekCalendar(id):
 			usertimes[x.memberid]=int(x.enabled)
 		else:
 			usertimes[x.memberid]+=int(x.enabled)
-		usage.append({'member':x.memberid,'startmin':startmin,'endmin':endmin,'text':innertext,'color':palettes[10]})
+		a1={'member':x.memberid,'startmin':startmin,'endmin':endmin,'text':innertext,'color':palettes[10]}
+		# Handle "midnight wrap - if so -split into two records
+		startday = startmin / (60*24)
+		endday = endmin / (60*24)
+		if startday != endday:
+			print "DAY WRAP",startday,endday
+			a1['endmin'] = (60*24)*endday
+			newdaystart = a1['endmin']+1
+			a2={'member':x.memberid,'startmin':newdaystart,'endmin':endmin,'text':innertext,'color':palettes[10]}
+			usage.append(a2)
+		usage.append(a1)
 
 	# Add Names
 	members = Member.query.filter(Member.id.in_(memberids)).all()
