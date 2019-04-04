@@ -274,11 +274,11 @@ def weekCalendar(id):
 		else:
 			usertimes[x.memberid]+=int(x.enabled)
 		a1={'member':x.memberid,'startmin':startmin,'endmin':endmin,'text':innertext,'color':palettes[10]}
+
 		# Handle "midnight wrap - if so -split into two records
 		startday = startmin / (60*24)
 		endday = endmin / (60*24)
 		if startday != endday:
-			print "DAY WRAP",startday,endday
 			a1['endmin'] = (60*24)*endday
 			newdaystart = a1['endmin']+1
 			a2={'member':x.memberid,'startmin':newdaystart,'endmin':endmin,'text':innertext,'color':palettes[10]}
