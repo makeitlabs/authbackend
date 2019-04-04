@@ -115,6 +115,7 @@ def tools_update(tool):
                     return redirect(url_for('tools.tools'))
 		r.name = (request.form['input_name'])
 		r.short = (request.form['input_short'])
+		r.displayname = (request.form['input_displayname'])
 
 		# None handling shouldn't beneeded with new global form template
 		if (request.form['input_node_id'] == "None"):

@@ -558,8 +558,11 @@ def api_toollog():
     users.append(x.member_id)
 
   names={}
+  nicknames={}
   for tn in Tool.query.all():
     names[tn.id] = tn.name
+    if tn.displayname:
+      nicknames[tn.id] = tn.displayname
 
   members={}
   for m in Member.query.filter(Member.id.in_(users)).all():
@@ -576,8 +579,11 @@ def api_toollog():
        'event_text':evts[t.event_type] if t.event_type in evts else '', 
        'tool_name': names[t.tool_id] if t.tool_id in names else '', 
        'member_name':members[t.member_id] if t.member_id in members else ''
-  
      }
+    if t.tool_id in nicknames:
+       result[t.tool_id]['tool_nickname'] = nicknames[t.tool_id]
+    else:
+       result[t.tool_id]['tool_name']
   return json_dump(result,200, {'Content-type': 'text/plain'},indent=2)
 
 #####
