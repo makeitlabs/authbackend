@@ -35,15 +35,21 @@
 
 <div class="container">
   <div class="form-row">
-    <div class="form-group col-md-6">
-			{{ input('name',"Tool Name",small="Typically: \"tooltype-specifc\", like \"door-front\" or \"laser-rabbit\"") }}
+    <div class="form-group col-md-4">
+			{{ input('name',"Tool Name",small="Unique ID. Form: {type}-{specifc}, like \"door-front\" or \"laser-rabbit\"") }}
     </div>
-    <div class="form-group col-md-6">
-			{{ input('short',"short Name",small="Short name for slack use, like \"rabbit\" or \"lift\"") }}
+		{# This field not present before v0.8 #}
+		{% if rec.displayname is defined %}
+    <div class="form-group col-md-4">
+			{{ input('displayname',"Display Name",small="Human-readible display name, like \"Rabbit Laser\" or \"Front Door\"") }}
+    </div>
+		{% endif %}
+    <div class="form-group col-md-4">
+			{{ input('short',"Short Name",small="Short name for slack use, like \"rabbit\" or \"lift\"") }}
     </div>
 	</div>
   <div class="form-row">
-    <div class="form-group col-md-8">
+    <div class="form-group col-md-2">
       <label for="input_resource_id">Resource Group</label>
 			<select {{ ro }} class="form-control" name="input_resource_id">
 				{% for r in resources %}
@@ -55,7 +61,7 @@
     </div>
   </div>
   <div class="form-row">
-    <div class="form-group col-md-8">
+    <div class="form-group col-md-2">
       <label for="input_resource_id">Node</label>
 			<select {{ ro }} class="form-control" name="input_node_id">
 				{% for n in nodes %}
