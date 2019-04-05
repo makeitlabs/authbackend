@@ -1,0 +1,27 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+{% include "member_header.html" %}
+<div class="body"> <!-- BASE contrainer -->
+
+<h2>TEST</h2>
+<form action="" method="POST">
+  <script
+  src="https://checkout.stripe.com/checkout.js" class="stripe-button"
+  data-key="pk_test_TYooMQauvdEDq54NiTphI7jx"
+  data-image="/static/makeit.png"
+  data-name="MakeIt Labs"
+  data-panel-label="Update Card Details"
+  data-label="Update Card Details"
+  data-email="{{ rec.alt_email }}"
+  data-allow-remember-me=false
+  data-locale="auto">
+  </script>
+</form>
+
+<hr />
+<h2>Member Info</h3>
+
+{% with readonly='1' %}
+{% include 'member_form.html' %}
+{% endwith %}
+{% endblock %}
