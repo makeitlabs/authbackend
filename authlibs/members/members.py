@@ -642,20 +642,32 @@ def grantadmin():
 				db.session.commit()
     return redirect(url_for('index'))
 
-@blueprint.route('/<string:id>/payment_update', methods=['GET','POST'])
+@blueprint.route('/<string:id>/payment', methods=['GET','POST'])
+@roles_required(['Admin','Finance'])
 def payment_update(id):
 	x = Member.query.filter(Member.id==id).one()
 	s = Subscription.query.filter(Subscription.member_id == x.id).one_or_none()
 	print "FORM DATA IS",request.form
 	stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
+	customer=[]
 	if s:
 		output=None
 		try:
-			output = stripe.Customer.retrieve(s.customerid)
+			customer = stripe.Customer.retrieve(s.customerid)
 		except:
 			pass
 		print output
-	return (render_template("update_payment.html",rec=x))
+	if 'stripeToken' in request.form:
+		# This was a callback from Stripe CC update form - update CC
+		cc = request.form['stripeToken']
+		try:
+			## stripe.Customer.update(card=cc) ## BE CAREFULL!!!
+			pass
+			flash("Stripe Card Updated","success")
+		except BaseException as e:
+			flash("Stripe Card Update failed: "+str(e),"warning")
+		return (redirect(url_for("members.payment_update",id=id)))
+	return (render_template("update_payment.html",rec=x,customer=customer))
 
 @blueprint.route('/test', methods=['GET'])
 def bkgtest():

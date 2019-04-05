@@ -3,15 +3,14 @@
 {% include "member_header.html" %}
 <div class="body"> <!-- BASE contrainer -->
 
-<h2>TEST</h2>
 <form action="" method="POST">
   <script
   src="https://checkout.stripe.com/checkout.js" class="stripe-button"
-  data-key="pk_test_TYooMQauvdEDq54NiTphI7jx"
-  data-image="/static/makeit.png"
-  data-name="MakeIt Labs"
-  data-panel-label="Update Card Details"
-  data-label="Update Card Details"
+  data-key="pk_test_TYooMQauvdEDq54NiTphI7jx" # TODO FIX BUG USE REAL
+  data-image="{{ url_for("static",filename="makeit.png") }}"
+  data-name="MakeIt Labs Payment"
+  data-panel-label="Update Payment/Card"
+  data-label="Update Payment/Card"
   data-email="{{ rec.alt_email }}"
   data-allow-remember-me=false
   data-locale="auto">
@@ -19,9 +18,51 @@
 </form>
 
 <hr />
-<h2>Member Info</h3>
+<h2>Stripe Customer Detail</h2>
+<div class="container">
+	<div class="form-row">
+		<div class="col-12">
+			Description: {{ customer.description }}
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="col-3">
+			Current Balance: {{ customer.account_balance }}
+		</div>
+		<div class="col-3">
+			Delinquient: {{ customer.delinquent }}
+		</div>
+		<div class="col-3">
+			Email: {{ customer.email }}
+		</div>
+		<div class="col-3">
+			Customer ID: {{ customer.id }}
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="col-12">
+		<h3>Cards on File</h3>
+		</div>
+	</div>
+	{% for s in customer.sources.data %}
+		<div class="form-row">
+			<div class="col-3">
+				Type: {{ s.brand }}
+			</div>
+			<div class="col-3">
+				Card #: ###..{{ s.last4 }}
+			</div>
+			<div class="col-3">
+				Exp: {{ s.exp_month }}/{{ s.exp_year }}
+			</div>
+			<div class="col-3">
+				Type: {{ s.funding }}
+			</div>
+		</div>
+	{% if customer.sources.has_more %}
+		<h2>More Payment Methors exist - SEE STRIPE</h2>
+	{% endif %}
+	{% endfor %}
+</div>
 
-{% with readonly='1' %}
-{% include 'member_form.html' %}
-{% endwith %}
 {% endblock %}
