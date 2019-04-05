@@ -7,6 +7,7 @@ import datetime
 import binascii, zlib
 from ..api import api 
 from .. import accesslib 
+import stripe
 
 ## TODO make sure member's w/o Useredit can't see other users' data or search for them
 ## TODO make sure users can't see cleartext RFID fobs
@@ -640,6 +641,21 @@ def grantadmin():
 				db.session.add(r)
 				db.session.commit()
     return redirect(url_for('index'))
+
+@blueprint.route('/<string:id>/payment_update', methods=['GET','POST'])
+def payment_update(id):
+	x = Member.query.filter(Member.id==id).one()
+	s = Subscription.query.filter(Subscription.member_id == x.id).one_or_none()
+	print "FORM DATA IS",request.form
+	stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
+	if s:
+		output=None
+		try:
+			output = stripe.Customer.retrieve(s.customerid)
+		except:
+			pass
+		print output
+	return (render_template("update_payment.html",rec=x))
 
 @blueprint.route('/test', methods=['GET'])
 def bkgtest():
