@@ -186,8 +186,6 @@ class ResourceAlias(db.Model):
     alias = db.Column(db.String(50), unique=True)
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
-
-
 class Subscription(db.Model):
     __tablename__ = 'subscriptions'
     __bind_key__ = 'main'
@@ -207,6 +205,21 @@ class Subscription(db.Model):
     active = db.Column(db.Integer())
     membership = db.Column(db.String(50),nullable=False,unique=True)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id'))
+
+# Pro Storage Bin
+class ProBin(db.Model):
+    __tablename__ = 'prostorebins'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    location_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+
+# Pro Storage Location
+class ProLocation(db.Model):
+    __tablename__ = 'prostorelocations'
+    __bind_key__ = 'main'
+    location = db.Column(db.String(50), nullable=False, unique=True)
+    id = db.Column(db.Integer(), primary_key=True)
 
 # membership is a unique identifier for each member. Each member SHOULD have one.
 # (If they don't, they have a problem or inactive membership)

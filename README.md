@@ -175,5 +175,21 @@ CREATE TABLE maintsched (
 );
 ALTER TABLE nodes ADD last_ping datetime;
 ALTER TABLE tools ADD displayname VARCHAR(50);
+
+CREATE TABLE prostorelocations (
+	location VARCHAR(50) NOT NULL, 
+	id INTEGER NOT NULL, 
+	PRIMARY KEY (id), 
+	UNIQUE (location)
+);
+
+CREATE TABLE prostorebins (
+	id INTEGER NOT NULL, 
+	member_id INTEGER, 
+	location_id INTEGER, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE, 
+	FOREIGN KEY(location_id) REFERENCES members (id) ON DELETE CASCADE
+);
 COMMIT;
 ```

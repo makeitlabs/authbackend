@@ -20,7 +20,7 @@ def nodes():
 		a = [None,None]
 		if x.last_ping:
 			a = ago.ago(now,x.last_ping)
-		nodes.append({'name':x.name,'mac':x.mac,'when':a[0],'ago':a[1]})
+		nodes.append({'id':x.id,'name':x.name,'mac':x.mac,'when':a[0],'ago':a[1]})
 	access = {}
 	resources=Resource.query.all()
 	return render_template('nodes.html',nodes=nodes,editable=True,node={},resources=resources)
