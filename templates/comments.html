@@ -8,12 +8,12 @@ include like:
  #}
 
 <hr />
-<div class="container">
+<div class="container px-0">
 <h4>Comments</h4>
 	{% if comments|length == 0 %}
 		<div class="content">No Comments</div>
 	{% else %}
-	<table class="table table-sm">
+	<table class="table table-sm supercompact">
         <tr>
             <th>When</th>
             <th>By</th>
@@ -45,7 +45,7 @@ include like:
 				{% if resource_id %}
 					<input type="hidden" name="resource_id" value="{{ resource_id }}" />
 				{% endif %}
-				<div class="container">
+				<div class="container px-0">
 					<div class="input-group mb-3">
 						<input type="text" class="form-control" name="comment" placeholder="New Comment..." aria-label="Recipient's username" aria-describedby="basic-addon2">
 						<div class="input-group-append">

@@ -41,6 +41,7 @@ def post_waivers():
 			m = Member.query.filter(Member.id == w.member_id).one()
 			m.access_enabled=0
 			w.member_id = None
+			authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_UNLINKED.id,member_id=m.id,doneby=current_user.id,commit=0)
 			authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,message="Waiver was unlinked",member_id=m.id,doneby=current_user.id,commit=0)
 			db.session.commit()
 			flash(m.member+" Unlinked from Waiver","warning")
@@ -111,7 +112,7 @@ def connect_waivers():
 				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,message="Waiver found, but access otherwise denied",member_id=m[0].id,commit=0)
 		else:
 			s += " no member found"
-		logger.info(s)
+		logger.debug(s)
 	db.session.commit()
 
 def cli_waivers_connect(*cmd,**kvargs):

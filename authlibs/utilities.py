@@ -42,7 +42,7 @@ def rfid_validate(ntag):
 
 def _utcTimestampToDatetime(ts):
     """Convert a UTC timestamp to my local time"""
-    return datetime.fromtimestamp(ts).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.utcfromtimestamp(ts).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 def _safeemail(unsafe_str):
     """Sanitize email addresses strings used in some oeprations"""
@@ -204,3 +204,16 @@ def send_tool_remove_lockout(toolname,node):
       mqtt_pub.single(topic, json.dumps(data), hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
     except BaseException as e:
         logging.warning("MQTT acl/update failed to send tool open message: "+str(e))
+
+
+# Auth wrapper - this means the user 
+# Must be an ARM or have some sort of
+# Global privileges to use this page
+def privileged_user(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+				if not current_user.is_arm() and (len(current_user.effective_roles()) == 0):
+					flash("Not authorized for this page","warning")
+					return redirect_url_for("index")
+				return f(*args, **kwargs)
+    return decorated

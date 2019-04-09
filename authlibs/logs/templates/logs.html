@@ -106,8 +106,9 @@
 		</div>
 	</div> {# Outer filter content #}
 
-	<table  style="font-size:10px" class="table table-compact supercompact">
-      <tr>
+	<table  style="font-size:10px" class="table greenbar-table table-compact supercompact">
+      <thead>
+				<tr>
         <th>When</th>
         <th>Ago</th>
         <th>Who</th>
@@ -117,7 +118,8 @@
         <th>Event</th>
         <th>Admin</th>
         <th>Message</th>
-      </tr>
+				</tr>
+      </thead>
       {% for l in logs %}
 	  <tr>
 		<td>{{ l.when }}</td>

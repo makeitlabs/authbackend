@@ -396,6 +396,31 @@ def create_routes():
         response.delete_cookie("remeber_token")
       return response
 
+    @app.route('/logout_soft')
+    @login_required
+    def logout_soft():
+       """Seriously? What do you think logout() does?"""
+       #print session
+       #print dir(session)
+       logout_user()
+       session.clear()
+       session["__invalidate__"] = True
+       if current_app.config['globalConfig'].DefaultLogin.lower() == "local":
+         flash("You've been logged out.")
+       rd = request.base_url.replace('logout','login')
+       """
+       request.set_cookie(app.session_cookie_name,"")
+       return redirect("https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue="+rd)
+       """
+
+       # HARD logout (log out of google oauth)
+       #resp = make_response(redirect("https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue="+rd))
+       # SOFT logout (log out of us)
+       resp = make_response(redirect(url_for("login")))
+       resp.set_cookie(app.session_cookie_name, '')
+       resp.set_cookie("remember_token", '')
+       return resp
+
     @app.route('/logout')
     @login_required
     def logout():
@@ -504,6 +529,8 @@ with app.app_context():
 
     if app.config['globalConfig'].DeployType.lower() != "production":
         app.jinja_env.globals['DEPLOYTYPE'] = app.config['globalConfig'].DeployType
+    if app.config['globalConfig'].backgroundColor:
+        app.jinja_env.globals['BACKGROUND_COLOR'] = app.config['globalConfig'].backgroundColor
     if  args.command:
         cli.cli_command(extras,app=app,um=app.user_manager)
         sys.exit(0)

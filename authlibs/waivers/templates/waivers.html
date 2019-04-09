@@ -6,8 +6,9 @@
     <a href="{{ url_for('waivers.waivers_update') }}">Update Waiver Data (May take a while)</a>
 		{% endif %}
     <p></p>
-	<table>
-      <tr>
+	<table class="table table-compact greenbar-table supercompact">
+      <thead>
+				<tr>
 	<th></th>
 	<th></th>
         <th>Email</th>
@@ -15,10 +16,11 @@
         <th>Lastname</th>
 	<th>Created</th>
 	<th>Member</th>
-      </tr>
+				</tr>
+      </thead>
       {% for w in waivers %}
 	  <tr>
-		  <td>
+		  <td style="background-color:#00000000">
 				{% if w.waiver.member_id %}
 				<a class="btn btn-outline-secondary" href="javascript:unlinkModal('{{ w.waiver.id }}','{{ w.member }}','{{ w.waiver.firstname }} {{ w.waiver.lastname }}');">
 				<span data-toggle="popover" class="glyphicon glyphicon-resize-full" />
@@ -30,9 +32,13 @@
 		<td>{{ w.waiver.firstname }}</td>
 		<td>{{ w.waiver.lastname }}</td>
 		<td>{{ w.waiver.created_date }}</td>
+		<td>
 		{% if w.waiver.member_id %}
-		<td><a href="{{ url_for("members.member_show",id=w.member) }}">{{ w.member }}</a></td>
+		<a href="{{ url_for("members.member_show",id=w.member) }}">{{ w.member }}</a>
+		{% else %}
+		&nbsp;
 		{% endif %}
+		</td>
 	  </tr>
       {% endfor %}
 	</table>

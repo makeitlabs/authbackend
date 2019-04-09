@@ -7,6 +7,7 @@ import datetime
 import binascii, zlib
 from ..api import api 
 from .. import accesslib 
+import stripe
 
 ## TODO make sure member's w/o Useredit can't see other users' data or search for them
 ## TODO make sure users can't see cleartext RFID fobs
@@ -80,6 +81,8 @@ def member_edit(id):
 
 		if request.method=="POST" and 'Unlink' in  request.form:
 				s = Subscription.query.filter(Subscription.membership==request.form['membership']).one()
+				if s.member_id:
+					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_PAYMENT_UNLINKED.id,member_id=s.member_id,doneby=current_user.id,commit=0)
 				s.member_id = None
 				db.session.commit()
 				btn = '''<form method="POST">
@@ -97,6 +100,7 @@ def member_edit(id):
 		elif request.method=="POST" and 'DeleteMember' in  request.form:
 				if current_user.privs("Finance"):
 					flash (Markup("WARNING: Slack and GMail accounts have <b>not</b> been deleted"),"danger")
+					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_RECORD_DELETED.id,member_id=mid,doneby=current_user.id,commit=0)
 					m=Member.query.filter(Member.id==mid).one()
 					for s in Subscription.query.filter(Subscription.member_id == m.id).all():
 						s.member_id=None
@@ -184,19 +188,13 @@ def member_show(id):
  
 	 if res:
 		 (member,subscription) = res
-		 """
-		 print "Created",subscription.created_date,type(subscription.created_date)
-		 print "Expires",subscription.expires_date,type(subscription.expires_date)
-		 print "Updated",subscription.updated_date,type(subscription.updated_date)
+
 		 utc = dateutil.tz.gettz('UTC')
 		 eastern = dateutil.tz.gettz('US/Eastern')
-		 sub_updated_date=subscription.updated_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
-		 sub_created_date=subscription.created_date.replace(tzinfo=eastern).astimezone(utc).replace(tzinfo=None)
-		 sub_expires_date=subscription.expires_date.replace(tzinfo=eastern).astimezone(utc).replace(tzinfo=None)
-		 print "Sub Updated",sub_updated_date
-		 print "Sub Created",sub_created_date
-		 print "Sub Created",sub_expires_date
-		 """
+		 meta['sub_updated_local']=subscription.updated_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None).strftime("%a, %b %d, %Y %I:%M %p (Local)")
+		 meta['sub_created_local']=subscription.created_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None).strftime("%a, %b %d, %Y %I:%M %p (Local)")
+		 meta['sub_expires_local']=subscription.expires_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None).strftime("%a, %b %d, %Y %I:%M %p (Local)")
+
 		 (warning,allowed,dooraccess)=getDoorAccess(member.id)
 		 access=db.session.query(Resource).outerjoin(AccessByMember).outerjoin(Member)
 		 access = access.filter(Member.id == member.id)
@@ -250,7 +248,7 @@ def link_waiver(id):
 	if 'LinkWaiver' in request.form:
 		w = Waiver.query.filter(Waiver.id == request.form['waiverid']).one()
 		w.member_id = member.id
-		authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,doneby=current_user.id,member_id=member.id,commit=0)
+		authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_LINKED.id,doneby=current_user.id,member_id=member.id,commit=0)
 		if member.access_enabled == 0:
 			if ((member.access_reason is None) or (member.access_reason == "")):
 				member.access_enabled=1
@@ -464,7 +462,7 @@ def member_tags(id):
 @login_required
 def update_backends():
 		authutil.kick_backend()
-		flash("Backend Update Request Send")
+		flash("Backend Update Request Sent")
 		return redirect(url_for('index'))
 
 def add_member_tag(mid,ntag,tag_type,tag_name):
@@ -488,6 +486,7 @@ def unassociate():
 		mem=Member.query.filter(Member.id==mid).one()
 		mem.membership=None
 		sub=Subscription.query.filter(Subscription.member_id==mid).one()
+		authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_PAYMENT_UNLINKED.id,member_id=mid,doneby=current_user.id,commit=0)
 		sub.member_id=None
 		db.session.commit()
 		flash ("Subscription unassociated","success")
@@ -526,6 +525,7 @@ def member_tagdelete(tag_ident):
                 db.session.add(Logs(member_id=mid,event_type=eventtypes.RATTBE_LOGEVENT_MEMBER_TAG_UNASSIGN.id,doneby=current_user.id,message=t.longhash))
                 db.session.delete(t)
                 db.session.commit()
+                authutil.kick_backend()
                 flash("Tag deleted","success")
                 return redirect(url_for("members.member_tagadd",id=mid))
 
@@ -641,6 +641,33 @@ def grantadmin():
 				db.session.add(r)
 				db.session.commit()
     return redirect(url_for('index'))
+
+@blueprint.route('/<string:id>/payment', methods=['GET','POST'])
+@roles_required(['Admin','Finance'])
+def payment_update(id):
+	x = Member.query.filter(Member.id==id).one()
+	s = Subscription.query.filter(Subscription.member_id == x.id).one_or_none()
+	print "FORM DATA IS",request.form
+	stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
+	customer=[]
+	if s:
+		output=None
+		try:
+			customer = stripe.Customer.retrieve(s.customerid)
+		except:
+			pass
+		print output
+	if 'stripeToken' in request.form:
+		# This was a callback from Stripe CC update form - update CC
+		cc = request.form['stripeToken']
+		try:
+			## stripe.Customer.update(card=cc) ## BE CAREFULL!!!
+			pass
+			flash("Stripe Card Updated","success")
+		except BaseException as e:
+			flash("Stripe Card Update failed: "+str(e),"warning")
+		return (redirect(url_for("members.payment_update",id=id)))
+	return (render_template("update_payment.html",rec=x,customer=customer))
 
 @blueprint.route('/test', methods=['GET'])
 def bkgtest():
