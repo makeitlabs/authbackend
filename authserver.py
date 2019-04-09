@@ -71,6 +71,7 @@ from authlibs.kvopts import kvopts
 from authlibs.comments import comments 
 from authlibs.apikeys import apikeys 
 from authlibs.belog import belog
+from authlibs.prostore import prostore
 
     
 
@@ -552,6 +553,7 @@ with app.app_context():
     kvopts.register_pages(app)
     comments.register_pages(app)
     apikeys.register_pages(app)
+    prostore.register_pages(app)
     belog.register_pages(app)
     slackutils.create_routes(app)
     g.main_menu = main_menu

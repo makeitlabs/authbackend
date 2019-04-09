@@ -235,8 +235,16 @@ class Waiver(db.Model):
     firstname = db.Column(db.String(50))
     lastname = db.Column(db.String(50))
     email = db.Column(db.String(50))
+    type = db.Column(db.Integer)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id'))
     created_date = db.Column(db.DateTime())
+
+		WAIVER_TYPE_UNSPECIFIED=None
+		WAIVER_TYPE_OTHER=0
+		WAIVER_TYPE_MEMBER=1
+		WAIVER_TYPE_NONMEMBER=2
+		WAIVER_TYPE_PROSTORAGE=3
+		WAIVER_TYPE_WORKSPACE=4
 
 # RFID data
 class MemberTag(db.Model):

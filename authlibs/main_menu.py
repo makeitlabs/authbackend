@@ -82,6 +82,14 @@ def get_raw_menu():
                     'title':"Logout (Soft)"
             },
             {
+                    'url':url_for('prostore.bins'),
+                    'title':"Pro Storage Bins"
+            },
+            {
+                    'url':url_for('prostore.locations'),
+                    'title':"Pro Storage Locations"
+            },
+            {
                     'privs':'Finance',
                     'url':url_for('reports.blacklist'),
                     'alt':"Ignored payments",
