@@ -81,6 +81,8 @@ for x in j:
 			if args.long:
 							print """
 Status:           {status}
+Customer:         {customer}
+Subscription:     {id}
 Active:           {active}
 Ended At:         {ended_at_full}
 Created:          {created_full}
@@ -93,6 +95,7 @@ Email:            {email}
 Name:             {name}
 plan name:        {plan_name}
 plan id:          {plan_id}
+Metadata:         {metadata}
 
 """.format(**pa)
 
