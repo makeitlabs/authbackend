@@ -125,12 +125,12 @@ def member_edit(id):
 				m.email= f['input_email']
 				if 'input_access_enabled' in f:
 					if m.access_enabled != 1:
-						authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCSSS_ENABLED.id,message=f['input_access_reason'],member_id=m.id,doneby=current_user.id,commit=0)
+						authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id,message=f['input_access_reason'],member_id=m.id,doneby=current_user.id,commit=0)
 					m.access_enabled=1
 					m.access_reason= None
 				else:
 					if m.access_enabled != 0:
-						authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCSSS_DISABLED.id,member_id=m.id,doneby=current_user.id,commit=0)
+						authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,member_id=m.id,doneby=current_user.id,commit=0)
 					m.access_enabled=0
 					m.access_reason= f['input_access_reason']
 				db.session.commit()
@@ -184,6 +184,19 @@ def member_show(id):
  
 	 if res:
 		 (member,subscription) = res
+		 """
+		 print "Created",subscription.created_date,type(subscription.created_date)
+		 print "Expires",subscription.expires_date,type(subscription.expires_date)
+		 print "Updated",subscription.updated_date,type(subscription.updated_date)
+		 utc = dateutil.tz.gettz('UTC')
+		 eastern = dateutil.tz.gettz('US/Eastern')
+		 sub_updated_date=subscription.updated_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
+		 sub_created_date=subscription.created_date.replace(tzinfo=eastern).astimezone(utc).replace(tzinfo=None)
+		 sub_expires_date=subscription.expires_date.replace(tzinfo=eastern).astimezone(utc).replace(tzinfo=None)
+		 print "Sub Updated",sub_updated_date
+		 print "Sub Created",sub_created_date
+		 print "Sub Created",sub_expires_date
+		 """
 		 (warning,allowed,dooraccess)=getDoorAccess(member.id)
 		 access=db.session.query(Resource).outerjoin(AccessByMember).outerjoin(Member)
 		 access = access.filter(Member.id == member.id)
@@ -204,8 +217,19 @@ def member_show(id):
 			 if subscription.active:
 				 meta['is_inactive'] = True
 
+			
+		 groupmembers=[]
+		 if subscription:
+		   groupmembers=Subscription.query.filter(Subscription.subid == subscription.subid).filter(Subscription.id != subscription.id)
+		   groupmembers=groupmembers.join(Member,Member.id == Subscription.member_id)
+		   groupmembers=groupmembers.add_column(Member.member)
+		   groupmembers=groupmembers.add_column(Member.firstname)
+		   groupmembers=groupmembers.add_column(Member.lastname)
+		   groupmembers=groupmembers.all()
+
+
 		 tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
-		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta,page="view",tags=tags)
+		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta,page="view",tags=tags,groupmembers=groupmembers)
 	 else:
 		flash("Member not found",'warning')
 		return redirect(url_for("members.members"))
@@ -214,6 +238,37 @@ def member_show(id):
 # User and resource User and Resource class objects
 def getAccessLevel(user,resource):
 		pass
+
+@blueprint.route('/<string:id>/waiver', methods = ['GET','POST'])
+@login_required
+def link_waiver(id):
+	mid = safestr(id)
+	member = db.session.query(Member).filter(Member.id == mid).one_or_none()
+	if not member:
+		flash("Invalid Member","danger")
+		return redirect(url_for('members.members'))
+	if 'LinkWaiver' in request.form:
+		w = Waiver.query.filter(Waiver.id == request.form['waiverid']).one()
+		w.member_id = member.id
+		authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,doneby=current_user.id,member_id=member.id,commit=0)
+		if member.access_enabled == 0:
+			if ((member.access_reason is None) or (member.access_reason == "")):
+				member.access_enabled=1
+				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id,message="Waiver accepted",member_id=member.id,doneby=current_user.id,commit=0)
+			else:
+				flash("Access still disabled - had been disabled because: "+str(member.access_reason),"danger")
+		db.session.commit()
+		flash("Linked waiver","success")
+		return redirect(url_for('members.member_show',id=member.member))
+	else:
+		waivers=Waiver.query.order_by(Waiver.id.desc())
+		waivers = waivers.outerjoin(Member).add_column(Member.member.label("memb"))
+		"""
+		if 'showall' not in request.values:
+			waivers = waivers.limit(50)
+		"""
+		waivers = waivers.all()
+		return render_template('link_waiver.html',rec=member,waivers=waivers)
 
 @blueprint.route('/<string:id>/access', methods = ['GET'])
 @login_required
@@ -266,6 +321,10 @@ def member_setaccess(id):
 		if ((member.id == current_user.id) and not (current_user.privs('Admin'))):
 				flash("You can't change your own access",'warning')
 				return redirect(url_for('members.member_editaccess',id=mid))
+		if ('revoke_local_login' in request.form) and request.form['revoke_local_login']=='on':
+				member.password=None
+				flash("Local GUI Access Revoked")
+			
 		if (('password1' in request.form and 'password2' in request.form) and
 				(request.form['password1'] != "") and 
 				current_user.privs('Admin')):
@@ -365,7 +424,9 @@ def member_setaccess(id):
 								elif acc and newcheck == False and p>=myPerms:
 										flash("You aren't authorized to disable %s privs on %s" % (alstr,r),'warning')
 
-								if (p>=myPerms):
+								if acc.level == p:
+										pass # No change
+								elif (p>=myPerms):
 										flash("You aren't authorized to grant %s privs on %s" % (alstr,r),'warning')
 								elif (acc.level >= myPerms):
 										flash("You aren't authorized to demote %s privs on %s" % (alstr,r),'warning')
@@ -470,7 +531,7 @@ def member_tagdelete(tag_ident):
 
 def generate_member_report(members):
 	fields=[ 'member', "email", "alt_email", "firstname", "lastname", "phone",
-					"plan", "access_enabled", "access_reason", "active", "rate_plan", "active"]
+					"plan", "slack_id","access_enabled", "access_reason", "active", "rate_plan", "sub_active",'Waiver']
 	s=""
 	for f in fields:
 		s += "\""+str(f)+"\","
@@ -478,11 +539,15 @@ def generate_member_report(members):
 
 	for m in members:
 		s = ""
-		values = (m.Member.email, m.Member.alt_email, m.Member.firstname, m.Member.lastname,
-			m.Member.phone, m.Member.plan, m.Member.access_enabled, m.Member.access_reason,
+		values = (m.Member.member,m.Member.email, m.Member.alt_email, m.Member.firstname, m.Member.lastname,
+			m.Member.phone, m.Member.plan, m.Member.slack, m.Member.access_enabled, m.Member.access_reason,
 			m.Member.active)
 		if m.Subscription:
 			values += (m.Subscription.rate_plan, m.Subscription.active)
+		else:
+			values += ("","")
+		if m.Waiver:
+			values += (m.Waiver.created_date,)
 		for f in values:
 				s += "\""+str(f)+"\","
 		yield s+"\n"
@@ -491,8 +556,8 @@ def generate_member_report(members):
 @login_required
 @roles_required(['Admin','Finance','Useredit'])
 def member_report():
-		members=db.session.query(Member,Subscription)
-		members = members.join(Subscription).join(Waiver).all()
+		members=db.session.query(Member,Subscription,Waiver)
+		members = members.join(Subscription,isouter=True).join(Waiver,isouter=True).all()
 		meta={}
 
 		if 'download' in request.values:

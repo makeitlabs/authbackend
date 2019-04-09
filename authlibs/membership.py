@@ -71,6 +71,11 @@ def matchMissingMembers(missing):
         mm = Member.query.filter(Member.membership == s.membership).one_or_none()
 				if mm:
 								logger.debug("MEMBERSHIP MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
+								# If we had already done a email/name match (below) - invalidate it so we dont get dupes
+								ss= Subscription.query.filter(Subscription.member_id == mm.id).one_or_none()
+								if (ss):
+									logger.debug("-Invalidated prior sub match to - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
+									ss.member_id=None
 								s.member_id=mm.id
         else:
 								q = Member.query
@@ -80,8 +85,13 @@ def matchMissingMembers(missing):
 										mm = q.one_or_none()
 										if mm:
 												logger.debug("email/name MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
-												s.member_id = mm.id
-												mm.membership = s.membership
+												# Avoid DUPLICATE match if MEMBERSHIP MATCH already done (above)
+												ss = Subscription.query.filter(Subscription.member_id == mm.id).one_or_none()
+												if ss and ss.active=="true":
+													logger.debug("-Avoided overwrite prior sub match - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
+												else:
+													s.member_id = mm.id
+													mm.membership = s.membership
 												# We APPEAR to have a match Just update the sub record w/ existing member ID
 												# Remember - this gets committed at the VERY end when everything is DONE
 										else:

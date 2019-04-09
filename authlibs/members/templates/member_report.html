@@ -37,6 +37,7 @@
 	<a class="btn btn-lg btn-outline-secondary" href="?download"><span class="glyphicon glyphicon-download"></span></a>
 </p>
 
+<h2>	{{ members|length }} Members  </h2>
 
 	<table  id="memberTable" style="font-size:10px" class="table table-compact supercompact">
       <thead>
@@ -45,6 +46,7 @@
         <th>Alt Email <i class="glyphicon glyphicon-sort"></i></th>
         <th>First <i class="glyphicon glyphicon-sort"></i></th>
         <th>Last <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Slack <i class="glyphicon glyphicon-sort"></i></th>
         <th>Phone <i class="glyphicon glyphicon-sort"></i></th>
         <th>Plan <i class="glyphicon glyphicon-sort"></i></th>
         <th>Acess Enabled <i class="glyphicon glyphicon-sort"></i></th>
@@ -52,10 +54,11 @@
         <th>Active <i class="glyphicon glyphicon-sort"></i></th>
         <th>Active Rate <i class="glyphicon glyphicon-sort"></i></th>
         <th>Subscription <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Waiver <i class="glyphicon glyphicon-sort"></i></th>
       </thead>
 			<tbody>
       {% for m in members %}
-				<tr>
+				<tr class="brad-table-row-hover">
 					<td>
 						{% if m.Member.member %}
 										<a href="{{ url_for("members.member_show",id=m.Member.member) }}">
@@ -69,6 +72,11 @@
 					<td>{{ m.Member.alt_email }}</td>
 					<td>{{ m.Member.firstname }}</td>
 					<td>{{ m.Member.lastname }}</td>
+					<td>
+							{% if m.Member.slack %}
+							{{ m.Member.slack }}
+							{% endif %}
+					</td>
 					<td>{{ m.Member.phone }}</td>
 					<td>{{ m.Member.plan }}</td>
 					<td>{{ m.Member.access_enabled }}</td>
@@ -76,6 +84,13 @@
 					<td>{{ m.Member.active }}</td>
 					<td>{{ m.Subscription.rate_plan }}</td>
 					<td>{{ m.Subscription.active }}</td>
+					<td>
+							{% if m.Waiver.created_date %}
+							{{ m.Waiver.created_date }}
+							{% else %}
+							<a href="{{ url_for('members.link_waiver',id=m.Member.id) }}">Fix Waiver</a>
+							{% endif %}
+					</td>
 				</tr>
       {% endfor %}
 			</tbody>

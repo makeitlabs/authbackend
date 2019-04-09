@@ -145,7 +145,8 @@ def resource_usage_reports(resource):
 		if 'format' in request.values and request.values['format']=='csv':
 			rec={'enabled':r.enabled,'active':r.active,'idle':r.idle}
 		else:
-			rec={'enabled':sec_to_hms(r.enabled),'active':sec_to_hms(r.active),'idle':sec_to_hms(r.idle)}
+			rec={'enabled':sec_to_hms(r.enabled),'active':sec_to_hms(r.active),'idle':sec_to_hms(r.idle),
+					'enabled_secs':int(r.enabled),'active_secs':int(r.active),'idle_secs':int(r.idle)}
 		if 'by_user' in request.values:
 			if r.member_id not in usercache:
 				mm = Member.query.filter(Member.id==r.member_id).one_or_none()
