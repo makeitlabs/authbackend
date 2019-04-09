@@ -108,6 +108,7 @@ class Tool(db.Model):
     __bind_key__ = 'main'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
+    displayname = db.Column(db.String(50))
     lockout = db.Column(db.String(100), nullable=True)
     short = db.Column(db.String(20), unique=True, nullable=True)
     node_id = db.Column(db.Integer(), db.ForeignKey('nodes.id', ondelete='CASCADE'))
@@ -185,8 +186,6 @@ class ResourceAlias(db.Model):
     alias = db.Column(db.String(50), unique=True)
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
-
-
 class Subscription(db.Model):
     __tablename__ = 'subscriptions'
     __bind_key__ = 'main'
@@ -207,6 +206,21 @@ class Subscription(db.Model):
     membership = db.Column(db.String(50),nullable=False,unique=True)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id'))
 
+# Pro Storage Bin
+class ProBin(db.Model):
+    __tablename__ = 'prostorebins'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    location_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+
+# Pro Storage Location
+class ProLocation(db.Model):
+    __tablename__ = 'prostorelocations'
+    __bind_key__ = 'main'
+    location = db.Column(db.String(50), nullable=False, unique=True)
+    id = db.Column(db.Integer(), primary_key=True)
+
 # membership is a unique identifier for each member. Each member SHOULD have one.
 # (If they don't, they have a problem or inactive membership)
 # It might look something like:
@@ -221,8 +235,16 @@ class Waiver(db.Model):
     firstname = db.Column(db.String(50))
     lastname = db.Column(db.String(50))
     email = db.Column(db.String(50))
+    type = db.Column(db.Integer)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id'))
     created_date = db.Column(db.DateTime())
+
+		WAIVER_TYPE_UNSPECIFIED=None
+		WAIVER_TYPE_OTHER=0
+		WAIVER_TYPE_MEMBER=1
+		WAIVER_TYPE_NONMEMBER=2
+		WAIVER_TYPE_PROSTORAGE=3
+		WAIVER_TYPE_WORKSPACE=4
 
 # RFID data
 class MemberTag(db.Model):

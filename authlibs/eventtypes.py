@@ -66,6 +66,26 @@ class RATTBE_LOGEVENT_MEMBER_RESOURCE_UNLOCKED:
     id=1014
     desc='Member Resource suspension removed'
 
+class RATTBE_LOGEVENT_MEMBER_RECORD_DELETED:
+    id=1015
+    desc='Member record deleted'
+
+class RATTBE_LOGEVENT_MEMBER_WAIVER_LINKED:
+    id=1016
+    desc='Member waiver linked'
+
+class RATTBE_LOGEVENT_MEMBER_WAIVER_UNLINKED:
+    id=1017
+    desc='Member waiver unlinked'
+
+class RATTBE_LOGEVENT_MEMBER_PAYMENT_LINKED:
+    id=1018
+    desc='Member payment manually linked'
+
+class RATTBE_LOGEVENT_MEMBER_PAYMENT_UNLINKED:
+    id=1019
+    desc='Member payment manually unlinked'
+
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000
     desc='Other System Event'

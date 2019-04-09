@@ -13,6 +13,12 @@
 				<input type="checkbox" {% if readonly is defined %} disabled  {% endif %} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" 
 				{% if value %} checked {% endif %}
 				>
+			{% if readonly and value %}
+				<input type="hidden" name="input_{{ name }}" value="on" />
+			{% endif %}
+
+			{% if readonly and value %}
+			{% endif %}
 			{% else %}
 				<input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ value }}">
 			{% endif %}

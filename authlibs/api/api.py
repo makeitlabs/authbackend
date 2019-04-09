@@ -1,4 +1,4 @@
-# vim:shiftwidth=2:expandtab
+# vim:tabstop=2:shiftwidth=2:expandtab
 
 from ..templateCommon import *
 
@@ -200,7 +200,7 @@ def api_slack_open(tool,slackid):
   else:
     q=Tool.query.filter(((Tool.name.ilike(tool)) | (Tool.short.ilike(tool))))
     q = q.join(Resource,Tool.resource_id == Resource.id).add_column(Resource.description)
-    q = q.join(Node,Node.id == Tool.node_id).add_column(Node.name)
+    q = q.join(Node,Node.id == Tool.node_id).add_column(Node.mac)
     q = q.outerjoin(AccessByMember,((AccessByMember.resource_id == Resource.id) & (AccessByMember.member_id == r[0].id))).add_column(AccessByMember.level)
     q = q.one_or_none()
 
@@ -342,6 +342,7 @@ def api_v1_authorize():
       db.session.add(ac)
     
   db.session.commit()
+  authutil.kick_backend()
   return json_dump({'result':'success'}), 200, {'Content-type': 'application/json'}
 
 @blueprint.route('/v1/mac/<string:mac>/config', methods=['GET'])
@@ -410,20 +411,20 @@ def api_v1_members():
 @blueprint.route('/v1/members/<string:id>', methods=['GET'])
 @api_only
 def api_v1_showmember(id):
-		"""(API) Return details about a member, currently JSON only"""
-		mid = safestr(id)
-		#outformat = request.args.get('output','json')
-                outformat = 'json'
-                m = Member.query.filter(Member.member==mid).one_or_none()
-                if not m:
-				return "Does not exist", 404, {'Content-type': 'application/json'}
-                output = {'member': m.member,
-                        'plan': m.plan,
-                        'alt_email': m.plan,
-                        'firstname': m.firstname,
-                        'lastname': m.lastname,
-                        'phone': m.phone}
-		return json_dump(output), 200, {'Content-type': 'application/json'}
+  """(API) Return details about a member, currently JSON only"""
+  mid = safestr(id)
+  #outformat = request.args.get('output','json')
+  outformat = 'json'
+  m = Member.query.filter(Member.member==mid).one_or_none()
+  if not m:
+    return "Does not exist", 404, {'Content-type': 'application/json'}
+  output = {'member': m.member,
+    'plan': m.plan,
+    'alt_email': m.plan,
+    'firstname': m.firstname,
+    'lastname': m.lastname,
+    'phone': m.phone}
+  return json_dump(output), 200, {'Content-type': 'application/json'}
 
 @blueprint.route('/v1/memberprivs/<string:id>', methods=['GET'])
 @api_only
@@ -530,6 +531,60 @@ def api_cron_nightly():
   connect_waivers()
   logger.info("Nightly CRON finished")
   return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
+
+@blueprint.route('/v1/last_tool_event', methods=['GET'])
+@api_only
+def api_toollog():
+  evts = eventtypes.get_events()
+  findevents = (
+    eventtypes.RATTBE_LOGEVENT_TOOL_ACTIVE.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_INACTIVE.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_POWERON.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_POWEROFF.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_LOGIN_COMBO.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_LOGIN.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_LOGOUT.id)
+  result={}
+  t = Logs.query.filter(Logs.tool_id is not None)
+  t = Logs.query.filter(Logs.event_type .in_(findevents))
+  t = t.order_by(Logs.time_reported.desc())
+  t = t.group_by(Logs.tool_id)
+  tools = t.all()
+
+  users = []
+  for x in tools:
+    users.append(x.member_id)
+
+  names={}
+  nicknames={}
+  for tn in Tool.query.all():
+    names[tn.id] = tn.name
+    if tn.displayname:
+      nicknames[tn.id] = tn.displayname
+
+  members={}
+  for m in Member.query.filter(Member.id.in_(users)).all():
+    if m.nickname:
+      members[m.id] = m.nickname+" "+m.lastname
+    else:
+      members[m.id] = m.firstname+" "+m.lastname
+
+  for t in tools:
+    result[t.tool_id] = {
+       'tool_id':t.tool_id,
+       'time_reported':t.time_reported.strftime("%Y-%m-%d %H:%M:%S"), 
+       'event_code':t.event_type, 
+       'event_text':evts[t.event_type] if t.event_type in evts else '', 
+       'tool_name': names[t.tool_id] if t.tool_id in names else '', 
+       'member_name':members[t.member_id] if t.member_id in members else ''
+     }
+    if t.tool_id in nicknames:
+       result[t.tool_id]['tool_nickname'] = nicknames[t.tool_id]
+    else:
+       result[t.tool_id]['tool_name']
+  return json_dump(result,200, {'Content-type': 'text/plain'},indent=2)
 
 #####
 ##

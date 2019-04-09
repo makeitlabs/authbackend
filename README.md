@@ -155,3 +155,42 @@ You will want to run `nightly.py` on some nightly cron job. It will:
 
 To help restore backups - you can use the `restore.py` helper script
 
+
+# v0.8 Migration
+
+You will need to apply the following DB schema changes *manually* when migrating from v0.7 to v0.8
+
+```BEGIN TRANSACTION;
+CREATE TABLE maintsched (
+        id INTEGER NOT NULL,
+        name VARCHAR(50),
+        "desc" VARCHAR(100),
+        realtime_span INTEGER,
+        realtime_unit VARCHAR(12),
+        machinetime_span INTEGER,
+        machinetime_unit VARCHAR(12),
+        resource_id INTEGER,
+        PRIMARY KEY (id),
+        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
+);
+ALTER TABLE nodes ADD last_ping datetime;
+ALTER TABLE tools ADD displayname VARCHAR(50);
+
+CREATE TABLE prostorelocations (
+	location VARCHAR(50) NOT NULL, 
+	id INTEGER NOT NULL, 
+	PRIMARY KEY (id), 
+	UNIQUE (location)
+);
+
+CREATE TABLE prostorebins (
+	id INTEGER NOT NULL, 
+	member_id INTEGER, 
+	location_id INTEGER, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE, 
+	FOREIGN KEY(location_id) REFERENCES members (id) ON DELETE CASCADE
+);
+ALTER TABLE waivers ADD type Integer;
+COMMIT;
+```

@@ -70,17 +70,26 @@
 	<div class="col-sm-2">
 			Affined to membership
 	</div>
-	<div class="col-sm-4">
+	<div class="col-sm-9">
 			{{ rec.membership }}
 	</div>
-	<div class="col-sm-5">
+	<div class="col-sm-2">
+			Subscription:
+	</div>
+	<div class="col-sm-9">
 			<a href="{{ url_for("payments.payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a>
 	</div>
 	{% if current_user.privs("Finance") %}
 	<div class="col-sm-1">
+				{% if subscription %}
 				<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#unassociateModal">
 					Unlink Subscription
 				</button>
+				{% else %}
+				<a href="{{ url_for("payments.relate",member_id=rec.id) }}"  class="btn btn-info" >
+					Find/link Subscription
+				</a>
+				{% endif %}
 	</div>
 	{% endif %}
 </div>
@@ -125,8 +134,8 @@
 	<div class="col-sm-2">
 			Updated
 	</div>
-	<div class="col-sm-6">
-			{{ subscription.updated_date }}
+	<div class="col-sm-8">
+			{# subscription.updated_date #} {{ meta.sub_updated_local }}
 	</div>
 </div>
 		 
@@ -135,8 +144,8 @@
 	<div class="col-sm-2">
 			Created
 	</div>
-	<div class="col-sm-6">
-			{{ subscription.created_date }}
+	<div class="col-sm-8">
+			{# subscription.created_date #} {{ meta.sub_created_local }}
 	</div>
 </div>
 	   
@@ -144,12 +153,12 @@
 	<div class="col-sm-2">
 			Expires
 	</div>
-	<div class="col-sm-2">
+	<div class="col-sm-8">
 			<div 
 			{% if meta.is_expired %}
 				class="alert-warning"
 			{% endif %}
-			> {{ subscription.expires_date }}
+			> {# subscription.expires_date #} {{ meta.sub_expires_local }}
 			</div>
 	</div>
 </div>

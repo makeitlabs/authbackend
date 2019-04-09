@@ -77,7 +77,7 @@ def tool_lock(tool):
 	r.lockout=request.form['lockout_reason']
 	authutil.log(eventtypes.RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED.id,tool_id=r.id,message=r.lockout,doneby=current_user.id,commit=0)
 	node = Node.query.filter(Node.id == r.node_id).one()
-	authutil.send_tool_lockout(r.name,node.name,r.lockout)
+	authutil.send_tool_lockout(r.name,node.mac,r.lockout)
 	db.session.commit()
 	flash("Tool is locked",'info')
 	return redirect(url_for('tools.tools_show',tool=r.id))
@@ -98,7 +98,7 @@ def tool_unlock(tool):
 	authutil.log(eventtypes.RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED.id,tool_id=r.id,doneby=current_user.id,commit=0)
 
 	node = Node.query.filter(Node.id == r.node_id).one()
-	authutil.send_tool_remove_lockout(r.name,node.name)
+	authutil.send_tool_remove_lockout(r.name,node.mac)
 	flash("Tool is unlocked",'success')
 	db.session.commit()
 	return redirect(url_for('tools.tools_show',tool=r.id))
@@ -115,6 +115,9 @@ def tools_update(tool):
                     return redirect(url_for('tools.tools'))
 		r.name = (request.form['input_name'])
 		r.short = (request.form['input_short'])
+		# Pre v0.8 did not have this field
+		if 'input_displayname' in request.form:
+			r.displayname = (request.form['input_displayname'])
 
 		# None handling shouldn't beneeded with new global form template
 		if (request.form['input_node_id'] == "None"):

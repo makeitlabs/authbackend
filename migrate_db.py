@@ -225,7 +225,7 @@ if __name__ == '__main__':
         ****** PRESS CONTROL-C IF YOU DON'T WANT TO DESTROY IT!!!
         ******
         """
-        SQLALCHEMY_DATABASE_URI = "sqlite:///"+args.overwrite
+        SQLALCHEMY_DATABASE_URI = "sqlite:///"+args.overwrite # DOESN'T WORK _ COMES FROM makeit.ini
         if 'MIGRATE_OVERWRITE_NODELAY' not in os.environ:
           time.sleep(5)
 

@@ -1,0 +1,71 @@
+{#    This is meant to be INCLUDED by another page.
+			Wrap this inside another div class-content block, 
+			and inside a form (if desiered)
+
+			This template is used for THREE different thins:
+			Create, Edit, or Display a record
+	
+			{% include 'template.html' %}
+
+			Or to include checkbox columns:
+
+			{% with add_checkboxes='1' %}
+			{% include 'userlist.html' %}
+			{% endwith %}
+
+#}
+
+<!-- Import any "with" parameters -->
+{% if member_url %}
+<script type="text/javascript">var MEMBER_URL="{{ url_for("members.member_show",id="") }}";</script>
+{% else %}
+<script type="text/javascript">var MEMBER_URL=null;</script>
+{% endif %}
+
+
+{% if readonly is defined and readonly  %}
+{% set ro="readonly" %}
+{% endif %}
+
+{% if rec is not defined %}
+{% set rec={} %}
+{% endif %}
+
+
+{% macro input(name, label, placeholder='', small='', type='text') -%}
+			{% if readonly is not defined %}
+			{% set ph = placeholder %}
+			{% endif %}
+      <label for="input_{{ name }}">{{ label }}</label>
+      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ bin[name] }}">
+			{% if small != '' %}
+			<small>{{ small }}</small>
+			{% endif %}
+{%- endmacro %}
+
+<div class="container">
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('name',"Bin ID",'ratt-mytool',small="Number or unique ID") }}
+    </div>
+	</div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('mac',"MAC Address",'12300000abcd',small="12-digit hexidecimal, lowercase, no semicolon") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{#
+      <label for="input_resource_id">Resource Type</label>
+			<select class="form-control" name="input_resource_id">
+				{% for r in resources %}
+					<option name="{{ r.name }}" value="{{ r.id }}"
+					{% if node.resource_id == r.id %}selected{% endif %}
+					>{{ r.name }}</option>
+				{% endfor %}
+			</select>
+			#}
+    </div>
+  </div>
+</div>

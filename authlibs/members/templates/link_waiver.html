@@ -88,7 +88,7 @@ function dosearchkey() {
 		<td>{{ w.Waiver.firstname }}</td>
 		<td>{{ w.Waiver.lastname }}</td>
 		<td>{{ w.Waiver.created_date }}</td>
-		{% if w.Waiver.member_id %}
+		{% if w.memb %}
 		<td><a href="{{ url_for("members.member_show",id=w.memb) }}">{{ w.memb }}</a></td>
 		{% endif %}
 	  </tr>
