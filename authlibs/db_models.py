@@ -247,6 +247,11 @@ class Waiver(db.Model):
     {'title':'<Reserved for Workspace waiver>','code':4,'short':'Workspace'}
   ]
 
+  WAIVER_TYPE_MEMBER=1
+  WAIVER_TYPE_NONMEMBER=2
+  WAIVER_TYPE_PROSTORE=3
+  WAIVER_TYPE_WORKSPACE=4
+
   @staticmethod
   def codeFromWaiverTitle(title):
     for x in Waiver.waiverTypes:

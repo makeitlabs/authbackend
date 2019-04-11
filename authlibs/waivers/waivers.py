@@ -108,14 +108,12 @@ def connect_waivers():
 		if len(m)==1:
 			w.member_id = m[0].id
 			s += " accept waiver for member %s" % m[0].member
-			if m[0].access_reason is None or m[0].access_reason == "":
-				m[0].access_enabled=1;
-				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,member_id=m[0].id,commit=0)
-			else:
-				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,message="Waiver found, but access otherwise denied",member_id=m[0].id,commit=0)
-		else:
-			s += " no member found"
-		logger.debug(s)
+			if (w.waivertype == Waiver.WAIVER_TYPE_MEMBER):
+				if  (m[0].access_reason is None or m[0].access_reason == ""):
+					m[0].access_enabled=1;
+					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,member_id=m[0].id,commit=0)
+				else:
+					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,message="Waiver found, but access otherwise denied",member_id=m[0].id,commit=0)
 	db.session.commit()
 
 def cli_waivers_connect(*cmd,**kvargs):
