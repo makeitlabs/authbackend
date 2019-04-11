@@ -59,28 +59,29 @@ def getWaivers(waiver_dict):
     more_members = True
     waiver_id = waiver_dict.get('waiver_id',None)
     xmlwaivers = _getWaiversXML(waiver_dict['api_key'],waiver_id)
-    f = open("/tmp/waivers.xml","w")
+    f = open("/tmp/waivers.xml","w") # REMOVE TODO
     while more_members:
-        f.write(xmlwaivers)
+        f.write(xmlwaivers) #REMOVE TODO
         root = ET.fromstring(xmlwaivers)
         for child in root.iter('participant'):
             email = child.find('primary_email').text
             waiver_id = child.find('waiver_id').text
+            title = child.find('waiver_title').text
             firstname = child.find('firstname').text
             lastname = child.find('lastname').text
             created_date = child.find('date_created_utc').text
             m = {'email': email, 'waiver_id': waiver_id, 'firstname': firstname,
-                 'lastname': lastname, 'created_date': created_date}
+                 'lastname': lastname, 'title': title, 'created_date': created_date}
             members.append(m)
             # TEMP
-            logger.debug("%s %s" % (firstname,lastname))
+            #logger.debug("%s %s" % (firstname,lastname))
         more = root.find('more_participants_exist')
         if more is None:
             more_members = False
         else:
             logger.debug ("More members... getting those after %s" % waiver_id)
             xmlwaivers = _getWaiversXML(waiver_dict['api_key'],waiver_id)
-    f.close()
+    f.close() # REMOVE TODO
     return members
     
 def waiverXML():

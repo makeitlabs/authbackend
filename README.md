@@ -191,6 +191,7 @@ CREATE TABLE prostorebins (
 	FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE, 
 	FOREIGN KEY(location_id) REFERENCES members (id) ON DELETE CASCADE
 );
-ALTER TABLE waivers ADD type Integer;
+ALTER TABLE waivers ADD waivertype Integer;
+# MAYBE NOT: update waivers set waivertype=0;
 COMMIT;
 ```

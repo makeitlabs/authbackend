@@ -28,8 +28,10 @@ def waivers():
 		res=[]
 		for (waiver,member) in waivers.all():
 			if member is None: member=""
-			res.append({'waiver':waiver,'member':member})
-		return render_template('waivers.html',waivers=res)
+			res.append({'waiver':waiver,'member':member,'code':waiver.waivertype,'type':waiver.shortFromCode(waiver.waivertype)})
+		types=[{'code':-1,'short':"All Waivers"}]
+		types += Waiver.waiverTypes
+		return render_template('waivers.html',waivers=res,types=types)
 
 @blueprint.route('/', methods=['POST'])
 @roles_required(['Admin','Finance','Useredit'])
@@ -70,6 +72,7 @@ def _addWaivers(waiver_list):
       n.email=w['email']
       n.firstname=w['firstname']
       n.lastname=w['lastname']
+      n.waivertype = Waiver.codeFromWaiverTitle(w['title'])
       n.created_date=authutil.parse_datetime(w['created_date'])
       db.session.add(n)
     db.session.commit()

@@ -1,4 +1,7 @@
 {% extends "layout_bootstrap.html" %}
+{% block head %}
+<script type="text/javascript" src="{{ url_for("static",filename="js/sorttable.js") }}"></script>
+{% endblock  %}
 {% block search %}
   <div class=body>
 	<div class="sectionhead">Waiver Data</div>
@@ -6,20 +9,26 @@
     <a href="{{ url_for('waivers.waivers_update') }}">Update Waiver Data (May take a while)</a>
 		{% endif %}
     <p></p>
-	<table class="table table-compact greenbar-table supercompact">
+	Show Waivers: <select id="filterSelect" onChange="changeFilter();">
+		{% for t in types %}
+			<option value="{{ t.code }}">{{ t.short }}</option>
+	 	{% endfor %}
+	</select>
+	<table id="waivertable" class="table table-compact greenbar-table supercompact">
       <thead>
 				<tr>
 	<th></th>
 	<th></th>
-        <th>Email</th>
-        <th>Firstname</th>
+        <th>Email <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Firstname <i class="glyphicon glyphicon-sort"></i></th>
         <th>Lastname</th>
-	<th>Created</th>
-	<th>Member</th>
+	<th>Created <i class="glyphicon glyphicon-sort"></i></th>
+	<th>Type <i class="glyphicon glyphicon-sort"></i></th>
+	<th>Member <i class="glyphicon glyphicon-sort"></i></th>
 				</tr>
       </thead>
       {% for w in waivers %}
-	  <tr>
+	  <tr class="waiverrow" xx-waiver-code="{{ w.code }}">
 		  <td style="background-color:#00000000">
 				{% if w.waiver.member_id %}
 				<a class="btn btn-outline-secondary" href="javascript:unlinkModal('{{ w.waiver.id }}','{{ w.member }}','{{ w.waiver.firstname }} {{ w.waiver.lastname }}');">
@@ -32,6 +41,7 @@
 		<td>{{ w.waiver.firstname }}</td>
 		<td>{{ w.waiver.lastname }}</td>
 		<td>{{ w.waiver.created_date }}</td>
+		<td>{{ w.type }}</td>
 		<td>
 		{% if w.waiver.member_id %}
 		<a href="{{ url_for("members.member_show",id=w.member) }}">{{ w.member }}</a>
@@ -77,5 +87,23 @@ function unlinkModal(sub,member,name) {
 	$('#unlink_waiver_id')[0].value=sub;
 	$('#unlinkModal').modal();
 }
+
+/* Handle Filter Dropdown */
+function changeFilter() {
+	var filterval = document.getElementById("filterSelect").value;
+	console.log(filterval);
+	for (let x of $("tr.waiverrow")) {
+		found=false;
+		var rowval = x.getAttribute("xx-waiver-code");
+		if ((filterval == -1) || (filterval == rowval) )
+			//x.style.visibility="visible";
+			x.style.display="table-row";
+		else
+			//x.style.visibility="collapse";
+			x.style.display="none";
+		
+	}
+}
+var t = new SortableTable(document.getElementById('waivertable'), 100);
 </script>
 {% endblock %}

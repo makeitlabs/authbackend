@@ -1,5 +1,5 @@
 # Database models
-#im:expandtab:tabstop=4
+# vim:expandtab:tabstop=2
 # Single file containing all required DB models, for now
 from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager, UserMixin
@@ -228,23 +228,45 @@ class ProLocation(db.Model):
 
 # Waiver Data
 class Waiver(db.Model):
-    __tablename__ = 'waivers'
-    __bind_key__ = 'main'
-    id = db.Column(db.Integer(), primary_key=True)
-    waiver_id = db.Column(db.String(50))
-    firstname = db.Column(db.String(50))
-    lastname = db.Column(db.String(50))
-    email = db.Column(db.String(50))
-    type = db.Column(db.Integer)
-    member_id = db.Column(db.Integer(), db.ForeignKey('members.id'))
-    created_date = db.Column(db.DateTime())
+  __tablename__ = 'waivers'
+  __bind_key__ = 'main'
+  id = db.Column(db.Integer(), primary_key=True)
+  waiver_id = db.Column(db.String(50))
+  firstname = db.Column(db.String(50))
+  lastname = db.Column(db.String(50))
+  email = db.Column(db.String(50))
+  waivertype = db.Column(db.Integer)
+  member_id = db.Column(db.Integer(), db.ForeignKey('members.id'))
+  created_date = db.Column(db.DateTime())
 
-		WAIVER_TYPE_UNSPECIFIED=None
-		WAIVER_TYPE_OTHER=0
-		WAIVER_TYPE_MEMBER=1
-		WAIVER_TYPE_NONMEMBER=2
-		WAIVER_TYPE_PROSTORAGE=3
-		WAIVER_TYPE_WORKSPACE=4
+  waiverTypes= [
+    {'title':'Other','code':0,'short':'Other'},
+    {'title':'MakeIt Labs Waiver','code':1,'short':'Member'},
+    {'title':'MakeIt Labs Non-Member Waiver','code':2,'short':'Non-Member'},
+    {'title':'Pro Member Storage Bin Agreement','code':3,'short':'Pro-Storage'},
+    {'title':'<Reserved for Workspace waiver>','code':4,'short':'Workspace'}
+  ]
+
+  @staticmethod
+  def codeFromWaiverTitle(title):
+    for x in Waiver.waiverTypes:
+      if title == x['title']: return x['code']
+    return 0
+
+  @staticmethod
+  def shortFromCode(code):
+    if code is None: return "Unknown"
+    if code < len(Waiver.waiverTypes):
+      return Waiver.waiverTypes[code]['short']
+    return "Unknown"
+
+  @staticmethod
+  def titlefromCode(code):
+    if code is None: return "Unknown"
+    if code < len(Waiver.waiverTypes):
+      return Waiver.waiverTypes[code]['title']
+    return "Unknown"
+
 
 # RFID data
 class MemberTag(db.Model):
