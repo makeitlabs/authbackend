@@ -11,7 +11,7 @@ from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMi
 
 
 
-defined_roles=['Admin','RATT','Finance','Useredit','HeadRM']
+defined_roles=['Admin','RATT','Finance','Useredit','HeadRM','ProStore']
 
 db = SQLAlchemy()
 

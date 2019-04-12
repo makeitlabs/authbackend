@@ -192,7 +192,7 @@ CREATE TABLE prostorebins (
 	FOREIGN KEY(location_id) REFERENCES members (id) ON DELETE CASCADE
 );
 ALTER TABLE waivers ADD waivertype Integer;
-# MAYBE NOT: update waivers set waivertype=0;
+insert into roles ('name')  values ('ProStore');
 COMMIT;
 ```
 
