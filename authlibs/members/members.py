@@ -191,9 +191,10 @@ def member_show(id):
 
 		 utc = dateutil.tz.gettz('UTC')
 		 eastern = dateutil.tz.gettz('US/Eastern')
-		 meta['sub_updated_local']=subscription.updated_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None).strftime("%a, %b %d, %Y %I:%M %p (Local)")
-		 meta['sub_created_local']=subscription.created_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None).strftime("%a, %b %d, %Y %I:%M %p (Local)")
-		 meta['sub_expires_local']=subscription.expires_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None).strftime("%a, %b %d, %Y %I:%M %p (Local)")
+		 if subscription:
+			 meta['sub_updated_local']=subscription.updated_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None).strftime("%a, %b %d, %Y %I:%M %p (Local)")
+			 meta['sub_created_local']=subscription.created_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None).strftime("%a, %b %d, %Y %I:%M %p (Local)")
+			 meta['sub_expires_local']=subscription.expires_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None).strftime("%a, %b %d, %Y %I:%M %p (Local)")
 
 		 (warning,allowed,dooraccess)=getDoorAccess(member.id)
 		 access=db.session.query(Resource).outerjoin(AccessByMember).outerjoin(Member)
@@ -205,10 +206,15 @@ def member_show(id):
                      cc=comments.get_comments(member_id=member.id)
                  else:
                      cc={}
-		 waiver = Waiver.query.filter(Waiver.member_id == member.id).first()
 
-		 if waiver:
-			 meta['waiver']=waiver.created_date
+		 waivers = Waiver.query.filter(Waiver.member_id == member.id)
+		 waivers = Waiver.addWaiverTypeCol(waivers)
+		 waivers = waivers.all()
+
+		 for waiver in waivers:
+			 if (waiver.Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER):
+				 meta['waiver']=waiver.Waiver.created_date
+
 		 if subscription:
 			 if subscription.expires_date < datetime.datetime.now():
 				 meta['is_expired'] = True
@@ -227,7 +233,7 @@ def member_show(id):
 
 
 		 tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
-		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta,page="view",tags=tags,groupmembers=groupmembers)
+		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta,page="view",tags=tags,groupmembers=groupmembers,waivers=waivers)
 	 else:
 		flash("Member not found",'warning')
 		return redirect(url_for("members.members"))
@@ -260,6 +266,7 @@ def link_waiver(id):
 		return redirect(url_for('members.member_show',id=member.member))
 	else:
 		waivers=Waiver.query.order_by(Waiver.id.desc())
+		waivers = Waiver.addWaiverTypeCol(waivers)
 		waivers = waivers.outerjoin(Member).add_column(Member.member.label("memb"))
 		"""
 		if 'showall' not in request.values:

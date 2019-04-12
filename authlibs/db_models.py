@@ -6,6 +6,7 @@ from flask_user import UserManager, UserMixin
 import hashlib,zlib
 from flask_login.mixins import AnonymousUserMixin
 import random, string
+import sqlalchemy
 from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
 
 
@@ -251,6 +252,17 @@ class Waiver(db.Model):
   WAIVER_TYPE_NONMEMBER=2
   WAIVER_TYPE_PROSTORE=3
   WAIVER_TYPE_WORKSPACE=4
+
+  @staticmethod
+  def addWaiverTypeCol(query):
+		return query.add_column(sqlalchemy.case([
+				((Waiver.waivertype == 0), 'Other'),
+				((Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER), 'Member'),
+				((Waiver.waivertype == Waiver.WAIVER_TYPE_NONMEMBER), 'Non-Member'),
+				((Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE), 'Pro-Storage'),
+				((Waiver.waivertype == Waiver.WAIVER_TYPE_WORKSPACE), 'Workspace'),
+				], 
+				else_ = 'Unknown').label('waivertype'))
 
   @staticmethod
   def codeFromWaiverTitle(title):

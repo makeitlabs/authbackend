@@ -195,3 +195,7 @@ ALTER TABLE waivers ADD waivertype Integer;
 # MAYBE NOT: update waivers set waivertype=0;
 COMMIT;
 ```
+
+You will also need to update waiver data to include [new] waiver-types before going live:
+
+`python authserver.py --command fixwaivers`

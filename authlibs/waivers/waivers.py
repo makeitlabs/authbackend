@@ -1,4 +1,4 @@
-#vim:shiftwidth=2:expandtab
+# vim:shiftwidth=2:expandtab
 
 from ..templateCommon import  *
 
@@ -92,10 +92,36 @@ def addNewWaivers():
 def cli_waivers(cmd,**kwargs):
 	addNewWaivers()
 
+# This should ONLY be required for v0.7->v0.8 Migrations
+def cli_fix_waiver_types(cmd,**kwargs):
+  logger.debug ("Updating waivers...")
+  waiversystem = {}
+  waiversystem['Apikey'] = current_app.config['globalConfig'].Config.get('Smartwaiver','Apikey')
+  waiver_dict = {'api_key': waiversystem['Apikey'],'waiver_id': None}
+  waivers = smartwaiver.getWaivers(waiver_dict)
+  logger.debug ("Collected - updating.")
+  good=0
+  for w in waivers:
+    n = Waiver.query.filter(Waiver.waiver_id == w['waiver_id']).all()
+    for x in n:
+      x.waivertype = Waiver.codeFromWaiverTitle(w['title'])
+      for m in  Member.query.filter(Member.email.ilike(x.email)).all():
+          x.member_id = m.id
+      good+=1
+  logger.debug("Updated %s" % good)
+  db.session.commit() 
 
 def register_pages(app):
-	app.register_blueprint(blueprint)
-	waiversystem['Apikey'] = app.config['globalConfig'].Config.get('Smartwaiver','Apikey')
+  app.register_blueprint(blueprint)
+  waiversystem = {}
+  waiversystem['Apikey'] = app.config['globalConfig'].Config.get('Smartwaiver','Apikey')
+  logger.debug ("Getting ALL waivers...")
+  waiversystem = {}
+  waiversystem['Apikey'] = current_app.config['globalConfig'].Config.get('Smartwaiver','Apikey')
+  last_waiverid = smartwaiver.getLastWaiverId()
+  waiver_dict = {'api_key': waiversystem['Apikey'],'waiver_id': last_waiverid}
+  waivers = smartwaiver.getWaivers(waiver_dict)
+  logger.debug ("Done.")
 
 def connect_waivers():
 	logger.debug("CONNECING WAIVERS")

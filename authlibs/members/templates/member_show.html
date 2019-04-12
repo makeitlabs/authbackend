@@ -10,27 +10,37 @@
 <hr />
 <div class="container"> {# Outer container #}
 <h3>Waivers</h3>
-<div class="compact form-row row">
-	<div class="col-sm-4">
-			Last updated:
-	</div>
-	<div class="col-sm-6">
-			{{ rec.time_updated }}
-	</div>
+<div class="form">
+			{% if waivers|length == 0 %}
+			<p>No waivers on file</p>
+			{% else %}
+				<div class="compact form-row row">
+								<div class="col-sm-4"><b>Waiver Type</b></div>
+								<div class="col-sm-4"><b>Date Executed</b></div>
+				</div>
+								{% for w in waivers %}
+				<div class="compact form-row row">
+												<div class="col-sm-4">
+													{{ w.waivertype }}
+												</div>
+												<div class="col-sm-4">
+													{{ w.Waiver.created_date }}
+													{% if w.Waiver.waivertype == 1 %}
+														<span class="glyphicon glyphicon-ok"></span>
+													{% endif %}
+												</div>
+				</div>
+								{% endfor %}
+			{% endif %}
 </div>
+							<a href="{{ url_for("members.link_waiver",id=rec.id) }}" class="btn btn-primary">Find Waiver</a>
 		 
 		
 <div class="compact form-row row">
-	<div class="col-sm-4">
-			Waiver Completed
-	</div>
 			{% if meta.waiver %}
-			{{ meta.waiver }}
-			{{ rec.waiver_date }}
 			{% else %}
 			<div class="alert-warning">
-							No Waiver
-							<a href="{{ url_for("members.link_waiver",id=rec.id) }}" class="btn btn-primary">Find Waiver</a>
+							No Member Waiver on File
 			</div>
 			{% endif %}
 </div>
