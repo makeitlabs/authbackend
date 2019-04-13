@@ -5,12 +5,33 @@
 	<h2>Bins:  {{ bins |length }}</h2>
 	<table class="table table-sm">
         <tr>
-            <th>Bin</th>
-            <th>Used By</th>
+            <th>Name/ID</th>
             <th>Location</th>
+            <th>Used By</th>
+            <th>Status</th>
+            <th>Waiver Signed</th>
         </tr>
 	{% for bin in bins %}
 	  <tr>
+			<td>
+				{% if bin.ProBin.name %}
+				{{ bin.ProBin.name }}
+				{% endif %}
+			</td>
+			<td>
+				{% if bin.location %}
+				{{ bin.location }}
+				{% endif %}
+			</td>
+			<td>
+				{% if bin.member %}
+				<a href="{{ url_for("members.member_show",id=bin.member) }}">
+				{{ bin.member }}
+				</a>
+				{% endif %}
+			</td>
+			<td>{{ bin.binstatusstr }}</td>
+			<td>{{ bin.waiverDate }}</td>
 	  </tr>
 	{% endfor %}
 	</table>
@@ -29,7 +50,7 @@
   <h3> Add New Bin </h3>
 <form action="{{ url_for('prostore.bins') }}" method="post">
 	{% include 'bin_form.html' %}
-<input type="submit" value="Create Bin" />
+<input type="submit" name="create_bin" value="Create Bin" />
 </form>
 </div>
 {% endif %} <!-- Add New Node -->

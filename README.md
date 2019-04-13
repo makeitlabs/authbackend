@@ -179,6 +179,7 @@ ALTER TABLE tools ADD displayname VARCHAR(50);
 CREATE TABLE prostorelocations (
 	location VARCHAR(50) NOT NULL, 
 	id INTEGER NOT NULL, 
+	loctype INTEGER NOT NULL, 
 	PRIMARY KEY (id), 
 	UNIQUE (location)
 );
@@ -186,10 +187,13 @@ CREATE TABLE prostorelocations (
 CREATE TABLE prostorebins (
 	id INTEGER NOT NULL, 
 	member_id INTEGER, 
+	name VARCHAR(20), 
+	status INTEGER NOT NULL, 
 	location_id INTEGER, 
 	PRIMARY KEY (id), 
+	UNIQUE (name),
 	FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE, 
-	FOREIGN KEY(location_id) REFERENCES members (id) ON DELETE CASCADE
+	FOREIGN KEY(location_id) REFERENCES prostorelocations (id) ON DELETE CASCADE
 );
 ALTER TABLE waivers ADD waivertype Integer;
 insert into roles ('name')  values ('ProStore');

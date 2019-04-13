@@ -1,5 +1,5 @@
 # Database models
-# vim:expandtab:tabstop=2
+# vim:expandtab:tabstop=2:shiftwidth=2
 # Single file containing all required DB models, for now
 from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager, UserMixin
@@ -212,15 +212,53 @@ class ProBin(db.Model):
     __tablename__ = 'prostorebins'
     __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(15), nullable=True,unique=True)
+    status = db.Column(db.Integer,nullable=False)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
-    location_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    location_id = db.Column(db.Integer(), db.ForeignKey('prostorelocations.id', ondelete='CASCADE'))
+
+    BinStatuses = [
+            "Not in Use",
+            "Discarded/Missing/Destroyed",
+            "In Use",
+            "In Grace Period",
+            "Location Forfeited, not moved",
+            "Moved, not donated",
+            "Donated contents"
+        ]
+
+    @staticmethod
+    def addBinStatusStr(query):
+        return query.add_column(sqlalchemy.case([
+        ((ProBin.status == 0), ProBin.BinStatuses[0]),
+        ((ProBin.status == 1), ProBin.BinStatuses[1]),
+        ((ProBin.status == 2), ProBin.BinStatuses[2]),
+        ((ProBin.status == 3), ProBin.BinStatuses[3]),
+        ((ProBin.status == 4), ProBin.BinStatuses[4]),
+        ((ProBin.status == 5), ProBin.BinStatuses[5]),
+        ((ProBin.status == 6), ProBin.BinStatuses[6]),
+        ], 
+        else_ = 'Unknown').label('binstatusstr'))
 
 # Pro Storage Location
 class ProLocation(db.Model):
-    __tablename__ = 'prostorelocations'
-    __bind_key__ = 'main'
-    location = db.Column(db.String(50), nullable=False, unique=True)
-    id = db.Column(db.Integer(), primary_key=True)
+  __tablename__ = 'prostorelocations'
+  __bind_key__ = 'main'
+  location = db.Column(db.String(50), nullable=False, unique=True)
+  loctype = db.Column(db.Integer())
+  id = db.Column(db.Integer(), primary_key=True)
+
+  LOCATION_TYPE_SINGLE=0
+  LOCATION_TYPE_MULTIPLE=1
+  loctypes=['Single','Multiple']
+
+  @staticmethod
+  def addLocTypeCol(query,blankSingle=False):
+        return query.add_column(sqlalchemy.case([
+        ((ProLocation.loctype == 0), '' if blankSingle else 'Single'),
+        ((ProLocation.loctype == 1), 'Multiple')
+        ], 
+        else_ = 'Unknown').label('loctypestr'))
 
 # membership is a unique identifier for each member. Each member SHOULD have one.
 # (If they don't, they have a problem or inactive membership)

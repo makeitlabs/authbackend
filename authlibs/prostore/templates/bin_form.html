@@ -46,26 +46,33 @@
 <div class="container">
   <div class="form-row">
     <div class="form-group col-md-6">
-			{{ input('name',"Bin ID",'ratt-mytool',small="Number or unique ID") }}
+			{{ input('name',"Bin ID",'',small="Optional Unique ID or name of bin") }}
     </div>
 	</div>
   <div class="form-row">
     <div class="form-group col-md-6">
-			{{ input('mac',"MAC Address",'12300000abcd',small="12-digit hexidecimal, lowercase, no semicolon") }}
+      <label for="input_resource_id">Bin Location</label>
+			<select class="form-control" name="input_location">
+					<option name="unspecified" value="Unspecified">Unspecified</option>
+				{% for loc in locations %}
+					<option name="{{ loc.location }}" value="{{ loc.location }}"
+					{% if bin.location == loc.location %}selected{% endif %}
+					>{{ loc.location }}</option>
+				{% endfor %}
+			</select>
+      <label for="input_status">Bin Status</label>
+			<select class="form-control" name="input_status">
+				{% for stat in statuses %}
+					<option name="{{ stat[0] }}" value="{{ stat[0] }}">
+					{{ stat[1] }}</option>
+				{% endfor %}
+			</select>
     </div>
   </div>
   <div class="form-row">
-    <div class="form-group col-md-6">
-			{#
-      <label for="input_resource_id">Resource Type</label>
-			<select class="form-control" name="input_resource_id">
-				{% for r in resources %}
-					<option name="{{ r.name }}" value="{{ r.id }}"
-					{% if node.resource_id == r.id %}selected{% endif %}
-					>{{ r.name }}</option>
-				{% endfor %}
-			</select>
-			#}
-    </div>
-  </div>
+		<h3>Assign to Member</h3>
+			{% with add_radiobuttons=1,no_filters=1 %}
+			{% include 'userlist.html' %}
+			{% endwith %}
+	</div>
 </div>
