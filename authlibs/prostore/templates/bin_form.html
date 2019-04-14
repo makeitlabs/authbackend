@@ -22,7 +22,6 @@
 <script type="text/javascript">var MEMBER_URL=null;</script>
 {% endif %}
 
-
 {% if readonly is defined and readonly  %}
 {% set ro="readonly" %}
 {% endif %}
@@ -30,7 +29,6 @@
 {% if rec is not defined %}
 {% set rec={} %}
 {% endif %}
-
 
 {% macro input(name, label, placeholder='', small='', type='text') -%}
 			{% if readonly is not defined %}
@@ -55,15 +53,17 @@
 			<select class="form-control" name="input_location">
 					<option name="unspecified" value="Unspecified">Unspecified</option>
 				{% for loc in locations %}
-					<option name="{{ loc.location }}" value="{{ loc.location }}"
-					{% if bin.location == loc.location %}selected{% endif %}
-					>{{ loc.location }}</option>
+					<option name="{{ loc.ProLocation.location }}" value="{{ loc.ProLocation.location }}"
+					{% if loc.usecount > 0  and loc.ProLocation.loctype == 0 %}disabled{% endif %}
+					>{{ loc.ProLocation.location }}</option>
 				{% endfor %}
 			</select>
       <label for="input_status">Bin Status</label>
 			<select class="form-control" name="input_status">
 				{% for stat in statuses %}
-					<option name="{{ stat[0] }}" value="{{ stat[0] }}">
+					<option name="{{ stat[0] }}" value="{{ stat[0] }}"
+					{% if bin.status == stat[0] %}selected{% endif %}
+					>
 					{{ stat[1] }}</option>
 				{% endfor %}
 			</select>

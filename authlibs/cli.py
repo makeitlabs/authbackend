@@ -14,6 +14,7 @@ from flask_sqlalchemy import SQLAlchemy
 from init import GLOBAL_LOGGER_LEVEL
 from slackutils import cli_slack
 import getpass
+from authlibs.prostore import prostore
 from waivers.waivers import cli_waivers_connect, cli_waivers, cli_fix_waiver_types
 
 import logging
@@ -174,6 +175,10 @@ commands = {
 	"cron":{
 		'usage':"cron -- Do nightly cron job",
 		'cmd':api.cli_cron
+	},
+	"prostore_migrate":{
+		'usage':"prostore_migrate -- Migrate Prostore v0.8",
+		'cmd':prostore.migrate
 	},
 	"ubersearch":{
 		'usage':"ubersearch {searchstr} -- Try ubersearch",

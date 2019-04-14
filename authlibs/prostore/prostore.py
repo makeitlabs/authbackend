@@ -11,10 +11,9 @@ blueprint = Blueprint("prostore", __name__, template_folder='templates', static_
 
 
 @blueprint.route('/bins', methods=['GET','POST'])
-@roles_required(['Admin','RATT'])
+@roles_required(['Admin','RATT','ProStore','Useredit'])
 @login_required
 def bins():
-	print "FORM",request.form
 	if 'create_bin' in request.form:
 		b= request.form['input_name']
 		
@@ -48,7 +47,6 @@ def bins():
 		flash("Bin Added","success")
 		return redirect(url_for("prostore.bins"))
 		
-		
 	bins=ProBin.query	
 	bins=bins.outerjoin(ProLocation)
 	bins=bins.add_column(ProLocation.location)
@@ -57,14 +55,35 @@ def bins():
 	bins=bins.outerjoin(Waiver,((Waiver.member_id == ProBin.member_id) & (Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)))
 	bins=bins.add_column(Waiver.created_date.label("waiverDate"))
 	bins=ProBin.addBinStatusStr(bins).all()
-	locs=ProLocation.query.order_by(ProLocation.location).all()
+
+	locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
+	print "QUERY",locs
+	locs=locs.all()
+	print "LOCS",locs
 	return render_template('bins.html',bins=bins,bin=None,locations=locs,statuses=enumerate(ProBin.BinStatuses))
 
+@blueprint.route('/bin/<string:id>', methods=['GET','POST'])
+@roles_required(['Admin','RATT','ProStore'])
+@login_required
+def bin_edit(id):
+	b=ProBin.query.filter(ProBin.id==id)
+	b=b.add_columns(ProBin.name,ProBin.status)
+	b=b.outerjoin(ProLocation)
+	b=b.add_column(ProLocation.location)
+	b=b.outerjoin(Member)
+	b=b.add_column(Member.member)
+	b=b.outerjoin(Waiver,((Waiver.member_id == ProBin.member_id) & (Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)))
+	b=b.add_column(Waiver.created_date.label("waiverDate"))
+	b=ProBin.addBinStatusStr(b).one()
+
+	locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
+	locs=locs.all()
+	return render_template('bin.html',bin=b,locations=locs,statuses=enumerate(ProBin.BinStatuses))
+
 @blueprint.route('/locations', methods=['GET','POST'])
-@roles_required(['Admin','RATT'])
+@roles_required(['Admin','RATT','ProStore'])
 @login_required
 def locations():
-	print "FORM",request.form
 	if 'delete' in request.values:
 		loc = ProLocation.query.filter(ProLocation.location==request.values['delete']).one_or_none()
 		if not loc:
@@ -82,9 +101,21 @@ def locations():
 		flash("Location added","success")
 		return redirect(url_for("prostore.locations"))
 		
-	locs=ProLocation.query.order_by(ProLocation.location)
+	locs=ProLocation.query.order_by(ProLocation.loctype.desc(),ProLocation.location)
 	locs=ProLocation.addLocTypeCol(locs,blankSingle=True).all()
 	return render_template('locations.html',locations=locs)
+
+# v0.8 migration
+def migrate(cmd,**kwargs):
+	for f in ('Garage','Cleanspace'):
+		for x in "ABCDEFGH" if f is 'Garage' else "AB":
+			for y in range(1,7 if f is 'Garage' else 5):
+				name= "%s-%s-%s" % (f,x,y)
+				l = ProLocation()
+				l.location = name
+				l.loctype = 0
+				db.session.add(l)
+	db.session.commit()
 
 def register_pages(app):
 	app.register_blueprint(blueprint)

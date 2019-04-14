@@ -31,7 +31,16 @@
 				{% endif %}
 			</td>
 			<td>{{ bin.binstatusstr }}</td>
-			<td>{{ bin.waiverDate }}</td>
+			<td>
+				{% if bin.waiverDate %}
+					<span class="glyphicon glyphicon-check" />
+				{% endif %}
+			</td>
+			<td>
+				<a href="{{ url_for("prostore.bin_edit",id=bin.ProBin.id) }}">
+				<span class="glyphicon glyphicon-pencil"></span>
+				</a>
+			</td>
 	  </tr>
 	{% endfor %}
 	</table>
