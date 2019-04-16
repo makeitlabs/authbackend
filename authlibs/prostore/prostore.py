@@ -60,15 +60,16 @@ def bins():
 	bins=ProBin.addBinStatusStr(bins).all()
 
 	locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
-	print "QUERY",locs
 	locs=locs.all()
-	print "LOCS",locs
 	return render_template('bins.html',bins=bins,bin=None,locations=locs,statuses=enumerate(ProBin.BinStatuses))
 
 @blueprint.route('/bin/<string:id>', methods=['GET','POST'])
 @roles_required(['Admin','RATT','ProStore'])
 @login_required
 def bin_edit(id):
+	if 'save_bin' in request.form:
+		# Save
+		print "BIN_EDIT",request.form
 	b=ProBin.query.filter(ProBin.id==id)
 	b=b.add_columns(ProBin.name,ProBin.status)
 	b=b.outerjoin(ProLocation)

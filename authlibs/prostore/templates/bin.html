@@ -17,7 +17,7 @@
 
   <div class="container">
 
-    <form action="{{ url_for('prostore.bin_edit',id=bin.id) }}" method="post">
+    <form action="{{ url_for('prostore.bin_edit',id=bin.ProBin.id) }}" method="post">
     <div class="form-row">
       <div class="form-group col-md-6">
         {{ input('name',"Bin ID",'',small="Optional Unique ID or name of bin") }}
@@ -29,13 +29,15 @@
         <select class="form-control" name="input_location">
             <option name="unspecified" value="Unspecified">Unspecified</option>
           {% for loc in locations %}
-            <option name="{{ loc.location }}" value="{{ loc.location }}"
+            <option  value="{{ loc.ProLocation.id }}"
             {% if (loc.usecount > 0  and loc.ProLocation.loctype == 0) and (bin.location != loc.ProLocation.location) %}disabled{% endif %}
             {% if bin.location == loc.ProLocation.location %}selected{% endif %}
             >{{ loc.ProLocation.location }}</option>
           {% endfor %}
         </select>
-        <input type="hidden" name="input_id" value="{{ bin.id }}" />
+        <input type="hidden" name="input_id" value="{{ bin.ProBin.id }}" />
+        <input type="hidden" id="unassign_member_hidden" name="unassign_member_hidden"  value="no" />
+        <input type="hidden" name="input_orig_member" value="{{ bin.ProBin.member_id }}" />
         <label for="input_status">Bin Status</label>
         <select class="form-control" name="input_status">
           {% for stat in statuses %}
@@ -64,9 +66,13 @@
         {% endif %}
       </div>
       <div class="form-group col-md-4">
-        <a id="unassign_button" class="btn btn-outline-secondary" data-toggle="button" onclick="unassign();" >Unassign</a>
-        <a class="btn btn-outline-secondary" onclick="change_member();">Change Member</a>
+        <a id="unassign_button" class="btn btn-outline-secondary" data-toggle="button" onclick="unassign();">Unassign</a>
+        <a id="change_member_button" class="btn btn-outline-secondary" data-toggle="button" onclick="change_member();">Change Member</a>
       </div>
+    </div>
+
+    <div class="collapse" id="member_select_div">
+      MEMBERSELECT
     </div>
     <input type="submit" class="btn btn-primary" name="save_bin" value="Save" />
     <input type="submit" class="btn btn-danger" name="delete_bin" value="Delete" />
@@ -77,17 +83,36 @@
 function unassign() {
   var x = $("#unassign_button")[0];
   var m = $("#assign_to_member");
-  if (x.classList.contains("active"))
+  var cmb = $("#change_member_button");
+  if (cmb[0].classList.contains("active")) {
+    cmb.button('toggle');
+    $("#unassign_member_hidden")[0].value="no";
+    $("#member_select_div").collapse('hide');
+  }
+  if (x.classList.contains("active")) {
     m[0].innerHTML="{{ bin.member }}";
-  else
+    $("#unassign_member_hidden")[0].value="no";
+  } else {
+    $("#unassign_member_hidden")[0].value="yes";
     m[0].innerHTML="<strike>{{ bin.member }}</strike>";
+  }
 }
 function change_member() {
   var m = $("#assign_to_member");
+  var cmb = $("#change_member_button");
   var x = $("#unassign_button")[0];
-  m[0].innerHTML="<strike>{{ bin.member }}</strike>";
-  if (x.classList.contains("active"))
-    $("#unassign_button").button('toggle');
+  if (cmb[0].classList.contains("active")) {
+    m[0].innerHTML="{{ bin.member }}";
+    $("#member_select_div").collapse('hide');
+  } else {
+    $("#member_select_div").collapse('show');
+    m[0].innerHTML="<strike>{{ bin.member }}</strike>";
+    if (x.classList.contains("active")) {
+      $("#unassign_button").button('toggle');
+      $("#unassign_member_hidden")[0].value="no";
+    } 
+  }
+  
 }
 </script>
 {% endblock %}
