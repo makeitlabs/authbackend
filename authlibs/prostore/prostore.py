@@ -77,6 +77,8 @@ def bin_edit(id):
 	b=b.add_column(Member.member)
 	b=b.outerjoin(Waiver,((Waiver.member_id == ProBin.member_id) & (Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)))
 	b=b.add_column(Waiver.created_date.label("waiverDate"))
+	b = b.outerjoin(Subscription,Subscription.member_id == Member.id)
+	b=addQuickAccessQuery(b)
 	b=ProBin.addBinStatusStr(b).one()
 
 	locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
@@ -128,9 +130,14 @@ def grid():
 		if b.location and b.member:
 			ab[b.location] = {
 				'member':b.member,
+				'binid':b.ProBin.id
 			}
 			if not b.waiverDate:
 				ab[b.location]['style'] = "background-color:#ffffd0"
+			if b.ProBin.status > 2:
+				ab[b.location]['style'] = "background-color:#ffd49f"
+			if b.ProBin.status  == 0:
+				ab[b.location]['style'] = "background-color:#a3ff9f"
 			if b.active != "Active" and b.active != "Grace Period":
 				ab[b.location]['style'] = "background-color:#ffd0d0"
 	return render_template('grid.html',bins=ab)

@@ -29,7 +29,9 @@
      >
       <p>
         {% if bins['Garage-'+x+"-"+y] %}
+        <a href="{{ url_for('prostore.bin_edit',id= bins['Garage-'+x+'-'+y]['binid']) }}">
         {{ bins['Garage-'+x+"-"+y]['member'] }}
+        </a>
         {% endif %}
       </p>
     </div>
@@ -65,8 +67,10 @@
      >
       <p>
         {% if bins['Cleanspace-'+x+"-"+y] %}
+        <a href="{{ url_for('prostore.bin_edit',id= bins['Cleanspace-'+x+'-'+y]['binid']) }}">
         {{ bins['Cleanspace-'+x+"-"+y]['member'] }}
         {% endif %}
+        </a>
       </p>
     </div>
     {% endfor %}

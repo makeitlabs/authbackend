@@ -50,8 +50,18 @@
       <div class="form-group col-md-2">
         Assigned to:
       </div>
-      <div id="assign_to_member" class="form-group col-md-4">
+      <div id="assign_to_member" class="form-group col-md-2">
         {{ bin.member }}
+      </div>
+      <div id="assign_to_member" class="form-group col-md-4">
+        {% if bin.member %}
+          {% if bin.active != "Active" and bin.active != "Grace Period" %}
+            Subscription {{ bin.active }}
+          {% endif %}
+          {% if not bin.waiverDate %}
+            No Waiver
+          {% endif %}
+        {% endif %}
       </div>
       <div class="form-group col-md-4">
         <a id="unassign_button" class="btn btn-outline-secondary" data-toggle="button" onclick="unassign();" >Unassign</a>
