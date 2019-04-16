@@ -9,7 +9,8 @@
             <th>Location</th>
             <th>Used By</th>
             <th>Status</th>
-            <th>Waiver Signed</th>
+            <th>Waiver</th>
+            <th>Membership</th>
         </tr>
 	{% for bin in bins %}
 	  <tr>
@@ -34,6 +35,12 @@
 			<td>
 				{% if bin.waiverDate %}
 					<span class="glyphicon glyphicon-check" />
+				{% endif %}
+			</td>
+			<td>
+				{% if bin.active == "Active" %}
+				{% else %}
+				{{ bin.active }}
 				{% endif %}
 			</td>
 			<td>

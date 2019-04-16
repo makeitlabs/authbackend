@@ -5,6 +5,7 @@ from ..templateCommon import  *
 from authlibs.comments import comments
 from datetime import datetime
 from authlibs import ago
+from authlibs.accesslib import addQuickAccessQuery
 
 blueprint = Blueprint("prostore", __name__, template_folder='templates', static_folder="static",url_prefix="/prostore")
 
@@ -54,6 +55,8 @@ def bins():
 	bins=bins.add_column(Member.member)
 	bins=bins.outerjoin(Waiver,((Waiver.member_id == ProBin.member_id) & (Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)))
 	bins=bins.add_column(Waiver.created_date.label("waiverDate"))
+	bins = bins.outerjoin(Subscription,Subscription.member_id == Member.id)
+	bins=addQuickAccessQuery(bins)
 	bins=ProBin.addBinStatusStr(bins).all()
 
 	locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
@@ -105,6 +108,34 @@ def locations():
 	locs=ProLocation.addLocTypeCol(locs,blankSingle=True).all()
 	return render_template('locations.html',locations=locs)
 
+@blueprint.route('/grid', methods=['GET','POST'])
+@roles_required(['Admin','RATT','ProStore'])
+@login_required
+def grid():
+	bins=ProBin.query	
+	bins=bins.outerjoin(ProLocation)
+	bins=bins.add_column(ProLocation.location)
+	bins=bins.outerjoin(Member)
+	bins=bins.add_column(Member.member)
+	bins=bins.outerjoin(Waiver,((Waiver.member_id == ProBin.member_id) & (Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)))
+	bins=bins.add_column(Waiver.created_date.label("waiverDate"))
+	bins = bins.outerjoin(Subscription,Subscription.member_id == Member.id)
+	bins=addQuickAccessQuery(bins)
+	bins=ProBin.addBinStatusStr(bins).all()
+	
+	ab={}
+	for b in bins:
+		if b.location and b.member:
+			ab[b.location] = {
+				'member':b.member,
+			}
+			if not b.waiverDate:
+				ab[b.location]['style'] = "background-color:#ffffd0"
+			if b.active != "Active" and b.active != "Grace Period":
+				ab[b.location]['style'] = "background-color:#ffd0d0"
+	return render_template('grid.html',bins=ab)
+	
+	
 # v0.8 migration
 def migrate(cmd,**kwargs):
 	for f in ('Garage','Cleanspace'):

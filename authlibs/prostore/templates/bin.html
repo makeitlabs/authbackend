@@ -1,0 +1,83 @@
+{# vim:tabstop=2:shiftwidth=2:expandtab
+#}
+{% extends "layout_bootstrap.html" %}
+<h2>Bin</h2>
+{% block body %}
+{% macro input(name, label, placeholder='', small='', type='text') -%}
+			{% if readonly is not defined %}
+			{% set ph = placeholder %}
+			{% endif %}
+      <label for="input_{{ name }}">{{ label }}</label>
+      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" 
+        value="{% if bin[name] %}{{ bin[name] }}{% endif %}">
+			{% if small != '' %}
+			<small>{{ small }}</small>
+			{% endif %}
+{%- endmacro %}
+
+  <div class="container">
+
+    <form action="{{ url_for('prostore.bin_edit',id=bin.id) }}" method="post">
+    <div class="form-row">
+      <div class="form-group col-md-6">
+        {{ input('name',"Bin ID",'',small="Optional Unique ID or name of bin") }}
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-md-6">
+        <label for="input_resource_id">Bin Location</label>
+        <select class="form-control" name="input_location">
+            <option name="unspecified" value="Unspecified">Unspecified</option>
+          {% for loc in locations %}
+            <option name="{{ loc.location }}" value="{{ loc.location }}"
+            {% if (loc.usecount > 0  and loc.ProLocation.loctype == 0) and (bin.location != loc.ProLocation.location) %}disabled{% endif %}
+            {% if bin.location == loc.ProLocation.location %}selected{% endif %}
+            >{{ loc.ProLocation.location }}</option>
+          {% endfor %}
+        </select>
+        <input type="hidden" name="input_id" value="{{ bin.id }}" />
+        <label for="input_status">Bin Status</label>
+        <select class="form-control" name="input_status">
+          {% for stat in statuses %}
+            <option name="{{ stat[0] }}" value="{{ stat[0] }}"
+            {% if bin.status == stat[0] %}selected{% endif %}>
+            {{ stat[1] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-md-2">
+        Assigned to:
+      </div>
+      <div id="assign_to_member" class="form-group col-md-4">
+        {{ bin.member }}
+      </div>
+      <div class="form-group col-md-4">
+        <a id="unassign_button" class="btn btn-outline-secondary" data-toggle="button" onclick="unassign();" >Unassign</a>
+        <a class="btn btn-outline-secondary" onclick="change_member();">Change Member</a>
+      </div>
+    </div>
+    <input type="submit" class="btn btn-primary" name="save_bin" value="Save" />
+    <input type="submit" class="btn btn-danger" name="delete_bin" value="Delete" />
+    </form>
+  </div>
+
+<script type="text/javascript">
+function unassign() {
+  var x = $("#unassign_button")[0];
+  var m = $("#assign_to_member");
+  if (x.classList.contains("active"))
+    m[0].innerHTML="{{ bin.member }}";
+  else
+    m[0].innerHTML="<strike>{{ bin.member }}</strike>";
+}
+function change_member() {
+  var m = $("#assign_to_member");
+  var x = $("#unassign_button")[0];
+  m[0].innerHTML="<strike>{{ bin.member }}</strike>";
+  if (x.classList.contains("active"))
+    $("#unassign_button").button('toggle');
+}
+</script>
+{% endblock %}

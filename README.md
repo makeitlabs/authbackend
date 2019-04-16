@@ -203,3 +203,7 @@ COMMIT;
 You will also need to update waiver data to include [new] waiver-types before going live:
 
 `python authserver.py --command fixwaivers`
+
+Get a jumpstart on entering pro-storage stuff with:
+
+`python authserver.py --command prostore_migrate`

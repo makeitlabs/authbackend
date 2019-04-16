@@ -90,6 +90,10 @@ def get_raw_menu():
                     'title':"Pro Storage Locations"
             },
             {
+                    'url':url_for('prostore.grid'),
+                    'title':"Pro Storage Grid"
+            },
+            {
                     'privs':'Finance',
                     'url':url_for('reports.blacklist'),
                     'alt':"Ignored payments",

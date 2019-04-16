@@ -1,0 +1,75 @@
+{# vim:tabstop=2:shiftwidth=2:expandtab
+#}
+{% extends "layout_bootstrap.html" %}
+<h2>Locations</h2>
+{% block widebody %}
+
+  <h3>Garage Bins</h3>
+  <div class="form-row">
+    <div class="col-sm-1">
+    </div>
+    {% for x in ['A','B','C','D','E','F','G','H'] %}
+    <div class="col-sm-1">
+      <p>{{ x }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  {% for y in ["6","5","4","3","2","1"] %}
+  <div class="form-row">
+    <div class="col-sm-1">
+      <p>{{ y }}</p>
+    </div>
+    {% for x in ['A','B','C','D','E','F','G','H'] %}
+    <div class="col-md-1"
+        style="
+        {% if bins['Garage-'+x+"-"+y] %}
+        {{ bins['Garage-'+x+"-"+y]['style'] }}
+        {% endif %}
+        "
+     >
+      <p>
+        {% if bins['Garage-'+x+"-"+y] %}
+        {{ bins['Garage-'+x+"-"+y]['member'] }}
+        {% endif %}
+      </p>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+
+
+
+  <h3>Cleanspace Bins</h3>
+  <div class="form-row">
+    <div class="col-sm-1">
+    </div>
+    {% for x in ['A','B'] %}
+    <div class="col-sm-1">
+      <p>{{ x }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  {% for y in ["4","3","2","1"] %}
+  <div class="form-row">
+    <div class="col-sm-1">
+      <p>{{ y }}</p>
+    </div>
+    {% for x in ['A','B','C','D','E','F','G','H'] %}
+    <div class="col-md-1"
+        style="
+        {% if bins['Cleanspace-'+x+"-"+y] %}
+        {{ bins['Cleanspace-'+x+"-"+y]['style'] }}
+        {% endif %}
+        "
+     >
+      <p>
+        {% if bins['Cleanspace-'+x+"-"+y] %}
+        {{ bins['Cleanspace-'+x+"-"+y]['member'] }}
+        {% endif %}
+      </p>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+{% endblock %}
