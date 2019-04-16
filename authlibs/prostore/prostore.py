@@ -70,6 +70,22 @@ def bin_edit(id):
 	if 'save_bin' in request.form:
 		# Save
 		print "BIN_EDIT",request.form
+		bin = ProBin.query.filter(ProBin.id == request.form['input_id']).one()
+		if 'member_radio' in request.form:
+			bin.member_id=Member.query.filter(Member.member == request.form['member_radio']).one().id
+		elif request.form['unassign_member_hidden'] == "yes":
+			bin.member_id = None
+		if request.form['input_name']:
+			bin.name = request.form['input_name']
+		else:
+			bin.name=None
+		bin.status = request.form['input_status']
+		bin.location_id = request.form['input_location']
+		db.session.commit()
+		flash("Updates Saved","success")	
+		return redirect(url_for("prostore.bin_edit",id=request.form['input_id']))
+		
+			
 	b=ProBin.query.filter(ProBin.id==id)
 	b=b.add_columns(ProBin.name,ProBin.status)
 	b=b.outerjoin(ProLocation)

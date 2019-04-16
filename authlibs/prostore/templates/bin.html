@@ -1,8 +1,9 @@
 {# vim:tabstop=2:shiftwidth=2:expandtab
 #}
 {% extends "layout_bootstrap.html" %}
-<h2>Bin</h2>
 {% block body %}
+{% include 'header.html' %}
+<h2>Bin</h2>
 {% macro input(name, label, placeholder='', small='', type='text') -%}
 			{% if readonly is not defined %}
 			{% set ph = placeholder %}
@@ -53,15 +54,19 @@
         Assigned to:
       </div>
       <div id="assign_to_member" class="form-group col-md-2">
+        <a href="{{ url_for("members.member_show",id=bin.member) }}">
         {{ bin.member }}
+       </a>
       </div>
       <div id="assign_to_member" class="form-group col-md-4">
         {% if bin.member %}
           {% if bin.active != "Active" and bin.active != "Grace Period" %}
+            <span style="background-color:#ffff80">
             Subscription {{ bin.active }}
+            </span>
           {% endif %}
           {% if not bin.waiverDate %}
-            No Waiver
+            <span style="background-color:#ffff80">No waiver</span>
           {% endif %}
         {% endif %}
       </div>
@@ -72,7 +77,9 @@
     </div>
 
     <div class="collapse" id="member_select_div">
-      MEMBERSELECT
+			{% with add_radiobuttons=1,no_filters=1 %}
+			{% include 'userlist.html' %}
+			{% endwith %}
     </div>
     <input type="submit" class="btn btn-primary" name="save_bin" value="Save" />
     <input type="submit" class="btn btn-danger" name="delete_bin" value="Delete" />

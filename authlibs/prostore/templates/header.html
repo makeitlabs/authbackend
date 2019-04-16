@@ -1,0 +1,9 @@
+<h1>TEST</h1>
+
+<div class="container">
+	<div class="btn-group my-2" role="group" aria-label="Member Pages">
+		<button onclick='location.href="{{ url_for("prostore.bins",id=rec.member) }}";'  type="button" class="btn btn-{% if page!="location" %}outline-{% endif %}info">Locations</button>
+		<button onclick='location.href="{{ url_for("prostore.location",id=rec.id) }}";'  type="button" class="btn btn-{% if page!="location" %}outline-{% endif %}info">Bins</button>
+		<button onclick='location.href="{{ url_for("prostore.grid",id=rec.id) }}";'  type="button" class="btn btn-{% if page!="grid" %}outline-{% endif %}info">Grid</button>
+	</div>
+</div>
