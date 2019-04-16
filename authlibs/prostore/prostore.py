@@ -144,12 +144,15 @@ def grid():
 	
 	ab={}
 	for b in bins:
-		if b.location and b.member:
+		if b.location:
 			ab[b.location] = {
-				'member':b.member,
-				'membername':b.lastname+", "+b.firstname,
-				'binid':b.ProBin.id
+				'binid':b.ProBin.id,
+				'binname':b.ProBin.name
 			}
+			if b.member:
+				ab[b.location]['member']=b.member
+				ab[b.location]['firstname']=b.firstname
+				ab[b.location]['lastname']=b.lastname
 			if not b.waiverDate:
 				ab[b.location]['style'] = "background-color:#ffffd0"
 			if b.ProBin.status > 2:

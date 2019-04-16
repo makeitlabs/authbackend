@@ -54,9 +54,11 @@
         Assigned to:
       </div>
       <div id="assign_to_member" class="form-group col-md-2">
+        {% if bin.member %}
         <a href="{{ url_for("members.member_show",id=bin.member) }}">
         {{ bin.member }}
        </a>
+        {% endif %}
       </div>
       <div id="assign_to_member" class="form-group col-md-4">
         {% if bin.member %}
