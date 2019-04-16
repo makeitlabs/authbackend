@@ -1,26 +1,26 @@
 {# vim:tabstop=2:shiftwidth=2:expandtab
 #}
 {% extends "layout_bootstrap.html" %}
-<h2>Locations</h2>
 {% block widebody %}
+{% with page="grid" %}
+{% include 'header.html' %}
+{% endwith %}
 
   <h3>Garage Bins</h3>
-  <div class="form-row">
-    <div class="col-sm-1">
-    </div>
+  <table style="table-layout: fixed; width: 100%;" class="table">
+    <tr>
+     <td></td>
     {% for x in ['A','B','C','D','E','F','G','H'] %}
     <div class="col-sm-1">
-      <p>{{ x }}</p>
-    </div>
+      <th>{{ x }}</th>
     {% endfor %}
-  </div>
+    </tr>
+
   {% for y in ["6","5","4","3","2","1"] %}
-  <div class="form-row">
-    <div class="col-sm-1">
-      <p>{{ y }}</p>
-    </div>
+  <tr>
+      <th>{{ y }}</th>
     {% for x in ['A','B','C','D','E','F','G','H'] %}
-    <div class="col-md-1"
+    <td
         style="
         {% if bins['Garage-'+x+"-"+y] %}
         {{ bins['Garage-'+x+"-"+y]['style'] }}
@@ -30,14 +30,15 @@
       <p>
         {% if bins['Garage-'+x+"-"+y] %}
         <a href="{{ url_for('prostore.bin_edit',id= bins['Garage-'+x+'-'+y]['binid']) }}">
-        {{ bins['Garage-'+x+"-"+y]['member'] }}
+        {{ bins['Garage-'+x+"-"+y]['membername'] }}
         </a>
         {% endif %}
       </p>
-    </div>
+    </td>
     {% endfor %}
-  </div>
+  </tr>
   {% endfor %}
+  </table>
 
 
 

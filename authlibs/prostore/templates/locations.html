@@ -1,8 +1,10 @@
 {% extends "layout_bootstrap.html" %}
-<h2>Pro Storage Locations</h2>
 {% block body %}
+{% with page="locations" %}
+{% include 'header.html' %}
+{% endwith %}
 <div class="nodeslist">
-	<h2>Locations:  {{ locations |length }} available</h2>
+	<h2>Pro Storage Locations:  {{ locations |length }}</h2>
 	<table class="table table-lg table-striped">
         <tr>
             <th>Location</th>

@@ -1,8 +1,10 @@
 {% extends "layout_bootstrap.html" %}
-<h2>Resources</h2>
 {% block body %}
+{% with page="bins" %}
+{% include 'header.html' %}
+{% endwith %}
+	<h2>Pro Storage Bins:  {{ bins |length }}</h2>
 <div class="nodeslist">
-	<h2>Bins:  {{ bins |length }}</h2>
 	<table class="table table-sm">
         <tr>
             <th>Name/ID</th>

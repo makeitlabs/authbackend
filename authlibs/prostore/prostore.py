@@ -135,7 +135,7 @@ def grid():
 	bins=bins.outerjoin(ProLocation)
 	bins=bins.add_column(ProLocation.location)
 	bins=bins.outerjoin(Member)
-	bins=bins.add_column(Member.member)
+	bins=bins.add_columns(Member.member,Member.lastname,Member.firstname)
 	bins=bins.outerjoin(Waiver,((Waiver.member_id == ProBin.member_id) & (Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)))
 	bins=bins.add_column(Waiver.created_date.label("waiverDate"))
 	bins = bins.outerjoin(Subscription,Subscription.member_id == Member.id)
@@ -147,6 +147,7 @@ def grid():
 		if b.location and b.member:
 			ab[b.location] = {
 				'member':b.member,
+				'membername':b.lastname+", "+b.firstname,
 				'binid':b.ProBin.id
 			}
 			if not b.waiverDate:
