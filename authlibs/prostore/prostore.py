@@ -10,6 +10,17 @@ from authlibs.accesslib import addQuickAccessQuery
 blueprint = Blueprint("prostore", __name__, template_folder='templates', static_folder="static",url_prefix="/prostore")
 
 
+def log_bin_event(bin,event,commit=0):
+	f=[]
+	if bin.location_id:
+		l = ProLocation.query.filter(ProLocation.id == bin.location_id).one_or_none()
+		if l:
+			f.append("Loc:%s" % l.location)
+	if bin.name:
+		f.append("Bin:%s" % bin.name)
+	f.append("%s" % ProBin.BinStatuses[int(bin.status)])
+	message = " ".join(f)
+	authutil.log(event,member_id=bin.member_id,message=message,doneby=current_user.id,commit=commit)
 
 @blueprint.route('/bins', methods=['GET','POST'])
 @roles_required(['Admin','RATT','ProStore','Useredit'])
@@ -44,6 +55,7 @@ def bins():
 		if b.strip() != "": brec.name=b.strip()
 		brec.status = request.form['input_status']
 		db.session.add(brec)
+		log_bin_event(brec,eventtypes.RATTBE_LOGEVENT_PROSTORE_ASSIGNED.id)
 		db.session.commit()
 		flash("Bin Added","success")
 		return redirect(url_for("prostore.bins"))
@@ -64,9 +76,17 @@ def bins():
 	return render_template('bins.html',bins=bins,bin=None,locations=locs,statuses=enumerate(ProBin.BinStatuses))
 
 @blueprint.route('/bin/<string:id>', methods=['GET','POST'])
-@roles_required(['Admin','RATT','ProStore'])
+@roles_required(['Admin','ProStore'])
 @login_required
 def bin_edit(id):
+	if 'delete_bin' in request.form:
+		bin = ProBin.query.filter(ProBin.id == request.form['input_id']).one()
+		log_bin_event(bin,eventtypes.RATTBE_LOGEVENT_PROSTORE_UNASSIGNED.id)
+		db.session.delete(bin)
+		db.session.commit()
+		flash("Bin Deleted","success")	
+		return redirect(url_for("prostore.bins"))
+
 	if 'save_bin' in request.form:
 		# Save
 		print "BIN_EDIT",request.form
@@ -81,10 +101,10 @@ def bin_edit(id):
 			bin.name=None
 		bin.status = request.form['input_status']
 		bin.location_id = request.form['input_location']
+		log_bin_event(bin,eventtypes.RATTBE_LOGEVENT_PROSTORE_CHANGED.id)
 		db.session.commit()
 		flash("Updates Saved","success")	
 		return redirect(url_for("prostore.bin_edit",id=request.form['input_id']))
-		
 			
 	b=ProBin.query.filter(ProBin.id==id)
 	b=b.add_columns(ProBin.name,ProBin.status)
@@ -94,16 +114,16 @@ def bin_edit(id):
 	b=b.add_column(Member.member)
 	b=b.outerjoin(Waiver,((Waiver.member_id == ProBin.member_id) & (Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)))
 	b=b.add_column(Waiver.created_date.label("waiverDate"))
-	b = b.outerjoin(Subscription,Subscription.member_id == Member.id)
+	b=b.outerjoin(Subscription,Subscription.member_id == Member.id)
 	b=addQuickAccessQuery(b)
 	b=ProBin.addBinStatusStr(b).one()
 
 	locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
 	locs=locs.all()
-	return render_template('bin.html',bin=b,locations=locs,statuses=enumerate(ProBin.BinStatuses))
+	return render_template('bin.html',bin=b,locations=locs,statuses=enumerate(ProBin.BinStatuses),comments=comments)
 
 @blueprint.route('/locations', methods=['GET','POST'])
-@roles_required(['Admin','RATT','ProStore'])
+@roles_required(['Admin','ProStore'])
 @login_required
 def locations():
 	if 'delete' in request.values:
@@ -128,7 +148,6 @@ def locations():
 	return render_template('locations.html',locations=locs)
 
 @blueprint.route('/grid', methods=['GET','POST'])
-@roles_required(['Admin','RATT','ProStore'])
 @login_required
 def grid():
 	bins=ProBin.query	

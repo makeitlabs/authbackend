@@ -218,8 +218,25 @@ class RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE:
     desc='Resource privilege change'
 		slack_icon=":level_slider:"
 
+class RATTBE_LOGEVENT_PROSTORE_OTHER:
+    id=5000
+    desc='Pro-Storage Bin Misc Event'
 
+class RATTBE_LOGEVENT_PROSTORE_ASSIGNED:
+    id=5001
+    desc='Pro-Storage Bin Assigned'
 
+class RATTBE_LOGEVENT_PROSTORE_UNASSIGNED:
+    id=5002
+    desc='Pro-Storage Bin Unassigned'
+
+class RATTBE_LOGEVENT_PROSTORE_CHANGED:
+    id=5003
+    desc='Pro-Storage Bin Changed'
+
+class RATTBE_LOGEVENT_PROSTORE_MAX:
+    id=5099
+    desc='Pro-Storage Max'
 
 def get_event_slack_icons():
 		icons={}

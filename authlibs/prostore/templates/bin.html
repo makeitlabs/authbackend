@@ -84,7 +84,33 @@
 			{% endwith %}
     </div>
     <input type="submit" class="btn btn-primary" name="save_bin" value="Save" />
-    <input type="submit" class="btn btn-danger" name="delete_bin" value="Delete" />
+    <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
+      Unassigned & Delete
+    </button>
+    <!-- Modal for Delete resource confirmation -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            Unassigned and delete bin location {{ bin.location }}
+            {% if bin.member %}
+            {{ bin.member }}
+            {% endif %}?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+            <input type="submit" class="btn btn-danger" name="delete_bin" value="Delete" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Modal for Delete resource confirmation -->
     </form>
   </div>
 
