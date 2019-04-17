@@ -196,13 +196,17 @@ def grid():
 @roles_required(['Admin','RATT','ProStore','Useredit'])
 @login_required
 def notices():
+	err=0
 	if 'send_notices' in request.form:
 		for x in request.form:
-			if x.startswith("notify_member_"):
-				bid = x.replace("notify_member_","")
+			if x.startswith("notify_send_"):
+				bid = x.replace("notify_send_","")
 				notices = request.form['notify_notices_'+bid]
-				sendnotices(bid,notices)
-		flash("Notices sent","success")
+				err += sendnotices(bid,notices)
+		if err:
+			flash("%s errors sending email notices" % err,"danger")
+		else:
+			flash("Notices sent","success")
 		
 	bins=ProBin.query.filter(ProBin.member_id != None)
 	bins=bins.outerjoin(ProLocation)

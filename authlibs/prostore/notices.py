@@ -5,6 +5,7 @@ from authlibs.comments import comments
 from datetime import datetime
 from authlibs import ago
 from authlibs.accesslib import addQuickAccessQuery
+from ..google_admin import genericEmailSender
 
 
 
@@ -46,10 +47,36 @@ notice_footer = """
 For any other questions or assistance with this matter, please email borad@makeitlabs.com
 """
 # Send notices to members
-def sendnotices(bin_id,n):
-	no = n.split()
+def sendnotices(bin_id,notices):
+	err=0
+	no = notices.split()
 	bin = ProBin.query.filter(ProBin.id == bin_id)
 	bin = bin.outerjoin(ProLocation).add_column(ProLocation.location).one()
 	member = Member.query.filter(Member.id == bin.ProBin.member_id).one()
-	print member.member,no,bin.location,bin.ProBin.name
+	print member.member,member.email,member.alt_email,no,bin.location,bin.ProBin.name
+	text=notice_header
+	text += "\n"
+	for n in no:
+		if n in notice_text:
+			text  += notice_text[n]
+		else:
+			text += "Unexpected notice: %s" %n
+		text += "\n"
+	text+=notice_footer
+
+	text=text.format(firstname=member.firstname,lastname=member.lastname,email=member.email)
+
+	print "SEND TO",member.email,member.alt_email
+	print text
+	print
+	print
+	try:
+		genericEmailSender("info@makeitlabs.com",member.email,"Your MakeIt Labs Pro-Storage Bin",text)
+		genericEmailSender("info@makeitlabs.com",member.alt_email,"Your MakeIt Labs Pro-Storage Bin",text)
+		authutil.log(eventtypes.RATTBE_LOGEVENT_PROSTORE_NOTICE_SENT.id,member_id=member.id,message=notices,doneby=current_user.id,commit=0)
+	except BaseException as e:
+		err=1
+		logger.error("Failed to send Pro-Storage email: "+str(e))
+	db.session.commit()
+	return err
 
