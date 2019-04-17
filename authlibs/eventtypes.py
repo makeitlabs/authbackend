@@ -234,6 +234,10 @@ class RATTBE_LOGEVENT_PROSTORE_CHANGED:
     id=5003
     desc='Pro-Storage Bin Changed'
 
+class RATTBE_LOGEVENT_PROSTORE_NOTICE_SENT:
+    id=5004
+    desc='Pro-Storage Notice Sent'
+
 class RATTBE_LOGEVENT_PROSTORE_MAX:
     id=5099
     desc='Pro-Storage Max'

@@ -217,6 +217,14 @@ class ProBin(db.Model):
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
     location_id = db.Column(db.Integer(), db.ForeignKey('prostorelocations.id', ondelete='CASCADE'))
 
+    BINSTATUS_NOT_IN_USE=0
+    BINSTATUS_GONE=1
+    BINSTATUS_IN_USE=2
+    BINSTATUS_GRACE_PERIOD=3
+    BINSTATUS_FORFEITED=4
+    BINSTATUS_MOVED=5
+    BINSTATUS_DONATED=6
+
     BinStatuses = [
             "Not in Use",
             "Discarded/Missing/Destroyed",

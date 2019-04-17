@@ -6,6 +6,7 @@ from authlibs.comments import comments
 from datetime import datetime
 from authlibs import ago
 from authlibs.accesslib import addQuickAccessQuery
+from notices import sendnotices
 
 blueprint = Blueprint("prostore", __name__, template_folder='templates', static_folder="static",url_prefix="/prostore")
 
@@ -189,6 +190,73 @@ def grid():
 			if b.active != "Active" and b.active != "Grace Period":
 				ab[b.location]['style'] = "background-color:#ffd0d0"
 	return render_template('grid.html',bins=ab)
+
+
+@blueprint.route('/notices', methods=['GET','POST'])
+@roles_required(['Admin','RATT','ProStore','Useredit'])
+@login_required
+def notices():
+	if 'send_notices' in request.form:
+		for x in request.form:
+			if x.startswith("notify_member_"):
+				bid = x.replace("notify_member_","")
+				notices = request.form['notify_notices_'+bid]
+				sendnotices(bid,notices)
+		flash("Notices sent","success")
+		
+	bins=ProBin.query.filter(ProBin.member_id != None)
+	bins=bins.outerjoin(ProLocation)
+	bins=bins.add_column(ProLocation.location)
+	bins=bins.outerjoin(Member)
+	bins=bins.add_column(Member.member)
+	bins=bins.outerjoin(Waiver,((Waiver.member_id == ProBin.member_id) & (Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)))
+	bins=bins.add_column(Waiver.created_date.label("waiverDate"))
+	bins = bins.outerjoin(Subscription,Subscription.member_id == Member.id)
+	bins=addQuickAccessQuery(bins)
+	bins=ProBin.addBinStatusStr(bins).all()
+
+	result=[]
+	for b in bins:
+		bb={}
+		bb['ProBin'] = b.ProBin
+		bb['active'] = b.active
+		bb['location'] = b.location
+		bb['binstatusstr'] = b.binstatusstr
+		bb['member'] = b.member
+		bb['waiverDate'] = b.waiverDate
+
+		log =Logs.query.filter(Logs.member_id == b.ProBin.member_id).filter(Logs.event_type == eventtypes.RATTBE_LOGEVENT_PROSTORE_NOTICE_SENT.id)
+		log = log.order_by(Logs.time_logged.desc()).first()
+		if log:
+			bb['lastNoticeWhen'] = log.time_reported
+			bb['lastNoticeWhat'] = log.message
+		else:
+			bb['lastNoticeWhen'] = ""
+			bb['lastNoticeWhat'] = ""
+		# Which notices are recommented??
+		rcmd = []
+		if not b.waiverDate: rcmd.append("NoWaiver")
+		if b.active != "Active": rcmd.append("Subscription")
+
+		if b.ProBin.status == ProBin.BINSTATUS_GONE:
+			rcmd.append("BinGone")
+		elif b.ProBin.status == ProBin.BINSTATUS_GRACE_PERIOD:
+			rcmd.append("Grace")
+		elif b.ProBin.status == ProBin.BINSTATUS_FORFEITED:
+			rcmd.append("Forefeit")
+		elif b.ProBin.status == ProBin.BINSTATUS_MOVED:
+			rcmd.append("Moved")
+		elif b.ProBin.status == ProBin.BINSTATUS_DONATED:
+			rcmd.append("Donated")
+		
+		bb['notice']=" ".join(rcmd)
+		result.append(bb)
+
+	
+	locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
+	locs=locs.all()
+	return render_template('notices.html',bins=result,bin=None,locations=locs,statuses=enumerate(ProBin.BinStatuses))
+
 	
 	
 # v0.8 migration
