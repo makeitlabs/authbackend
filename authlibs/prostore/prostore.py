@@ -224,8 +224,12 @@ def notices():
 	bins=bins.add_column(ProLocation.location)
 	bins=bins.outerjoin(Member)
 	bins=bins.add_column(Member.member)
-	bins=bins.outerjoin(Waiver,((Waiver.member_id == ProBin.member_id) & (Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)))
-	bins=bins.add_column(Waiver.created_date.label("waiverDate"))
+
+	sq = db.session.query(Waiver.member_id,func.count(Waiver.member_id).label("waiverCount")).group_by(Waiver.member_id)
+	sq = sq.filter(Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)
+	sq = sq.subquery()
+	
+	bins = bins.add_column(sq.c.waiverCount.label("waiverCount")).outerjoin(sq,(sq.c.member_id == Member.id))
 	bins = bins.outerjoin(Subscription,Subscription.member_id == Member.id)
 	bins=addQuickAccessQuery(bins)
 	bins=ProBin.addBinStatusStr(bins).all()
@@ -238,7 +242,7 @@ def notices():
 		bb['location'] = b.location
 		bb['binstatusstr'] = b.binstatusstr
 		bb['member'] = b.member
-		bb['waiverDate'] = b.waiverDate
+		bb['waiverCount'] = b.waiverCount
 
 		log =Logs.query.filter(Logs.member_id == b.ProBin.member_id).filter(Logs.event_type == eventtypes.RATTBE_LOGEVENT_PROSTORE_NOTICE_SENT.id)
 		log = log.order_by(Logs.time_logged.desc()).first()
@@ -250,7 +254,7 @@ def notices():
 			bb['lastNoticeWhat'] = ""
 		# Which notices are recommented??
 		rcmd = []
-		if not b.waiverDate: rcmd.append("NoWaiver")
+		if b.waiverCount ==0: rcmd.append("NoWaiver")
 		if b.active != "Active": rcmd.append("Subscription")
 
 		if b.ProBin.status == ProBin.BINSTATUS_GONE:
