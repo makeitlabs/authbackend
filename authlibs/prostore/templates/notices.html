@@ -1,0 +1,80 @@
+{% extends "layout_bootstrap.html" %}
+{% block widebody %}
+{% with page="notices" %}
+{% include 'header.html' %}
+{% endwith %}
+	<h2>Send Pro-Storage Notifications:  {{ bins |length }}</h2>
+<div class="nodeslist">
+	<form method="POST">
+	<table class="table supercompact table-sm">
+        <tr>
+            <th>Notify</th>
+            <th>Name/ID</th>
+            <th>Location</th>
+            <th>Used By</th>
+            <th>Status</th>
+            <th>Waiver</th>
+            <th>Membership</th>
+            <th>Last Notice</th>
+            <th>Sending</th>
+        </tr>
+	{% for bin in bins %}
+	  <tr>
+			<td>
+				<input type="checkbox" name="notify_send_{{ bin.ProBin.id }}" id="notify_send_{{ bin.ProBin.id }}" checked />
+			</td>
+			<td>
+				{% if bin.ProBin.name %}
+				{{ bin.ProBin.name }}
+				{% endif %}
+			</td>
+			<td>
+				{% if bin.location %}
+				{{ bin.location }}
+				{% endif %}
+			</td>
+			<td>
+				{% if bin.member %}
+				<a href="{{ url_for("members.member_show",id=bin.member) }}">
+				{{ bin.member }}
+				</a>
+				{% endif %}
+			</td>
+			<td>{{ bin.binstatusstr }}</td>
+			<td>
+				{% if bin.waiverDate %}
+					<span class="glyphicon glyphicon-check" />
+				{% endif %}
+			</td>
+			<td>
+				{% if bin.active == "Active" %}
+				{% else %}
+				{{ bin.active }}
+				{% endif %}
+			</td>
+			<td>
+				{% if bin.lastNoticeWhen %}
+					{{ bin.lastNoticeWhen }} <br />
+					{{ bin.lastNoticeWhat }}
+				{% endif %}
+			</td>
+			<td>
+				{{ bin.notice }}
+				<input type="hidden" name="notify_member_{{ bin.ProBin.id }}" value="{{ bin.ProBin.member_id }}" />
+				<input type="hidden" name="notify_notices_{{ bin.ProBin.id }}" value="{{ bin.notice }}" />
+			</td>
+			<td>
+				<a href="{{ url_for("prostore.bin_edit",id=bin.ProBin.id) }}">
+				<span class="glyphicon glyphicon-pencil"></span>
+				</a>
+			</td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+
+<input type="submit" name="send_notices" value="Send Notifications" />
+</form>
+</div>
+{% endblock %}
