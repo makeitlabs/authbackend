@@ -7,6 +7,7 @@ from datetime import datetime
 from authlibs import ago
 from authlibs.accesslib import addQuickAccessQuery
 from notices import sendnotices
+from sqlalchemy.sql.expression import label
 
 blueprint = Blueprint("prostore", __name__, template_folder='templates', static_folder="static",url_prefix="/prostore")
 
@@ -66,9 +67,14 @@ def bins():
 	bins=bins.add_column(ProLocation.location)
 	bins=bins.outerjoin(Member)
 	bins=bins.add_column(Member.member)
-	bins=bins.outerjoin(Waiver,((Waiver.member_id == ProBin.member_id) & (Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)))
-	bins=bins.add_column(Waiver.created_date.label("waiverDate"))
+
+	sq = db.session.query(Waiver.member_id,func.count(Waiver.member_id).label("waiverCount")).group_by(Waiver.member_id)
+	sq = sq.filter(Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)
+	sq = sq.subquery()
+	
+	bins = bins.add_column(sq.c.waiverCount.label("waiverCount")).outerjoin(sq,(sq.c.member_id == Member.id))
 	bins = bins.outerjoin(Subscription,Subscription.member_id == Member.id)
+
 	bins=addQuickAccessQuery(bins)
 	bins=ProBin.addBinStatusStr(bins).all()
 
@@ -113,11 +119,16 @@ def bin_edit(id):
 	b=b.add_column(ProLocation.location)
 	b=b.outerjoin(Member)
 	b=b.add_column(Member.member)
+
+	b=b.add_column(func.count(Waiver.id).label("waiverDate"))
 	b=b.outerjoin(Waiver,((Waiver.member_id == ProBin.member_id) & (Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)))
-	b=b.add_column(Waiver.created_date.label("waiverDate"))
+
 	b=b.outerjoin(Subscription,Subscription.member_id == Member.id)
 	b=addQuickAccessQuery(b)
-	b=ProBin.addBinStatusStr(b).one()
+	b=ProBin.addBinStatusStr(b)
+	print "QUERY",b
+	b=b.one()
+	print b
 
 	locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
 	locs=locs.all()

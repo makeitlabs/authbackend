@@ -35,8 +35,9 @@
 			</td>
 			<td>{{ bin.binstatusstr }}</td>
 			<td>
-				{% if bin.waiverDate %}
+				{% if bin.waiverCount > 0 %}
 					<span class="glyphicon glyphicon-check" />
+				{# bin.waiverCount #}
 				{% endif %}
 			</td>
 			<td>
