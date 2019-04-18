@@ -1,4 +1,4 @@
-{% if current_user.privs("Prostore") %}
+{% if current_user.privs("ProStore") %}
 <div class="container">
 	<div class="btn-group my-2" role="group" aria-label="Member Pages">
 		<button onclick='location.href="{{ url_for("prostore.bins") }}";'  type="button" class="btn btn-{% if page!="bins" %}outline-{% endif %}info">Bins</button>

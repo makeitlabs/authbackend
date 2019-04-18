@@ -29,13 +29,13 @@
         "
      >
         {% if bins[name+'-'+x+"-"+y] %}
-        {% if current_user.privs("Prostore") %}
+        {% if current_user.privs("ProStore") %}
           <a href="{{ url_for('prostore.bin_edit',id= bins[name+'-'+x+'-'+y]['binid']) }}">
         {% endif %}
         {{ bins[name+'-'+x+"-"+y]['lastname'] }}<br />
         {{ bins[name+'-'+x+"-"+y]['firstname'] }}<br />
         {{ bins[name+'-'+x+"-"+y]['binname'] }}<br />
-        {% if current_user.privs("Prostore") %}
+        {% if current_user.privs("ProStore") %}
           </a>
         {% endif %}
         {% endif %}
