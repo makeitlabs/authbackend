@@ -82,10 +82,12 @@ def get_raw_menu():
                     'title':"Logout (Soft)"
             },
             {
+                    'privs':'Prostore',
                     'url':url_for('prostore.bins'),
                     'title':"Pro Storage Bins"
             },
             {
+                    'privs':'Prostore',
                     'url':url_for('prostore.locations'),
                     'title':"Pro Storage Locations"
             },
