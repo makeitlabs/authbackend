@@ -677,8 +677,9 @@ if __name__ == '__main__':
           if args.overwrite: db.session.flush()
           if args.overwrite: db.session.commit()
 
-          door = Resource.query.filter(Resource.name=="frontdoor").one()
-          door.info_text = "You have a valid membership, but you must complete orientation for access. Orientation is every Thursday at 7pm, or contact board@makeitlabs to schedule a convenient time"
+          door = Resource.query.filter(Resource.name=="frontdoor").one_or_none()
+          if door:
+                  door.info_text = "You have a valid membership, but you must complete orientation for access. Orientation is every Thursday at 7pm, or contact board@makeitlabs to schedule a convenient time"
 
           # Add default admins
 
@@ -696,10 +697,12 @@ if __name__ == '__main__':
           print """ END DB MIGRATION """
 
     if args.newdata:
+      with app.app_context():
           res=Resource(name="laser-rabbit",description="80-Watt Rabbit laser", owneremail="laser@makeitlabs.com")
           db.session.add(res)
           db.session.flush() # Need to get ID from created thing
           db.session.add(Tool(name="laser-rabbit",resource_id=res.id))
+          db.session.commit()
 
     if args.testdata:
       print """***\n***Adding Test Data\n***\n"""
@@ -713,6 +716,7 @@ if __name__ == '__main__':
               password=app.user_manager.hash_password("admin"),
               active="true",email_confirmed_at=datetime.utcnow())
           db.session.add(member)
+          db.session.flush()
           member.roles.append(Role.query.filter(Role.name=='Admin').one())
 
           member = Member(member="finance", email='finance@makeitlabs.com',

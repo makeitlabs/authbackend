@@ -1,0 +1,106 @@
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+  <link href="{{ url_for('static', filename='css/bootstrap-datepicker3.min.css') }}" rel="stylesheet">
+	<script type="text/javascript" src="{{ url_for("static",filename="js/bootstrap-datepicker.min.js") }}"></script>
+	<script type="text/javascript" src="{{ url_for("static",filename="js/sorttable.js") }}"></script>
+	<script type="text/javascript" src="{{ url_for("logs.static",filename="logfilter.js") }}"></script>
+{% endblock %}
+
+{% macro dobuttons() %}
+		<div class="content">
+			<span>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-asterisk"  onclick="location.href='{{ url_for('logs.logs') }}'" />
+			<button class="btn btn-lg btn-light glyphicon glyphicon-filter" aria-hidden="true" data-toggle="collapse" href="#filterCollapse" role="button" aria-expanded="false" aria-controls="filterCollapse" /></button>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-step-backward" onclick="location.href='{{ meta.first }}'" />
+			{% if meta.prev %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-left"  onclick="location.href='{{ meta.prev }}'" />
+			{% else %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-left disabled" />
+			{% endif %}
+			{% if meta.next %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-right" onclick="location.href='{{ meta.next }}'"  />
+			{% else %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-right disabled"  />
+			{% endif %}
+			<button class="btn btn-lg btn-light glyphicon glyphicon-step-forward"  onclick="location.href='{{ meta.last }}'"></button>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-download"  onclick="location.href='{{ meta.csvurl }}'"></button>
+
+			</span>
+			<span>{{ meta.displayoffset }} - {{ meta.lastoffset}} of {{ meta.count }}</span>
+		</div>
+{%- endmacro -%}
+
+{% block widebody %}
+  <div class=body>
+	<div class="sectionhead"><h3>Members</h3></div>
+    <p>
+	<a class="btn btn-lg btn-outline-secondary" href="?download"><span class="glyphicon glyphicon-download"></span></a>
+</p>
+
+<h2>	{{ members|length }} Members  </h2>
+
+	<table  id="memberTable" style="font-size:10px" class="table table-compact supercompact">
+      <thead>
+        <th>Member <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Email <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Alt Email <i class="glyphicon glyphicon-sort"></i></th>
+        <th>First <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Last <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Slack <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Phone <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Plan <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Acess Enabled <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Reason <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Active <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Active Rate <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Subscription <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Waiver <i class="glyphicon glyphicon-sort"></i></th>
+      </thead>
+			<tbody>
+      {% for m in members %}
+				<tr class="brad-table-row-hover">
+					<td>
+						{% if m.Member.member %}
+										<a href="{{ url_for("members.member_show",id=m.Member.member) }}">
+						{% endif %}
+						{{ m.Member.member }}
+						{% if m.Member.member %}
+										</a>
+						{% endif %}
+					</td>
+					<td>{{ m.Member.email }}</td>
+					<td>{{ m.Member.alt_email }}</td>
+					<td>{{ m.Member.firstname }}</td>
+					<td>{{ m.Member.lastname }}</td>
+					<td>
+							{% if m.Member.slack %}
+							{{ m.Member.slack }}
+							{% endif %}
+					</td>
+					<td>{{ m.Member.phone }}</td>
+					<td>{{ m.Member.plan }}</td>
+					<td>{{ m.Member.access_enabled }}</td>
+					<td>{{ m.Member.access_reason }}</td>
+					<td>{{ m.Member.active }}</td>
+					<td>{{ m.Subscription.rate_plan }}</td>
+					<td>{{ m.Subscription.active }}</td>
+					<td>
+							{% if m.Waiver.created_date %}
+							{{ m.Waiver.created_date }}
+							{% else %}
+							<a href="{{ url_for('members.link_waiver',id=m.Member.id) }}">Fix Waiver</a>
+							{% endif %}
+					</td>
+				</tr>
+      {% endfor %}
+			</tbody>
+	</table>
+		{{ dobuttons() }}
+		{# 	<pre>{{ meta }}
+		{{ request.url }}</pre> #}
+  </div>
+<script type="text/javascript">
+var t = new SortableTable(document.getElementById('memberTable'), 100);
+</script>
+
+{% endblock %}

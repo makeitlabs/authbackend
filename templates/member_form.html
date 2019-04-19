@@ -41,30 +41,31 @@
     </div>
 	</div>
   <div class="form-row">
-    <div class="form-group col-md-5">
+    <div class="form-group col-md-4">
 			{{ input('firstname',"First Name") }}
     </div>
-    <div class="form-group col-md-5">
+    <div class="form-group col-md-4">
 			{{ input('lastname',"Last Name") }}
+    </div>
+    <div class="form-group col-md-4">
+			{{ input('nickname',"Nickanme",small="Optional") }}
     </div>
   </div>
 
 
   <div class="form-row">
-    <div class="form-group col-md-5">
-			{{ input('access_enabled',"Access Enabled",type="boolean") }}
+    <div class="form-group col-md-2">
+			{{ input('access_enabled',"Access Enabled",type="boolean",small="Checked means waiver ok. Unchecked when no waiver, or \"reason\" specified as follows") }}
     </div>
-    <div class="form-group col-md-5">
+    <div class="form-group col-md-10">
 			{{ input('access_reason',"Denial Reason",small="Reason for access denial. Blank if pending waiver. (Can auto-check when waiver completed)") }}
     </div>
   </div>
 
   <div class="form-row">
     <div class="form-group col-md-6">
-			{{ input('alt_email',"Primary Email",'person@example.com',small="Non makeitlabs email. Same as usd for payments",type="email") }}
+			{{ input('alt_email',"Primary Email",'person@example.com',small="Non makeitlabs email. Same as used for payments",type="email") }}
     </div>
-  </div>
-  <div class="form-row">
     <div class="form-group col-md-6">
 			{{ input('email',"MakeIt Email",'First.Last@makeitlabs.com',small="MakeIt Labs Gmail address") }}
     </div>

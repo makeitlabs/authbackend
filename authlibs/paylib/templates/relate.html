@@ -18,12 +18,12 @@
 				<td>{{ s.created_date }}</td>
 				<td><a class="btn btn-secondary" href="{{ url_for("payments.payment_membership",membership=s.membership) }}">Detail</a></td>
 				<td>{{ s.rate_plan }}</td>
-				<td><input type="radio" name="exist_stripe" value="{{ s.membership }}">&nbsp;Assign to...</input></td>
-				<td><input type="radio" name="new_stripe" value="{{ s.membership }}">&nbsp;Create New Membership</input></td>
+				<td><input type="radio" name="do_sub" value="assign:{{ s.membership }}">&nbsp;Assign to...</input></td>
+				<td><input type="radio" name="do_sub" value="create:{{ s.membership }}">&nbsp;Create New Membership</input></td>
 				</tr>
 					{% endfor %}
 			</table>
-			<p>To assign a subsription to a payment - select to appropriate radio boxes for each, then click "assign"</p>
+			<p>To assign a subscription to a member record - select to appropriate radio boxes for each, then click "assign"</p>
 			<input type="submit" value="Assign" name="Assign" />
 		</div>
 	<hr />

@@ -20,9 +20,10 @@ blueprint = Blueprint("waivers", __name__, template_folder='templates', static_f
 # ------------------------------------------------------------
 
 @blueprint.route('/', methods=['GET'])
+@roles_required(['Admin','Finance','Useredit'])
 @login_required
 def waivers():
-		waivers = Waiver.query
+		waivers = Waiver.query.order_by(Waiver.id.desc())
 		waivers = waivers.add_column(Member.member).outerjoin(Member,Member.id == Waiver.member_id)
 		res=[]
 		for (waiver,member) in waivers.all():
@@ -30,12 +31,29 @@ def waivers():
 			res.append({'waiver':waiver,'member':member})
 		return render_template('waivers.html',waivers=res)
 
+@blueprint.route('/', methods=['POST'])
+@roles_required(['Admin','Finance','Useredit'])
+@login_required
+def post_waivers():
+		if 'Unlink' in request.form and request.form['Unlink']=='Unlink':
+			wid = request.form['unlink_waiver_id']
+			w = Waiver.query.filter(Waiver.id == wid).one()
+			m = Member.query.filter(Member.id == w.member_id).one()
+			m.access_enabled=0
+			w.member_id = None
+			authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,message="Waiver was unlinked",member_id=m.id,doneby=current_user.id,commit=0)
+			db.session.commit()
+			flash(m.member+" Unlinked from Waiver","warning")
+		return redirect(url_for("waivers.waivers"))
+
 @blueprint.route('/update', methods=['GET'])
+@roles_required(['Admin','Finance','Useredit'])
 @login_required
 def waivers_update():
 		"""(Controller) Update list of waivers in the database. Can take a while."""
 		updated = addNewWaivers()
 		flash("Waivers added: %s" % updated)
+		connect_waivers()
 		return redirect(url_for('waivers.waivers'))
 
 ###
@@ -90,7 +108,7 @@ def connect_waivers():
 				m[0].access_enabled=1;
 				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,member_id=m[0].id,commit=0)
 			else:
-				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DENIED.id,message="Waiver found, but access otherwise denied",member_id=m[0].id,commit=0)
+				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,message="Waiver found, but access otherwise denied",member_id=m[0].id,commit=0)
 		else:
 			s += " no member found"
 		logger.info(s)

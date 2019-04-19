@@ -32,7 +32,7 @@ include like:
 	{% if allow_comments or not readonly %}
 		<div class="my-3 content">
 			<form method="POST" action="{{ url_for("comments.add_comment") }}">
-				<input type="hidden" name="redirect" value="{{ request.path }}" />
+				<input type="hidden" name="redirect" value="{{ request.base_url }}" />
 				{% if member_id %}
 					<input type="hidden" name="member_id" value="{{ member_id }}" />
 				{% endif %}

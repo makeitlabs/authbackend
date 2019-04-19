@@ -11,9 +11,11 @@ from functools import wraps
 import json
 #from .. import requireauth as requireauth
 from .. import utilities as authutil
+from .. import google_admin 
 from ..utilities import _safestr as safestr
 from authlibs import eventtypes
 from authlibs import payments as pay
+from datetime import datetime
 from .. import membership
 
 from authlibs.templateCommon import *
@@ -166,6 +168,7 @@ def payments_member(id):
             members m on m.member=p.member where p.member='%s'""" % pid
     #user = Subscription.query.filter(
     return render_template('payments_member.html',user=user)
+
 @blueprint.route('/reports', methods = ['GET'])
 @login_required
 @roles_required(['Admin','Finance'])
@@ -247,26 +250,155 @@ def relate():
 @login_required
 @roles_required(['Admin','Finance'])
 def relate_assign():
+  if 'Create' in request.form:
+      newm={
+        'first':request.form['firstname'],
+        'last':request.form['lastname'],
+        'email':request.form['email'],
+        'plan':request.form['plan'],
+        'rate_plan':request.form['rate_plan'],
+        'alt_email':request.form['alt_email'],
+        'membership':request.form['membership'],
+        'no_email':False
+      }
+      if 'no_email' in request.form: newm['no_email']=True
+      # Last checks
+      error=False
+      if newm['first'] == "": 
+        flash("Must specify first name","warning") 
+        error=True
+      if newm['last'] == "": 
+        flash("Must specify last name","warning") 
+        error=True
+      if newm['email'] == "": 
+        flash("Must assign a new/unque Member ID/Email","warning") 
+        error=True
+      if Member.query.filter(Member.member.ilike(newm['email'])).count() != 0:
+        flash("Member ID/Email already in-use","warning") 
+        error=True
+      if error:
+        return render_template('newmember.html',member=newm)
+
+      if not newm['no_email']:
+        if current_app.config['globalConfig'].DeployType.lower() == "production":
+          try:
+            users = google_admin.searchEmail(request.form['email'])
+            if len(users) > 0:
+              flash("Email address already exists in Google","warning")
+              error=True
+          except BaseException as e:
+            flash("Error verifying gmail addr: "+str(e),"error")
+            logger.error("Error verifying gmail addr: "+str(e))
+            error=True
+
+      if error:
+        return render_template('newmember.html',member=newm)
+
+      ## Everything is good - CREATE new member!
+      if newm['no_email']:
+        email=None
+      else:
+        email=newm['email']+'@makeitlabs.com'
+      member = Member(member=newm['email'],email=newm['email']+'@makeitlabs.com',
+          alt_email="billy@example.com",firstname=newm['first'],lastname=newm['last'],
+          access_enabled=0,active=1,membership=newm['membership'],
+          email_confirmed_at=datetime.utcnow())
+      db.session.add(member)
+      db.session.flush()
+      s = Subscription.query.filter(Subscription.membership == newm['membership']).one()
+      s.member_id = member.id
+      if not newm['no_email']:
+        ts = time.time()
+        password = "%s-%d" % (newm['last'],ts - (len(newm['email']) * 314))
+        if current_app.config['globalConfig'].DeployType.lower() != "production":
+            flash("Skipping Google Create - Non Production","warning")
+        else:
+          try:
+            user = google_admin.createUser(newm['first'],newm['last'],newm['email'],newm['alt_email'],password)
+            google_admin.sendWelcomeEmail(user,password,newm['alt_email'])
+          except BaseException as e:
+            logger.error("Error create Google act: "+str(e))
+            flash("Error create Google act: "+str(e),"warning")
+            error=True
+
+      if error:
+        db.session.rollback()
+        return render_template('newmember.html',member=newm)
+      else:
+        db.session.commit()
+        flash("Created","success") 
+      # TODO Create Google
+        return redirect(url_for('members.member_show',id=newm['email']))
+
   if 'Assign' in request.form:
-    if 'new_stripe' not in request.form and 'exist_stripe' not in request.form:
+    if 'do_sub' not in request.form:
       flash ("Designate a subscription as \"New Member\" or \"Assign To\" an existing account","warning")
       return redirect(url_for('payments.relate'))
-    if 'exist_stripe' in request.form and 'member_radio' not in request.form:
+    (action,membership) = request.form['do_sub'].split(":",1)
+    if action == "assign"  and 'member_radio' not in request.form:
       flash ("You must (search for and select) a Member to Assign a subscription to","warning")
       return redirect(url_for('payments.relate'))
 
-    if 'exist_stripe' in request.form:
-      mem = Member.query.filter(Member.member == request.form['member_radio']).one().id
-      memsub = Subscription.query.filter(Subscription.member_id == mem).all()
+    if action == "assign":
+      mem = Member.query.filter(Member.member == request.form['member_radio']).one()
+      memsub = Subscription.query.filter(Subscription.member_id == mem.id).all()
       if len(memsub) != 0:
         flash ("Member already has a membership","warning")
       else:
+        mem.membership=membership
+        s = Subscription.query.filter(Subscription.membership == mem.membership).one()
+        s.member_id = mem.id
+        db.session.commit()
         flash ("Assigning subscription to existing member","success")
-
-    elif 'new_stripe' in request.form:
-      flash ("Creating new member","success")
+    elif action == "create":
+      s = Subscription.query.filter(Subscription.membership == membership).one()
+      fn=""
+      ln=""
+      n=s.name.split(" ")
+      if len(n)==2:
+        fn=safestr(n[0]).title()
+        ln=safestr(n[1]).title()
+      elif len(n)==1:
+        flash("Single name given - Please check and correct","warning")
+        ln=safestr(n[0]).title()
+      else:
+        flash("Multi-part name given - Please check and correct","warning")
+        fn=safestr(n[0]).title()
+        ln=" ".join(n[1:])
+      newm={
+        'first':fn,
+        'last':ln,
+        'member':fn+"."+ln,
+        'email':fn+"."+ln,
+        'plan':s.plan,
+        'rate_plan':s.rate_plan,
+        'membership':s.membership,
+        'alt_email':s.email
+      }
+      return render_template('newmember.html',member=newm)
+    else:
+      flash("No action specified","warning")
         
   return redirect(url_for('payments.relate'))
+
+@blueprint.route('/google_acct_avail/<string:name>', methods = ['GET'])
+@login_required
+@roles_required(['Admin','Finance'])
+def google_acct_avail(name):
+  m = Member.query.filter(Member.member.ilike(name)).all()
+  if len(m) > 0:
+    return json_dump({'status':'error','message':'Member Exists'}), 200, {'Content-type': 'application/json'}
+
+  try:
+    users = google_admin.searchEmail(name)
+  except BaseException as e:
+    logger.error("Google email search failed: "+str(e))
+    return json_dump({'status':'error','message':'Error checking Google'}), 200, {'Content-type': 'application/json'}
+    
+  if len(users) > 0:
+    return json_dump({'status':"error","message":"Exists in Google"}), 200, {'Content-type': 'application/json'}
+  #status must be "available" or "in-use"
+  return json_dump({'status':"ok","message":"available"}), 200, {'Content-type': 'application/json'}
 
 def register_pages(app):
 	app.register_blueprint(blueprint)

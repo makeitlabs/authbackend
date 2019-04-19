@@ -1,0 +1,165 @@
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+<script type="text/javascript">
+function dosearchkey() {
+	var searchstr = document.getElementById("search_string").value.toLowerCase();
+	searchstr = searchstr.replace(/^\s+/g, '');
+	searchstr = searchstr.replace(/\s+$/g, '');
+	var showunlinked = document.getElementById("showunlinked_cb").checked;
+	console.log(showunlinked);
+	for (let x of $("tr.bodyrow")) {
+		var found=false;
+		mbs= x.getElementsByTagName("td");
+		if (searchstr == "")
+			found=true;
+		else {
+			//console.log(mbs[1].innerHTML,mbs[2].innerHTML);
+			if (mbs[1].innerHTML.toLowerCase().includes(searchstr)) found=true;
+			if (mbs[2].innerHTML.toLowerCase().includes(searchstr)) found=true;
+			if (mbs[3].innerHTML.toLowerCase().includes(searchstr)) found=true;
+		}
+		if (!showunlinked && !x.getAttribute("unlinked"))
+			found=false;
+		if (found) 
+			//x.style.visibility="visible";
+			x.style.display="table-row";
+		else
+			//x.style.visibility="collapse";
+			x.style.display="none";
+		
+	}
+}
+  function doLinkButton(waiverid,desc){
+    $('#waiverid')[0].value=waiverid;
+    $('#memberid')[0].value={{ rec.id }};
+    $('#waiver_desc')[0].innerHTML=desc;
+    $('#linkModal').modal();
+		console.log("MODAL");
+  }
+</script>
+{% endblock %}
+{% block search %}
+  <div class=body>
+	<div class="sectionhead"><h2>Link Member Waiver</h2></div>
+	<div class="content">
+	<b>Link Member:</b> {{ rec.firstname }} {{ rec.lastname }} {{ rec.member }}
+	</div>
+	<div class="sectionhead"><h3>Waiver Data</h3></div>
+		{% if current_user.privs("Useredit") or current_user.privs("Finance") %}
+    <a href="{{ url_for('waivers.waivers_update') }}">Update Waiver Data (May take a while)</a>
+		{% endif %}
+    <p></p>
+  <div class="form-group">
+    <label for="exampleFormControlInput1">Search:</label>
+    <input type="text" 
+			oninput="dosearchkey();" 
+			onpaste="dosearchkey();" 
+			onkeydown="dosearchkey();" 
+			class="form-control" id="search_string" placeholder="">
+		<label for="showunlinked_cb">Show Linked</label>
+		<input id="showunlinked_cb" onclick="dosearchkey();" type="checkbox" />
+  </div>
+	<table>
+			<thead>
+      <tr>
+	<th></th>
+        <th>Email</th>
+        <th>Firstname</th>
+        <th>Lastname</th>
+	<th>Created</th>
+	<th>Member</th>
+      </tr>
+			</thead>
+			<tbody>
+      {% for w in waivers %}
+	  <tr class="bodyrow" {% if not w.Waiver.member_id %} unlinked=1 {% else %} style="display:none" {% endif %} >
+			<td>
+							{% if not w.Waiver.member_id %}
+				<a  class="btn btn-info" href="javascript:doLinkButton({{ w.Waiver.id }},'{{ w.Waiver.firstname }} {{ w.Waiver.lastname }} <br />{{ w.Waiver.email }}');">
+							<span data-toggle="popover" class="glyphicon glyphicon-resize-small" />
+				</a>
+							{% else %}
+				<a  class="btn btn-danger" href="javascript:unlinkModal('{{ w.Waiver.id }}','{{ w.memb }}','{{ w.Waiver.firstname }} {{ w.Waiver.lastname }}');">
+							<span data-toggle="popover" class="glyphicon glyphicon-resize-full" />
+				</a>
+							{% endif %}
+			</td>
+		<td>{{ w.Waiver.email }}</td>
+		<td>{{ w.Waiver.firstname }}</td>
+		<td>{{ w.Waiver.lastname }}</td>
+		<td>{{ w.Waiver.created_date }}</td>
+		{% if w.Waiver.member_id %}
+		<td><a href="{{ url_for("members.member_show",id=w.memb) }}">{{ w.memb }}</a></td>
+		{% endif %}
+	  </tr>
+      {% endfor %}
+		</tbody>
+	</table>
+	{# <td><a href="?showall=1">Show More</a></td> #}
+</div> {# body div ?? #}
+
+		{# UNLINK MODAL #}
+
+				<!-- Modal -->
+				<div class="modal fade" id="linkModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+					<div class="modal-dialog" role="document">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h5 class="modal-title" id="exampleModalLabel">Waiver for member {{ rec.member }}</h5>
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+									<span aria-hidden="true">&times;</span>
+								</button>
+							</div>
+							<div class="modal-body">
+								<p>Link the waiver listed as:</p>
+								<p id="waiver_desc"></p>
+								<p> Are you sure you want to do this? </p>
+							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+								<form method="POST" action="{{ url_for("members.link_waiver",id=rec.id) }}">
+								<input type="hidden" id="memberid" name="memberid" value="{{ rec.id }}" />
+								<input type="hidden" id="waiverid" name="waiverid" value="" />
+								<input class='btn btn-danger' type="submit" name="LinkWaiver" value="Link Waiver" />
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+
+		{# UNLINK MODAL #}
+{# UNLINK MODAL #}
+<!-- Modal -->
+<form method="POST" action="{{ url_for("waivers.waivers") }}">
+	<div class="modal fade" id="unlinkModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="exampleModalLabel">Unlink waiver</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<p>Are you sure you want to unlink waiver for <span id="field1"></span> from member <span id="field2"></span>?</p>
+					<p>This will <b>disable</b> their access to the lab until a waiver is linked to them!</p>
+				</div>
+				<div class="modal-footer">
+					<input type="hidden" name="unlink_waiver_id" id="unlink_waiver_id" />
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+					<button type="submit" name="Unlink" value="Unlink" class="btn btn-danger">Unlink</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	</form>
+{# UNLINK MODAL #}
+<script type="text/javascript">
+function unlinkModal(sub,member,name) {
+	$('#field1')[0].innerHTML=member;
+	$('#field2')[0].innerHTML=name;
+	$('#unlink_waiver_id')[0].value=sub;
+	$('#unlinkModal').modal();
+}
+</script>
+{% endblock %}

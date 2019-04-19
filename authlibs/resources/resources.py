@@ -32,17 +32,18 @@ def resources():
 def resource_create():
 	"""(Controller) Create a resource from an HTML form POST"""
 	r = Resource()
-        r.name = (request.form['input_name'])
-        r.short = (request.form['input_short'])
-        r.description = (request.form['input_description'])
-        r.owneremail = (request.form['input_owneremail'])
-        r.slack_chan = (request.form['input_slack_chan'])
-        r.slack_admin_chan = (request.form['input_slack_admin_chan'])
-        r.info_url = (request.form['input_info_url'])
-        r.info_text = (request.form['input_info_text'])
-        r.slack_info_text = (request.form['input_slack_info_text'])
+	r.name = (request.form['input_name'])
+	r.short = (request.form['input_short'])
+	r.description = (request.form['input_description'])
+	r.owneremail = (request.form['input_owneremail'])
+	r.slack_chan = (request.form['input_slack_chan'])
+	r.slack_admin_chan = (request.form['input_slack_admin_chan'])
+	r.info_url = (request.form['input_info_url'])
+	r.info_text = (request.form['input_info_text'])
+	r.slack_info_text = (request.form['input_slack_info_text'])
 	db.session.add(r)
-        db.session.commit()
+	db.session.commit()
+	authutil.kick_backend()
 	flash("Created.")
 	return redirect(url_for('resources.resources'))
 
@@ -141,7 +142,8 @@ def resource_usage_reports(resource):
 		if 'format' in request.values and request.values['format']=='csv':
 			rec={'enabled':r.enabled,'active':r.active,'idle':r.idle}
 		else:
-			rec={'enabled':sec_to_hms(r.enabled),'active':sec_to_hms(r.active),'idle':sec_to_hms(r.idle)}
+			rec={'enabled':sec_to_hms(r.enabled),'active':sec_to_hms(r.active),'idle':sec_to_hms(r.idle),
+					'enabled_secs':int(r.enabled),'active_secs':int(r.active),'idle_secs':int(r.idle)}
 		if 'by_user' in request.values:
 			if r.member_id not in usercache:
 				mm = Member.query.filter(Member.id==r.member_id).one_or_none()
@@ -196,6 +198,7 @@ def resource_update(resource):
 		r.info_text = (request.form['input_info_text'])
 		r.slack_info_text = (request.form['input_slack_info_text'])
 		db.session.commit()
+		authutil.kick_backend()
 		flash("Resource updated")
 		return redirect(url_for('resources.resources'))
 
@@ -239,7 +242,7 @@ def resource_showusers(resource):
 		authusers = authusers.order_by(AccessByMember.level.desc())
 		authusers = authusers.all()
 		accrec=[]
-		now = datetime.datetime.now()
+		now = datetime.datetime.utcnow()
 		for x in authusers:
 			level = accessLevelToString(x[3],blanks=[0,-1])
 			lu1=""

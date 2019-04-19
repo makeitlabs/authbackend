@@ -34,7 +34,8 @@ def rfid_validate(ntag):
 	if ntag is None: return None
 	if len(ntag) != 10: return None
 	try:
-		result=int(ntag)
+		ttemp = int(ntag)
+		result=ntag
 	except:
 		return None
 	return result
@@ -126,7 +127,7 @@ def getResourcePrivs(resource=None,resourceid=None,member=None,resourcename=None
 
     if (member and member.privs('HeadRM')):
         level=AccessByMember.LEVEL_ADMIN
-    if member and member.active.lower() != "true": 
+    if member and (not member.active or member.active.lower() != "true"): 
         level=0
     else:
         try:
@@ -192,7 +193,7 @@ def send_tool_remove_lockout(toolname,node):
 
 			# Remove the persistant "lock" messsage (retain=False)
       topic= gc.mqtt_base_topic+"/control/node/%s/personality/lock" % (node)
-      mqtt_pub.single(topic,None, retain=False,hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
+      mqtt_pub.single(topic,None, retain=True,hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
 
 			# Send the unlock message
       topic= gc.mqtt_base_topic+"/control/node/%s/personality/unlock" % (node)

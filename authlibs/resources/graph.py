@@ -25,7 +25,8 @@ def graph_by_day(id,days):
 	tools = Tool.query.filter(Tool.resource_id==id).all()
 	r = Resource.query.filter(Resource.id==id).one()
 
-	if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	#if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	if not current_user.privs('HeadRM','RATT') and not accesslib.user_is_authorizor(member=current_user,level=2):
 		return "NOAccess",403
 
 	now = datetime.datetime.now()
@@ -84,7 +85,8 @@ def unused(id):
 	tools = Tool.query.filter(Tool.resource_id==id).all()
 	r = Resource.query.filter(Resource.id==id).one()
 
-	if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	#if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	if not current_user.privs('HeadRM','RATT') and not accesslib.user_is_authorizor(member=current_user,level=2):
 		return "NOAccess",403
 
 	now = datetime.datetime.now()
@@ -128,17 +130,26 @@ def unused(id):
 @blueprint.route('/v1/weekUsers/<string:id>', methods=['GET'])
 @login_required
 def weekUsers(id):
+	return userWindowReport(id,7)
+
+@blueprint.route('/v1/monthUsers/<string:id>', methods=['GET'])
+@login_required
+def monthUsers(id):
+	return userWindowReport(id,28)
+
+def userWindowReport(id,days):
 	"""(Controller) Display information about a given resource"""
 	tools = Tool.query.filter(Tool.resource_id==id).all()
 	r = Resource.query.filter(Resource.id==id).one()
 
-	if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	#if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	if not current_user.privs('HeadRM','RATT') and not accesslib.user_is_authorizor(member=current_user,level=2):
 		return "NOAccess",403
 
 	now = datetime.datetime.now()
 	enddate = now
 	enddate = enddate.replace(hour=0,minute=0,second=0,microsecond=0)
-	startdate = enddate-datetime.timedelta(days=7)
+	startdate = enddate-datetime.timedelta(days=days)
 	
 	q = UsageLog.query.filter(UsageLog.time_logged>=startdate)
 	q = q.filter(UsageLog.time_logged<enddate)
@@ -177,10 +188,23 @@ def weekUsers(id):
 	
 	out2=[['Member','Enabled']]
 	for x in out:
-		out2.append([x['member'],x['enabled']])
+		m  = (int(x['enabled']/60))
+		minstr = "%s minutes" % (m)
+		if m > 60:
+			h= (int(x['enabled']/3600))
+			m = (x['enabled']/60) - (h*60)
+			minstr = "%s hrs %s minutes" % (h,m)
+		out2.append([x['member'],{"v":x['enabled'],"f":minstr}])
 
+	if days == 7:
+		title="Weekly top users"
+	elif days == 28:
+		title="Monthly top users"
+	else:
+		title = str(days)+" day window"
+	
 	out={'data':out2,'type':'pie','opts':{
-		'title':"Weekly Top Users",
+		'title':title,
 		'hAxis':{'title': 'Name',  'titleTextStyle': {'color': '#333'}},
 		'vAxis': {'minValue': 0}
 		}}
@@ -192,7 +216,8 @@ def weekUsers(id):
 def weekCalendar(id):
 	dow=['Mon','Tues','Wed','Thurs','Fri','Sat','Sun']
 	r = Resource.query.filter(Resource.id==id).one()
-	if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	#if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+	if not current_user.privs('HeadRM','RATT') and not accesslib.user_is_authorizor(member=current_user,level=2):
 		return "NOAccess",403
 
 	days=7

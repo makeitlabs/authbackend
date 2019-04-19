@@ -117,11 +117,17 @@ def matchusers(sc,user,ctx,pattern):
 def cancel_callbacks(ctx):
 	if 'confirm_callback' in ctx: del ctx['confirm_callback']
 	if 'cancel_callback' in ctx: del ctx['cancel_callback']
+	if 'authorize_resources' in ctx: del ctx['authorize_resources']
+	if 'authorize_users' in ctx: del ctx['authorize_users']
+	return "Canceled."
 
 def authorize_confirm(sc,user,ctx):
   req = requests.Session()
   url = url_base+"/api/v1/authorize"
-  data={'slack_id': user['user']['profile']['display_name']}
+  if "authorize_resources" not in ctx or 'authorize_users' not in ctx:
+    return "Nothing pending to do."
+
+  data={'slack_id': user['user']['id']}
   data['resources']=[r['id'] for r in ctx['authorize_resources']]
   data['members']=[m['id'] for m in ctx['authorize_users']]
   data['level']=0
@@ -132,8 +138,8 @@ def authorize_confirm(sc,user,ctx):
   elif r.status_code != 200:
     raise BaseException ("%s API failed %d" % (url,r.status_code))
 
-	cancel_callbacks(ctx)
 	text = "Authorized "+oxfordlist([x['name'] for x in ctx['authorize_users']],conjunction="and")+" on "+oxfordlist([x['name'] for x in ctx['authorize_resources']],conjunction="and")+"."
+	cancel_callbacks(ctx)
 	return text
 
 def resources(sc,user,ctx,*s):
@@ -159,6 +165,7 @@ def on_resource(sc,user,ctx,*s):
 		return "Authorize on what resource? (Type \"on <resources...>\""
 	text = "Authorize "+oxfordlist([x['name'] for x in ctx['authorize_users']],conjunction="and")+" on "+oxfordlist([r['name'] for r in resources],conjunction="and")+"? Type \"ok\" to confirm"
 	ctx['confirm_callback']=authorize_confirm
+	ctx['cancel_callback']=default_cancel_callback
 	ctx['authorize_resources']=resources
 	return text
 	
@@ -251,7 +258,7 @@ def api_cmd(sc,user,ctx,*s):
   return result
 
 def tools_cmd(sc,user,ctx,*s):
-  myid = safestr(user['user']['profile']['display_name'])
+  myid = safestr(user['user']['id'])
   req = requests.Session()
   url = url_base+"/api/v1/slack/tools/"+str(myid)
   r = req.get(url, auth=(api_username,api_password))
@@ -261,7 +268,7 @@ def tools_cmd(sc,user,ctx,*s):
     return r.text
 
 def use_tool(sc,user,ctx,*s):
-  myid = safestr(user['user']['profile']['display_name'])
+  myid = safestr(user['user']['id'])
   if (len(s)<2):
     print "Which tool or resource?"
   tool = s[1]
@@ -274,7 +281,7 @@ def use_tool(sc,user,ctx,*s):
     return r.text
 
 def whoami(sc,user,ctx,*s):
-  myid = safestr(user['user']['profile']['display_name'])
+  myid = safestr(user['user']['id'])
   req = requests.Session()
   url = url_base+"/api/v1/slack/whoami/"+str(myid)
   r = req.get(url, auth=(api_username,api_password))
@@ -284,7 +291,7 @@ def whoami(sc,user,ctx,*s):
     return r.text
 
 def admin_commands(sc,user,ctx,*s):
-  myid = safestr(user['user']['profile']['display_name'])
+  myid = safestr(user['user']['id'])
   req = requests.Session()
   url = url_base+"/api/v1/slack/admin/"+str(myid)
   data= {'command':s[1:]}
@@ -329,7 +336,10 @@ def quickids(sc,user,ctx,*s):
 		
 
 def default_cancel_callback (sc,user,ctx):
-	del ctx['cancel_callback']
+	if 'confirm_callback' in ctx: del ctx['confirm_callback']
+	if 'cancel_callback' in ctx: del ctx['cancel_callback']
+	if 'authorize_resources' in ctx: del ctx['authorize_resources']
+	if 'authorize_users' in ctx: del ctx['authorize_users']
 	return "Canceled"
 
 def clear_cmd(sc,user,ctx,*s):
@@ -561,9 +571,11 @@ while keepgoing:
 				break
 			#print "READ",l
 			for msg in l:
-				if 'type' in msg and (msg['type'] == "message"):
+				# DMs all have a channel that starts with 'D'. Listen only to these.
+				if 'type' in msg and (msg['type'] == "message") and 'channel' in msg and msg['channel'][0] == 'D':
 					try:
 						text="???"
+            #print msg
 						#print "Message from ",msg['user'],msg['text'],msg['channel']
 						chan = msg['channel']
 						if chan not in contexts:

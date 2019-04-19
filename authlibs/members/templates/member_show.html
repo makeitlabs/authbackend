@@ -7,7 +7,9 @@
 {% include 'member_form.html' %}
 {% endwith %}
 		
+<hr />
 <div class="container"> {# Outer container #}
+<h3>Waivers</h3>
 <div class="compact form-row row">
 	<div class="col-sm-4">
 			Last updated:
@@ -26,12 +28,16 @@
 			{{ meta.waiver }}
 			{{ rec.waiver_date }}
 			{% else %}
-			<div class="alert-warning">No Waiver</div>
+			<div class="alert-warning">
+							No Waiver
+							<a href="{{ url_for("members.link_waiver",id=rec.id) }}" class="btn btn-primary">Find Waiver</a>
+			</div>
 			{% endif %}
 </div>
 
+<hr />
 <div class="my-2 p-2 border border-secondary rounded container">
-<h3>Access</h3>
+<h3>Door Access</h3>
 	{% if not access_allowed %}
 		<div class="my-2 alert-danger">Access Denied: {{ access_warning }}</div>
 	{% else %}
@@ -53,13 +59,9 @@
 <pre class="collapse" id="debugaccess" > {{ dooraccess }} </pre>
 
 </div>
-
 		 
-		
-			<a href="{{ url_for("logs.logs",memberid=rec.id) }}">Show Logs for Member</a>
-		 
-		
-			<td colspan=2><h3>Payment Info</h3>
+<hr />
+<h3>Payment Info</h3>
 		 
 		
 			Payment Membership ID
@@ -103,7 +105,7 @@
 			Plan
 	</div>
 	<div class="col-sm-6">
-			{{ subscription.plan }}
+			{{ subscription.plan }}  ({{ rec.plan }})
 	</div>
 </div>
 		 
@@ -152,6 +154,19 @@
 	</div>
 </div>
 
+{% if groupmembers|length > 0 %}
+<div class="my-3 sectionhead"><h4>In Group Membership with:</h4></div>
+	<div class="container">
+		<lu>
+{% for x in groupmembers %}
+				<li><a href="{{ url_for("members.member_show",id=x.member) }}">{{ x.firstname }} {{ x.lastname }}</a></li>
+{% endfor %}
+		</lu>
+	</div> 
+{% endif%}
+
+<hr />
+<h3>Resource Access</h3>
 
 	<div class="sectionhead">Current Access (<a href="{{ url_for('members.member_editaccess',id=rec.id) }}">Edit</a>):</div>
 	<ul class="entries">
@@ -162,6 +177,18 @@
 		<li>{{ a.description }}, Updated: {{ a.time_updated }} </li>
 	  {% endfor %}
 	{% endif %}
+	</ul>
+
+<hr />
+<h3>Tags</h3>
+	<ul class="entries">
+					{% if tags|length == 0 %}
+						<li>No tags defined</li>
+					{% else %}
+									{% for x in tags %}
+										<li>{{ x.shorthash }}</li>
+									{% endfor %}
+					{% endif %}
 	</ul>
 
 	</div> {# Outer container #}

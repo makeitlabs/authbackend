@@ -78,10 +78,8 @@ class Member(db.Model,UserMixin):
     def effective_roles(self):
       roles=[]
       for r in defined_roles:
-        if self.has_roles('Admin') or self.has_roles(r):
+        if ((self.has_roles('Admin')) or self.has_roles(r) or (r=='Useredit' and self.has_roles('Finance'))):
           roles.append(r)
-        if self.has_roles('Finance') and 'Useredit' not in roles:
-          roles.append("Useredit")
       return roles
 
     def get_id(self):

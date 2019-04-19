@@ -106,13 +106,13 @@ def determineAccess(u,resource_text):
                 warning = "Membership Past due - no expiration date"
             allowed = 'false'
         elif u['enabled'] == 0:
-            if u['reason'] is not None:
+            if u['reason'] and u['reason'].strip() != "":
                 # This indicates an authorized admin has a specific reason for denying access to ALL resources
                 warning = "This account has been disabled for a specific reason: %s. %s" % (u['reason'],c['board'])
             else:
                 warning = "This account is not enabled. It may be newly added and not have a waiver on file. %s" % c['board']
             allowed = 'false'
-        elif u['lockout_reason'] is not None:
+        elif u['lockout_reason'] and u['lockout_reason'].strip() != "":
             warning = u['lockout_reason']
             allowed = 'false'
         elif u['allowed'] == 'denied':
@@ -203,7 +203,10 @@ def access_query(resource_id,member_id=None,tags=True):
       q = db.session.query(MemberTag,MemberTag.tag_ident)
     else:
       q = db.session.query(Member,"''") 
-    q = q.add_columns(Member.plan,Member.nickname,Member.access_enabled,Member.access_reason)
+    q = q.add_column(case([(Subscription.plan != None , Subscription.plan ), 
+        (Member.plan != None , Member.plan )], 
+          else_ = "hobbyiest").label('plan'))
+    q = q.add_columns(Member.nickname,Member.access_enabled,Member.access_reason)
     q = q.add_column(case([(AccessByMember.resource_id !=  None, 'allowed')], else_ = 'denied').label('allowed'))
     # TODO Disable user it no subscription at all??? Only with other "plantype" logic to figure out "free" memberships
     q = q.add_column(case([((Subscription.expires_date < db.func.DateTime('now','-14 days')), 'true')], else_ = 'false').label('past_due'))

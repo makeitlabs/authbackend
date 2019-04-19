@@ -1,6 +1,8 @@
-#vim:shiftwidth=2:expandtab
+#vim:shiftwidth=2
 
 from ..templateCommon import  *
+import random
+import string
 
 blueprint = Blueprint("apikeys", __name__, template_folder='templates', static_folder="static",url_prefix="/apikeys")
 
@@ -34,10 +36,17 @@ def apikeys_create():
   else:
     pw1 = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(12))
     newpw = "New password is: "+pw1
-  r.password = current_app.user_manager.hash_password(pw1)
-  db.session.add(r)
-  db.session.commit()
-  flash("Created. "+newpw)
+  if (r.name.strip() == ""):
+    flash("No key name specified","error")
+  elif (r.username.strip() == ""):
+    flash("No username specified","error")
+  elif (pw1.strip() == ""):
+    flash("No password specified","error")
+  else:
+    r.password = current_app.user_manager.hash_password(pw1)
+    db.session.add(r)
+    db.session.commit()
+    flash("Created. "+newpw,"success")
   return redirect(url_for('apikeys.apikeys'))
 
 @blueprint.route('/<string:apikey>', methods=['GET'])

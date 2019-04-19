@@ -66,15 +66,15 @@ def get_raw_menu():
                     'title':"Payments"
             },
             {
-                    'privs':'Finance',
-                    'url':url_for('reports.blacklist'),
-                    'img':url_for("static",filename="data.png"),
-                    'alt':"Ignored payments",
-                    'title':"Blacklists"
+                    'privs':'Useredit',
+                    'url':url_for('members.member_report'),
+                    'title':"Member Reports"
             },
             {
-                    'url':url_for('reports.reports'),
-                    'title':"Reports"
+                    'privs':'Finance',
+                    'url':url_for('reports.blacklist'),
+                    'alt':"Ignored payments",
+                    'title':"Blacklists"
             },
             {
                     'privs':'Admin',

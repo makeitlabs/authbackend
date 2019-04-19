@@ -43,17 +43,17 @@ vim:tabstop=2:expandtab:shiftwidth=2
 
 				<option name="Trainer" value="1" 
 				{{ 'selected' if (a.level == 1) else '' }}
-			  	{{ 'disabled' if (a.myPerms <= 1) else '' }}
+			  	{{ 'disabled' if ((a.myPerms <= 1) and (a.level != 1))  else '' }}
 				/>Trainer</option>
 
 				<option name="ARM" value="2" 
 				{{ 'selected' if (a.level == 2) else '' }}
-			  	{{ 'disabled' if (a.myPerms <= 2) else '' }}
+			  	{{ 'disabled' if ((a.myPerms <= 2) and (a.level != 2))  else '' }}
 				/>Ass't RM</option>
 
 				<option name="RM" value="3" 
 				{{ 'selected' if (a.level == 3) else '' }}
-			  	{{ 'disabled' if (a.myPerms <= 3) else '' }}
+			  	{{ 'disabled' if ((a.myPerms <= 3) and (a.level != 3))  else '' }}
 				/>RM</option>
 			</select>
 			</td>
@@ -85,33 +85,50 @@ vim:tabstop=2:expandtab:shiftwidth=2
 					<input type="hidden" name="orgrole_{{ r.name }}" value="{{ 'on' if (r.id) else 'off' }}" />
 			</div>
 		{% endfor %}
+    {% if rec.password %}
+			<div class="form-row">
+				<div class="form-col col-sm-2">
+        <b>Local GUI login enabled</b>
+        </div>
+				<div class="form-col col-sm-8">
+					<label for="revoke_local_login">Disable Local GUI Access:</label>
+					<input type="checkbox" id="revoke_local_login" name="revoke_local_login" />
+        </div>
+      </div>
+    {% endif %}
+     <a class="btn btn-outline-secondary" data-toggle="collapse" href="#changePWcollapse" role="button" aria-expanded="false" aria-controls="changePWcollapse">Local GUI Password</a>
 	 </div>
 	 <hr />
 	 {% endif %}
 
 	 {% if current_user.privs("Useredit") %}
-	 <h3>Change Password</h3>
-	 <div class="container">
-		 <div class="row">
-			<div class="col-sm-2">
-				 Password:
-			</div>
-			<div class="col-sm-4">
-				<input type="password" name="password1" value="" size=20 />
-			</div>
-		</div>
-		 <div class="row">
-			<div class="col-sm-2">
-				 Reenter:
-			</div>
-			<div class="col-sm-4">
-				 <input type="password" name="password2" value="" size=20 />
-			</div>
-		</div>
-	 </div>
+  <div class="my-5 collapse multi-collapse" id="changePWcollapse">
+     <h3>Change Local RATT GUI Password</h3>
+     <div class="container">
+    <small>This is for "local", (i.e. non-oath) RATT GUI web logins <i>only</i>. This should normally <b>not</b> be set, and
+    only exists to allow admins GUI access in the event that the lab systems cannot reach oauth servers</small>
+       <div class="row">
+        <div class="col-sm-2">
+           Password:
+        </div>
+        <div class="col-sm-4">
+          <input type="password" name="password1" value="" size=20 />
+        </div>
+      </div>
+       <div class="row">
+        <div class="col-sm-2">
+           Reenter:
+        </div>
+        <div class="col-sm-4">
+           <input type="password" name="password2" value="" size=20 />
+        </div>
+      </div>
+     </div>
+    </div> {# Collapse #}
 	 {% endif %}
+
   {% if allowsave %}
-	<input type=submit value="Save Changes"/>
+	<input type=submit class="btn btn-primary" value="Save Changes"/>
   {% endif %}
 	 <hr />
 	</form>

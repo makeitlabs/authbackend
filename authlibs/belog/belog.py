@@ -1,7 +1,7 @@
 #vim:shiftwidth=2:expandtab
 
 from ..templateCommon import  *
-
+import subprocess
 
 import datetime
 from ..init import GLOBAL_LOGGER_LOGFILE
@@ -58,6 +58,19 @@ def belog():
 		offset=1
 		module_filters=[]
 		level_filters=[]
+
+		gitinfo=""
+		try:
+			o=[]
+			f = subprocess.Popen(["git","log","-n","1"],stdout=subprocess.PIPE)
+			o += f.stdout.readlines()
+			f.wait()
+			f = subprocess.Popen(["git","status"],stdout=subprocess.PIPE)
+			o += f.stdout.readlines()
+			f.wait()
+			gitinfo = "".join(o)
+		except BaseException as e:
+			gitinfo = "Error fetching git info "+str(e)
 
 		if 'format' in request.values:
 			format = request.values['format']
@@ -149,7 +162,7 @@ def belog():
 				meta['prev'] = baseurl+("?limit=%s&offset=%s" % (limit, offset-limit))+filterstr
 		meta['csvurl'] = baseurl+"?format=csv"+filterstr
 		
-		return render_template('belog.html',logs=logs,meta=meta,modules=sorted(modules))
+		return render_template('belog.html',logs=logs,meta=meta,modules=sorted(modules),gitinfo=gitinfo)
 
 
 

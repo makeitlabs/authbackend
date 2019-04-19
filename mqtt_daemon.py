@@ -46,6 +46,9 @@ ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 logger.addHandler(handler)
 
+Config = ConfigParser.ConfigParser({})
+Config.read('makeit.ini')
+slack_token = Config.get('Slack','BOT_API_TOKEN')
 
 def get_mqtt_opts(app):
   Config = ConfigParser.ConfigParser({})
@@ -77,6 +80,16 @@ def seconds_to_timespan(s):
     hours, remainder = divmod(s, 3600)
     minutes, seconds = divmod(remainder, 60)
     return '{:02}:{:02}:{:02}'.format(int(hours), int(minutes), int(seconds))
+
+def send_slack_message(towho,message):
+  sc = SlackClient(slack_token)
+  if sc.rtm_connect():
+    print "SLACK-SEND",towho,message
+    res = sc.api_call(
+        "chat.postMessage",
+        channel=towho,
+        text=message
+        )
 
 # The callback for when a PUBLISH message is received from the server.
 # 2019-01-11 17:09:01.736307
@@ -133,6 +146,7 @@ def on_message(client,userdata,msg):
                 toolId = tool_cache[toolname]['id']
                 resourceId = tool_cache[toolname]['resource_id']
                 associated_resource = tool_cache[toolname]['data']
+                toolSlackInfoText=tool_cache[toolname]['data']['slack_info_text']
             elif toolname:
                 t = db.session.query(Tool.id,Tool.resource_id).filter(Tool.name==toolname)
                 t = t.join(Resource,Resource.id == Tool.resource_id)
@@ -148,22 +162,25 @@ def on_message(client,userdata,msg):
                     toolId = tool_cache[toolname]['id']
                     resourceId = tool_cache[toolname]['resource_id']
                     associated_resource = tool_cache[toolname]['data']
+                    toolSlackInfoText=tool_cache[toolname]['data']['slack_info_text']
             
             if member and member in member_cache:
-                memberId = member_cache[member]
+                memberId = member_cache[member]['id']
+                memberSlackId = member_cache[member]['slack']
                 #print "CACHE",memberId,"FROM",member
             elif member:
-                q = db.session.query(Member.id).filter(Member.member==member)
+                q = Member.query.filter(Member.member==member)
                 m = q.first()
                 #print "QUERY MEMBER",q
                 #print "RETURNED",m.id
                 if m:
                     #print "CACHE",member,"=",m.id
-                    member_cache[member]=m.id
+                    member_cache[member]={'id':m.id,'slack':m.slack}
                     memberId=m.id
+                    memberSlackId=m.slack
 
 
-            print "GOT DATA: Tool",toolname,toolId,"Node",nodename,nodeId,"Member",member,memberId,'=='
+            #print "GOT DATA: Tool",toolname,toolId,"Node",nodename,nodeId,"Member",member,memberId,'=='
 
             if subt=="wifi":
                     # TODO throttle these!
@@ -221,12 +238,15 @@ def on_message(client,userdata,msg):
                     if allowed and usedPassword:
                         log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN_COMBO.id
                     elif not allowed and usedPassword:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_PROHIBITED.id
+                        log_event_type = RATTBE_LOGEVENT_TOOL_COMBO_FAILED.id
+                        if toolSlackInfoText and memberSlackId:
+                          send_slack_message(memberSlackId,toolSlackInfoText)
                     elif allowed and not usedPassword:
                         log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN.id
                     elif not allowed and not usedPassword:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_COMBO_FAILED.id
-
+                        log_event_type = RATTBE_LOGEVENT_TOOL_PROHIBITED.id
+                        if toolSlackInfoText and memberSlackId:
+                          send_slack_message(memberSlackId,toolSlackInfoText)
                     if 'error' in message:
                         error = message['error'] # Bool
                     else:
@@ -320,7 +340,7 @@ if __name__ == '__main__':
         logger.error("Slack MQTT test message failed: %s"%res['error'])
       while True:
           # TODO BKG BUG re-add error-safe logic here
-          #try:
+          try:
             callbackdata={'slack_context':sc}
             callbackdata['events']=eventtypes.get_events()
             callbackdata['icons']=eventtypes.get_event_slack_icons()
@@ -330,10 +350,8 @@ if __name__ == '__main__':
             time.sleep(1)
             msg = sub.simple("ratt/#", hostname=host,port=port,**opts)
             print("%s %s" % (msg.topic, msg.payload))
-            """
           except KeyboardInterrupt:    #on_message(msg)
             sys.exit(0)
           except:
             print "EXCEPT"
             time.sleep(1)
-            """

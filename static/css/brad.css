@@ -123,3 +123,7 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#007db9e8', e
     transform: scale(1.1);
 }
 
+
+.brad-table-row-hover:hover  {
+	background-color:#ffff80
+}

@@ -28,11 +28,11 @@ def addadmin(cmd,**kwargs):
   admin_role = Role.query.filter(Role.name=='Admin').first()
   if not admin_role:
       admin_role = Role(name='Admin')
-  user = Member(email=cmd[1],password=user_manager.hash_password(cmd[2]),email_confirmed_at=datetime.utcnow())
+  user = Member(member=cmd[1],email=cmd[1]+"@makeitlabs.com",password=kwargs['app'].user_manager.hash_password(cmd[2]),email_confirmed_at=datetime.utcnow())
   db.session.add(user)
   user.roles.append(admin_role)
   db.session.commit()
-  app.logger.debug("ADD USER "+str(cmd[1]))
+  kwargs['app'].logger.debug("ADD USER "+str(cmd[1]))
 
 def deleteadmin(cmd,**kwargs):
   Member.query.filter(User.email==cmd[1]).delete()

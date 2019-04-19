@@ -173,6 +173,19 @@ def logs():
                     if ('format' in request.values):
                                     format=request.values['format']
 
+                    # TODO - eventually allow a way to show active/inactive messages
+                    if ('activity' not in request.values):
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_ACTIVE.id)
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_INACTIVE.id)
+
+                    if ('hidetoolusage' in request.values):
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_POWEROFF.id)
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_POWERON.id)
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_LOGIN.id)
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_LOGOUT.id)
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_LOGIN_COMBO.id)
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_PROHIBITED.id)
+                      q=q.filter(Logs.event_type!=eventtypes.RATTBE_LOGEVENT_TOOL_COMBO_FAILED.id)
 
                     # Limits and offsets ONLY after all filters have been applied
 
@@ -285,8 +298,7 @@ def logs():
                      logs = generate(fmt=format)
                 elif format == "csv":
                     resp=Response(generate(fmt=format),mimetype='text/csv')
-                    resp.headers['Content-Disposition']='attachment'
-                    resp.headers['filename']='log.csv'
+                    resp.headers['Content-Disposition']='attachment; filename=log.csv'
                     return resp
                 else:
                     flash ("Invalid format requested","danger")

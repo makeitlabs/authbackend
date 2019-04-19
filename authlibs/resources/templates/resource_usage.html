@@ -46,6 +46,7 @@
       <button type="button" onclick="graphButton(this,'{{ url_for("graphs.weekly",id=rec.id) }}');" class="btn btn-outline-secondary">Weekly</button>
       <button type="button" onclick="graphButton(this,'{{ url_for("graphs.monthly",id=rec.id) }}');" class="btn btn-outline-secondary">Monthly</button>
       <button type="button" onclick="graphButton(this,'{{ url_for("graphs.weekUsers",id=rec.id) }}');" class="btn btn-outline-secondary">Weekly Users</button>
+      <button type="button" onclick="graphButton(this,'{{ url_for("graphs.monthUsers",id=rec.id) }}');" class="btn btn-outline-secondary">Monthly Users</button>
       <button type="button" onclick="calendarButton(this,'{{ url_for("graphs.weekCalendar",id=rec.id) }}');" class="btn btn-outline-secondary">Week Calendar</button>
     </div>
   </div>
