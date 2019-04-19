@@ -90,9 +90,11 @@ function dosearchkey() {
 		<td>{{ w.Waiver.lastname }}</td>
 		<td>{{ w.Waiver.created_date }}</td>
 		<td>{{ w.waivertype }}</td>
+		<td>
 		{% if w.memb %}
-		<td><a href="{{ url_for("members.member_show",id=w.memb) }}">{{ w.memb }}</a></td>
+		<a href="{{ url_for("members.member_show",id=w.memb) }}">{{ w.memb }}</a>
 		{% endif %}
+		</td>
 	  </tr>
       {% endfor %}
 		</tbody>
