@@ -40,7 +40,7 @@ http://join.makeitlabs.com/account
 }
 
 notice_header = """
-This is an automated message about in issue with your MakeIt Lab Pro-Membership storage bin. Please attend to immediately to avoid property loss, access loss or revocation of storage or membership privileges.
+This is an automated message about in issue with your MakeIt Lab Pro-Membership storage bin (at locaiton {location}). Please attend to immediately to avoid property loss, access loss or revocation of storage or membership privileges.
 """
 
 notice_footer = """
@@ -62,9 +62,12 @@ def sendnotices(bin_id,notices):
 		else:
 			text += "Unexpected notice: %s" %n
 		text += "\n"
+	if len(no) == 0:
+		text += "There are NO issues with your Pro-Storage Bin. Everything is awesome! :)\n"
+
 	text+=notice_footer
 
-	text=text.format(firstname=member.firstname,lastname=member.lastname,email=member.email)
+	text=text.format(firstname=member.firstname,lastname=member.lastname,email=member.email,location=bin.location)
 
 	print "SEND TO",member.email,member.alt_email
 	print text

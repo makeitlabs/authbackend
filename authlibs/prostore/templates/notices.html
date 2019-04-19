@@ -6,7 +6,7 @@
 	<h2>Send Pro-Storage Notifications:  {{ bins |length }}</h2>
 <div class="nodeslist">
 	<form method="POST">
-	<table class="table supercompact table-sm">
+	<table class="table supercompact table-sm subtle-hover-table">
         <tr>
             <th>Notify</th>
             <th>Name/ID</th>
@@ -21,7 +21,11 @@
 	{% for bin in bins %}
 	  <tr>
 			<td>
-				<input type="checkbox" name="notify_send_{{ bin.ProBin.id }}" id="notify_send_{{ bin.ProBin.id }}" checked />
+				<input type="checkbox" name="notify_send_{{ bin.ProBin.id }}" id="notify_send_{{ bin.ProBin.id }}" 
+				{% if bin.notice %}
+					checked 
+				{% endif %}
+				/>
 			</td>
 			<td>
 				{% if bin.ProBin.name %}
