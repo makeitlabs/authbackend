@@ -574,6 +574,17 @@ def member_report():
 		else:
 			return render_template('member_report.html',members=members,meta=meta)
 
+@blueprint.route('/member_report_api')
+@api.api_only
+def member_report_api():
+		members=db.session.query(Member,Subscription,Waiver)
+		members = members.join(Subscription,isouter=True).join(Waiver,isouter=True).all()
+		meta={}
+
+		resp=Response(generate_member_report(members),mimetype='text/csv')
+		resp.headers['Content-Disposition']='attachment; filename=members.csv'
+		return resp
+
 @blueprint.route('/tags/lookup', methods = ['GET','POST'])
 @login_required
 @roles_required(['Admin','Finance','Useredit'])
