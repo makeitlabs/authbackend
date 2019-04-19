@@ -163,6 +163,7 @@ def quickSubscriptionCheck(member=None,member_id=None):
           member_id = Member.query.filter(Member.member==member).one().id
 
   res = Subscription.query.filter(Subscription.member_id == member_id)
+  res = res.join(Member)
 
   res = addQuickAccessQuery(res)
   res = res.first()
