@@ -134,6 +134,7 @@ def member_edit(id):
 					m.access_enabled=0
 					m.access_reason= f['input_access_reason']
 				db.session.commit()
+				authutil.kick_backend()
 				
 		#(member,subscription)=Member.query.outerjoin(Subscription).filter(Member.member==mid).first()
 		member=db.session.query(Member,Subscription)
@@ -268,6 +269,8 @@ def link_waiver(id):
 			waivers = waivers.limit(50)
 		"""
 		waivers = waivers.all()
+		for w in waivers:
+			if w.Waiver.member_id and not w.memb : print w.Waiver.id,w.memb,"Member ID",w.Waiver.member_id
 		return render_template('link_waiver.html',rec=member,waivers=waivers)
 
 @blueprint.route('/<string:id>/access', methods = ['GET'])
@@ -685,7 +688,7 @@ def _createMember(m):
         execute_db(sqlstr)
         get_db().commit()
     return {'status':'success','message':'Member %s was created' % m['memberid']}
-    kick_backend()
+    authutil.kick_backend()
 
 def getDoorAccess(id):
   r = db.session.query(Resource.id).filter(Resource.name == "frontdoor").one_or_none()
