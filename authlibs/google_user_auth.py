@@ -96,6 +96,7 @@ def authinit(app):
 
                 user = user[0]
                 sub = quickSubscriptionCheck(member_id=user.id)
+                print "UserID %s SUB IS %s" % (user.id,sub)
                 if sub == "Active":
                   if (UserRoles.query.filter(UserRoles.member_id == user.id).count() >= 1):
                     login_user(user, remember=True)

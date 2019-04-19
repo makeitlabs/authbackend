@@ -425,6 +425,12 @@ def create_routes():
     @app.route('/logout')
     @login_required
     def logout():
+       logout_user()
+       session.clear()
+       return render_template("logout.html")
+
+    @app.route('/logout_hard')
+    def logout_hard():
        """Seriously? What do you think logout() does?"""
        #print session
        #print dir(session)
@@ -433,7 +439,7 @@ def create_routes():
        session["__invalidate__"] = True
        if current_app.config['globalConfig'].DefaultLogin.lower() == "local":
          flash("You've been logged out.")
-       rd = request.base_url.replace('logout','login')
+       rd = request.base_url.replace('logout_hard','login')
        """
        request.set_cookie(app.session_cookie_name,"")
        return redirect("https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue="+rd)
