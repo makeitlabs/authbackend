@@ -320,7 +320,7 @@ url = BASE+"/api/v0/resources/frontdoor/acl"
 r = req.get(url, auth=('testkey', 'testkey'))
 if r.status_code != 200:
 	raise BaseException ("%s API failed %d" % (url,r.status_code))
-allowed=0
+allowed=-1 # because header has "allowed"
 denied=0
 other=0
 for x in  r.text.split("\n"):
