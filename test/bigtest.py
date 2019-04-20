@@ -71,6 +71,8 @@ noprivs_mustfail="""
 /resource/graphs/api/v1/weekCalendar/3
 /authorize/membersearch/brad
 /kvopts/
+/logs/
+/logs/?format=csv
 /belog/
 /logs/large.csv
 /apikeys/
