@@ -38,12 +38,13 @@ def post_waivers():
 		if 'Unlink' in request.form and request.form['Unlink']=='Unlink':
 			wid = request.form['unlink_waiver_id']
 			w = Waiver.query.filter(Waiver.id == wid).one()
-			m = Member.query.filter(Member.id == w.member_id).one()
-			m.access_enabled=0
+			m = Member.query.filter(Member.id == w.member_id).one_or_none()
 			w.member_id = None
-			authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,message="Waiver was unlinked",member_id=m.id,doneby=current_user.id,commit=0)
+			if m:
+				m.access_enabled=0 # BKG TODO FIX in v0.8 ONLY if "member" waiver
+				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,message="Waiver was unlinked",member_id=m.id,doneby=current_user.id,commit=0)
 			db.session.commit()
-			flash(m.member+" Unlinked from Waiver","warning")
+			flash("Unlinked from Waiver","warning")
 		return redirect(url_for("waivers.waivers"))
 
 @blueprint.route('/update', methods=['GET'])
