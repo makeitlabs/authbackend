@@ -225,6 +225,15 @@ class ProBin(db.Model):
     BINSTATUS_MOVED=5
     BINSTATUS_DONATED=6
 
+    BinShortCodes = [
+            "notinUse",
+            "discarded",
+            "inUse",
+            "gracePeriod",
+            "forfeited",
+            "moved",
+            "donated"
+        ]
     BinStatuses = [
             "Not in Use",
             "Discarded/Missing/Destroyed",

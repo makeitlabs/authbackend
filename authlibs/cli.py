@@ -16,6 +16,7 @@ from slackutils import cli_slack
 import getpass
 from authlibs.prostore import prostore
 from waivers.waivers import cli_waivers_connect, cli_waivers, cli_fix_waiver_types
+from members.notices import cli_member_notices
 
 import logging
 logger = logging.getLogger(__name__)
@@ -179,6 +180,10 @@ commands = {
 	"prostore_migrate":{
 		'usage':"prostore_migrate -- Migrate Prostore v0.8",
 		'cmd':prostore.migrate
+	},
+	"notices":{
+		'usage':"notices -- Process member account notifications",
+		'cmd':cli_member_notices
 	},
 	"ubersearch":{
 		'usage':"ubersearch {searchstr} -- Try ubersearch",
