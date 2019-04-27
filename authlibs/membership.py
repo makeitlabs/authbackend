@@ -231,7 +231,7 @@ def createMissingMemberAccounts(members,isTest=True,searchGoogle=False):
               google.sendWelcomeEmail(m.member,password,m.alt_email)
               msg = "Created new Google account for %s %s" % (m.member,m.alt_email)
               logger.warn(msg)
-            except BaseExeption as e:
+            except BaseException as e:
               msg = "Failed createing Google account for %s: %s" % (m.alt_email,str(e))
               logger.error(msg)
         

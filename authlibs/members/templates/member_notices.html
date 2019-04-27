@@ -1,0 +1,46 @@
+{% extends "layout_bootstrap.html" %}
+{% block widebody %}
+	<h2>Member Notifications</h2>
+<div class="nodeslist">
+	<form method="POST">
+	<table class="table supercompact table-sm subtle-hover-table">
+        <tr>
+						<td></td>
+            <th>First</th>
+            <th>Last</th>
+            <th>Sending Notices</th>
+            <th>Last Notices</th>
+            <th colspan=2>Last Sent</th>
+        </tr>
+	{% for n in notices %}
+	  <tr>
+			<td>
+				<input type="checkbox" name="notify_send_{{ notices[n].id }}" value="{{ "|".join(notices[n].notices)  }}" 
+					checked 
+				/>
+			</td>
+			<td>{{ notices[n].firstname }}</td>
+			<td>{{ notices[n].lastname }}</td>
+			<td>{{ " ".join(notices[n].notices) }}</td>
+			<td>{{ notices[n].lastNoticeWhat }}</td>
+			<td>{{ notices[n].when }}</td>
+			<td>{{ notices[n].ago }} Ago</td>
+			<td>
+				{{ n.notices }}
+				<input type="hidden" name="notify_notices_{{ n.id }}" value="{{ n.notices }}" />
+			</td>
+			<td>
+				<a href="{{ url_for("members.member_show",id=notices[n].member) }}">
+				<span class="glyphicon glyphicon-pencil"></span>
+				</a>
+			</td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+
+<input type="submit" name="send_notices" value="Send Notifications" />
+</form>
+</div>
+{% endblock %}

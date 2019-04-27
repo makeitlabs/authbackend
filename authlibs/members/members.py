@@ -7,6 +7,8 @@ import datetime
 import binascii, zlib
 from ..api import api 
 from .. import accesslib 
+from .. import ago 
+from authlibs.members.notices import get_notices
 import stripe
 
 ## TODO make sure member's w/o Useredit can't see other users' data or search for them
@@ -696,6 +698,29 @@ def bkgtest():
         #result[n]=getResourcePrivs(Resource.query.filter(Resource.name==n).one())
         result[n]=getResourcePrivs(resourcename=n)
     return json_dump(result,indent=2), 200, {'Content-type': 'application/json'}
+
+@blueprint.route('/member_notices', methods=['GET','POST'])
+@login_required
+@roles_required(['Admin',"Useredit"])
+def notices():
+	if 'send_notices' in request.form:
+		print "REQUET FORM"
+		for x in request.form:
+			if x.startswith("notify_send_"):
+				member_id = x.replace("notify_send_","")
+				print x,member_id,request.form[x].split("|")
+				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_NOTICE_SENT.id,member_id=member_id,message=request.form[x].replace("|"," "),doneby=current_user.id,commit=0)
+		db.session.commit()
+		return redirect(url_for("members.notices"))
+	memberNotices = get_notices()
+	eastern = dateutil.tz.gettz('US/Eastern')
+	utc = dateutil.tz.gettz('UTC')
+	now=datetime.datetime.now()
+	for m in memberNotices:
+		if memberNotices[m]['lastNoticeWhen']:
+			dt=memberNotices[m]['lastNoticeWhen'].replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
+			(memberNotices[m]['when'],memberNotices[m]['ago'],other)=ago.ago(dt,now)
+	return (render_template("member_notices.html",notices=memberNotices))
 
 @blueprint.route('/admin_roles', methods=['GET'])
 @login_required

@@ -96,6 +96,8 @@ def sendnotices(notice):
 def addtag(memberNotice,m,tag):
 	if m.member not in memberNotice:
 		memberNotice[m.member]={'notices':[],
+				'id':m.id,
+				'member':m.member,
 				'firstname':m.firstname,
 				'lastname':m.lastname,
 				'alt_email':m.alt_email,
@@ -103,7 +105,7 @@ def addtag(memberNotice,m,tag):
 		}
 	memberNotice[m.member]['notices'].append(tag)
 	
-def notices():
+def get_notices():
 	memberNotice={}
 	res = db.session.query(Member.member,Member.firstname,Member.lastname,Member.alt_email,Member.email,Member.id)
 	res = res.outerjoin(Subscription,Subscription.member_id == Member.id)
@@ -131,7 +133,6 @@ def notices():
 	members = res.all()
 
 	for m in members:
-		print m
 		if m.active == 'Grace Period':
 			addtag(memberNotice,m,"gracePeriod")
 		if m.active == 'Recent Expire':
@@ -144,20 +145,33 @@ def notices():
 		if m.active_2 == "false (past_due)":
 			addtag(memberNotice,m,"pastDue") 
 
+
 		if m.proBinCount:
 			# Need to make sure ProStore waiver is ok
 			# Then we need to check status of each, individual bin
 			for b in ProBin.query.filter(ProBin.member_id == m.id).outerjoin(ProLocation).add_column(ProLocation.location).all():
 				if b.ProBin.status != ProBin.BINSTATUS_IN_USE:
 					addtag(memberNotice,m,"ProBin_%s:%s" % (ProBin.BinShortCodes[b.ProBin.status],b.location)) 
+		
+		if m.member in memberNotice:
+			log = Logs.query.filter(Logs.member_id == m.id).filter(Logs.event_type == eventtypes.RATTBE_LOGEVENT_MEMBER_NOTICE_SENT.id)
+			log = log.order_by(Logs.time_logged.desc()).first()
+			if log:
+				memberNotice[m.member]['lastNoticeWhen'] = log.time_reported
+				memberNotice[m.member]['lastNoticeWhat'] = log.message
+			else:
+				memberNotice[m.member]['lastNoticeWhen'] = ""
+				memberNotice[m.member]['lastNoticeWhat'] = ""
 					
-			print m,"WAIVERS:",m.memberWaivers,"Bins",m.proBinCount,"BinWaiver",m.prostoreWaivers
+			#print m,"WAIVERS:",m.memberWaivers,"Bins",m.proBinCount,"BinWaiver",m.prostoreWaivers
+	return memberNotice
 
+def send_all_notices():
 	# SEND NOTICES
-	for n in memberNotice:
+	for n in get_notices():
 		sendnotices(memberNotice[n])
 			
 
 def cli_member_notices(cmd,**kwargs):
-	notices()
+	send_all_notices()
 	

@@ -86,6 +86,10 @@ class RATTBE_LOGEVENT_MEMBER_PAYMENT_UNLINKED:
     id=1019
     desc='Member payment manually unlinked'
 
+class RATTBE_LOGEVENT_MEMBER_NOTICE_SENT:
+    id=1020
+    desc='Notice Sent'
+
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000
     desc='Other System Event'

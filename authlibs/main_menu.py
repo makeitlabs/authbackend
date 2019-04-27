@@ -87,6 +87,11 @@ def get_raw_menu():
                     'title':"Pro Storage Bins"
             },
             {
+                    'privs':'Finance',
+                    'url':url_for('members.notices'),
+                    'title':"Member Notifications"
+            },
+            {
                     'privs':'Prostore',
                     'url':url_for('prostore.locations'),
                     'title':"Pro Storage Locations"
