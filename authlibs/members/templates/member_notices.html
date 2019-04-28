@@ -26,7 +26,7 @@ function SelectAll() {
 						<td></td>
             <th>First</th>
             <th>Last</th>
-            <th>Sending Notices</th>
+            <th>Needs Notices</th>
             <th>Last Notices</th>
             <th colspan=2>Last Sent</th>
         </tr>
@@ -51,9 +51,6 @@ function SelectAll() {
 				<a href="{{ url_for("members.member_show",id=notices[n].member) }}">
 				<span class="glyphicon glyphicon-pencil"></span>
 				</a>
-			</td>
-			<td>
-				"{{ notices[n].lockout }}"
 			</td>
 	  </tr>
 	{% endfor %}

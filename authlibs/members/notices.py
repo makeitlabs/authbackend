@@ -157,7 +157,7 @@ def get_notices():
 
 	for m in members:
 		#print "id=%s member=%s frontdoor_active=%s frontdoor_lockout=%s active=%s enalbed=%s reason=%s" % \
-			(m.id,m.member,m.frontdoor_active,m.frontdoor_lockout,m.active,m.access_enabled,m.access_reason)
+		#	(m.id,m.member,m.frontdoor_active,m.frontdoor_lockout,m.active,m.access_enabled,m.access_reason)
 		if not m.frontdoor_active and m.active=="Active":
 			addtag(memberNotice,m,"orientation")
 		if m.active=="Active" and m.frontdoor_lockout:
