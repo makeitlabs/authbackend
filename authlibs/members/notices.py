@@ -44,7 +44,9 @@ http://join.makeitlabs.com/account
 	"ProBin_gracePeriod" : "Your should have received a prior notice about your Pro storage bin (located in {param}). You may need to either collect your belongings, or fix your membership",
 	"ProBin_forfeited" : "Your Pro storage bin (located in {param})has been forfitted. Please collect your belongings and notify us when you have vacated the bin.",
 	"ProBin_moved" : "Your Pro storage bin (located in {param})has been forefited, but you have not removed your belongings. The bin with your materials has been moved elsewhere to re-purpose this storage locations. Please contact us to collect your belongins. Failure to do so will result in loss of property.",
-	"ProBin_donated" : "You have not collected items left in your forfitted storage bin (located in {param}). Persuiant to MakeIt Labs rules, these items have either been discarded, or donated to the lab."
+	"ProBin_donated" : "You have not collected items left in your forfitted storage bin (located in {param}). Persuiant to MakeIt Labs rules, these items have either been discarded, or donated to the lab.",
+	"lockout":"Your lab access has been temporarly susspended for the following reason: {lockout_reason}",
+	"orentation":"Access to the lab will be granted one you have completed new member orientation. Please come to an orientation session Thursdays at 7pm, or make arrangements for an alernative time."
 }
 
 notice_header = """
@@ -93,7 +95,21 @@ def sendnotices(notice):
 	db.session.commit()
 	return err
 
+def addfield(memberNotice,m,field,value):
+	if not m.member: return
+	if m.member not in memberNotice:
+		memberNotice[m.member]={'notices':[],
+				'id':m.id,
+				'member':m.member,
+				'firstname':m.firstname,
+				'lastname':m.lastname,
+				'alt_email':m.alt_email,
+				'email':m.email
+		}
+	memberNotice[m.member][field]=value
+	
 def addtag(memberNotice,m,tag):
+	if not m.member: return
 	if m.member not in memberNotice:
 		memberNotice[m.member]={'notices':[],
 				'id':m.id,
@@ -106,12 +122,18 @@ def addtag(memberNotice,m,tag):
 	memberNotice[m.member]['notices'].append(tag)
 	
 def get_notices():
+	frontdoorid = Resource.query.filter(Resource.name=="frontdoor").one().id
 	memberNotice={}
-	res = db.session.query(Member.member,Member.firstname,Member.lastname,Member.alt_email,Member.email,Member.id)
+	res = db.session.query(Member.member,Member.firstname,Member.lastname,Member.alt_email,Member.email,Member.id,Member.access_enabled,Member.access_reason)
 	res = res.outerjoin(Subscription,Subscription.member_id == Member.id)
 	res = addQuickAccessQuery(res)
 	res = res.add_column(Subscription.active.label("active_2"))
 	res = res.add_column(Subscription.expires_date)
+
+	# Need Orientation
+	res = res.outerjoin(AccessByMember,((Member.id == AccessByMember.member_id) & (AccessByMember.resource_id == frontdoorid)))
+	res = res.add_column(AccessByMember.active.label("frontdoor_active"))
+	res = res.add_column(AccessByMember.lockout_reason.label("frontdoor_lockout"))
 
 	# Add Main Waiver Count
 	sq = db.session.query(Waiver.member_id,func.count(Waiver.member_id).label("waiverCount")).group_by(Waiver.member_id)
@@ -133,6 +155,15 @@ def get_notices():
 	members = res.all()
 
 	for m in members:
+		print m.id,m.member,m.frontdoor_active,m.email,m.frontdoor_active,m.frontdoor_lockout
+		if not m.frontdoor_active and m.active=="Active":
+			addtag(memberNotice,m,"orientation")
+		if m.active=="Active" and m.frontdoor_lockout:
+				addtag(memberNotice,m,"lockout")
+				addfield(memberNotice,m,"lockout_reason",m.frontdoor_lockout)
+		if not m.access_enabled and m.access_reason and m.active=="Active":
+			addtag(memberNotice,m,"lockout")
+			addfield(memberNotice,m,"lockout_reason",m.access_reason)
 		if m.active == 'Grace Period':
 			addtag(memberNotice,m,"gracePeriod")
 		if m.active == 'Recent Expire':
