@@ -148,6 +148,8 @@ def getAccessControlList(resource):
     it is used to ADD access check functions to a query you
     are defining elsewhere - so we can keep the logic for this
     in one common place
+
+    (See addQuickSubscritionQuery below)
 """
 def addQuickAccessQuery(query):
   query = query.add_column(case([
@@ -158,6 +160,21 @@ def addQuickAccessQuery(query):
           ((Subscription.expires_date > db.func.DateTime('now','-45 days')), 'Recent Expire'),
           ], else_ = 'Expired').label('active'))
   return query
+
+""" Just like quickAccessQuery above  but only looks at health
+of subscription, ignoring  "access enabled" flag. This is for code
+that wants to report on subcriptions which may have access disabled
+"""
+
+def addQuickSubscriptionQuery(query):
+  query = query.add_column(case([
+          ((Subscription.expires_date  == None), 'No Subscription'),
+          ((Subscription.expires_date > db.func.DateTime('now',"-1 day")), 'Active'),
+          ((Subscription.expires_date > db.func.DateTime('now','-14 days')), 'Grace Period'),
+          ((Subscription.expires_date > db.func.DateTime('now','-45 days')), 'Recent Expire')
+          ], else_ = 'Expired').label('active'))
+  return query
+
 def quickSubscriptionCheck(member=None,member_id=None):
   if not member_id:
           member_id = Member.query.filter(Member.member==member).one().id

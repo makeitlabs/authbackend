@@ -4,7 +4,8 @@ from ..templateCommon import  *
 from authlibs.comments import comments
 from datetime import datetime
 from authlibs import ago
-from authlibs.accesslib import addQuickAccessQuery
+from authlibs.accesslib import addQuickSubscriptionQuery
+
 from ..google_admin import genericEmailSender
 
 
@@ -45,7 +46,7 @@ http://join.makeitlabs.com/account
 	"ProBin_forfeited" : "Your Pro storage bin (located in {param})has been forfitted. Please collect your belongings and notify us when you have vacated the bin.",
 	"ProBin_moved" : "Your Pro storage bin (located in {param})has been forefited, but you have not removed your belongings. The bin with your materials has been moved elsewhere to re-purpose this storage locations. Please contact us to collect your belongins. Failure to do so will result in loss of property.",
 	"ProBin_donated" : "You have not collected items left in your forfitted storage bin (located in {param}). Persuiant to MakeIt Labs rules, these items have either been discarded, or donated to the lab.",
-	"lockout":"Your lab access has been temporarly susspended for the following reason: {lockout_reason}",
+	"lockout":"Your lab access has been temporarly suspended for the following reason: {param}",
 	"orentation":"Access to the lab will be granted one you have completed new member orientation. Please come to an orientation session Thursdays at 7pm, or make arrangements for an alernative time."
 }
 
@@ -66,12 +67,12 @@ def sendnotices(notice):
 
 	print notice
 	for (i,x) in enumerate(notice['notices']):
-		ps = x.split(":")
+		ps = x.split(":",2)
 		t = ps[0]
 		param=None
 		if  len(ps)>1: param=ps[1]
 		text += "\n"
-		if (i>0): text+= "Also: "
+		if (i>0): text+= "\nAlso: "
 		if t in notice_text:
 			#print "  ",notice_text[t].format(param=param,**memberNotice[n]['keys'])
 			text += notice_text[t].format(param=param,**notice)
@@ -126,7 +127,7 @@ def get_notices():
 	memberNotice={}
 	res = db.session.query(Member.member,Member.firstname,Member.lastname,Member.alt_email,Member.email,Member.id,Member.access_enabled,Member.access_reason)
 	res = res.outerjoin(Subscription,Subscription.member_id == Member.id)
-	res = addQuickAccessQuery(res)
+	res = addQuickSubscriptionQuery(res)
 	res = res.add_column(Subscription.active.label("active_2"))
 	res = res.add_column(Subscription.expires_date)
 
@@ -155,15 +156,14 @@ def get_notices():
 	members = res.all()
 
 	for m in members:
-		print m.id,m.member,m.frontdoor_active,m.email,m.frontdoor_active,m.frontdoor_lockout
+		#print "id=%s member=%s frontdoor_active=%s frontdoor_lockout=%s active=%s enalbed=%s reason=%s" % \
+			(m.id,m.member,m.frontdoor_active,m.frontdoor_lockout,m.active,m.access_enabled,m.access_reason)
 		if not m.frontdoor_active and m.active=="Active":
 			addtag(memberNotice,m,"orientation")
 		if m.active=="Active" and m.frontdoor_lockout:
-				addtag(memberNotice,m,"lockout")
-				addfield(memberNotice,m,"lockout_reason",m.frontdoor_lockout)
-		if not m.access_enabled and m.access_reason and m.active=="Active":
-			addtag(memberNotice,m,"lockout")
-			addfield(memberNotice,m,"lockout_reason",m.access_reason)
+				addtag(memberNotice,m,"lockout:%s" % m.frontdoor_lockout)
+		if m.active=="Active" and m.access_enabled== 0 and m.access_reason:
+			addtag(memberNotice,m,"lockout:%s" % m.access_reason)
 		if m.active == 'Grace Period':
 			addtag(memberNotice,m,"gracePeriod")
 		if m.active == 'Recent Expire':
