@@ -8,8 +8,8 @@ import binascii, zlib
 from ..api import api 
 from .. import accesslib 
 from .. import ago 
-from authlibs.members.notices import get_notices
-import stripe
+from authlibs.members.notices import get_notices,sendnotices
+import stripe    
 
 ## TODO make sure member's w/o Useredit can't see other users' data or search for them
 ## TODO make sure users can't see cleartext RFID fobs
@@ -703,13 +703,29 @@ def bkgtest():
 @login_required
 @roles_required(['Admin',"Useredit"])
 def notices():
+	errs=0
 	if 'send_notices' in request.form:
 		print "REQUET FORM"
 		for x in request.form:
 			if x.startswith("notify_send_"):
 				member_id = x.replace("notify_send_","")
-				print x,member_id,request.form[x].split("|")
-				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_NOTICE_SENT.id,member_id=member_id,message=request.form[x].replace("|"," "),doneby=current_user.id,commit=0)
+				member = Member.query.filter(Member.id == member_id).one()
+				notice = {
+					'id':member.id,
+					'member':member.member,
+					'firstname':member.firstname,
+					'lastname':member.lastname,
+					'alt_email':member.alt_email,
+					'email':member.email,
+					'notices':request.form[x].split("|")
+				}
+				print x,notice['member'],notice['notices']
+				#authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_NOTICE_SENT.id,member_id=member_id,message=request.form[x].replace("|"," "),doneby=current_user.id,commit=0)
+				errs+=sendnotices(notice)
+
+		if errs:
+			flash("%s errors sending notices" % errs,"warning")
+				
 		db.session.commit()
 		return redirect(url_for("members.notices"))
 	memberNotices = get_notices()
