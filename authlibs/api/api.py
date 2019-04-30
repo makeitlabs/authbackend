@@ -8,6 +8,7 @@ from authlibs.ubersearch import ubersearch
 from authlibs import membership
 from authlibs import payments
 from authlibs.waivers.waivers import cli_waivers,connect_waivers
+from authlibs.members.notices import send_all_notices
 import slackapi
 import random,string
 
@@ -531,6 +532,17 @@ def api_cron_nightly():
   connect_waivers()
   logger.info("Nightly CRON finished")
   return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
+
+@blueprint.route('/cron/weekly_notices', methods=['GET'])
+@api_only
+def api_cron_weekly_notices():
+  err = send_all_notices()
+  if err:
+    logger.warning("Weekly notice CRON ERROR")
+    return json_dump({'status':'error'}, 401, {'Content-type': 'text/plain'})
+  else:
+    logger.info("Weekly notice CRON finished")
+    return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
 
 @blueprint.route('/v1/last_tool_event', methods=['GET'])
 @api_only

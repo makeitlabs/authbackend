@@ -198,9 +198,13 @@ def get_notices():
 	return memberNotice
 
 def send_all_notices():
+	errs=0
 	# SEND NOTICES
-	for n in get_notices():
-		sendnotices(memberNotice[n])
+	notices = get_notices()
+	for n in notices:
+		print n
+		errs += sendnotices(notices[n])
+	return errs
 			
 
 def cli_member_notices(cmd,**kwargs):
