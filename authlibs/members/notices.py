@@ -89,11 +89,11 @@ def sendnotices(notice):
 	try:
 		genericEmailSender("info@makeitlabs.com",notice['email'],"Issues with your MakeIt Labs Membership",text)
 		genericEmailSender("info@makeitlabs.com",notice['alt_email'],"Issues with your MakeIt Labs Membership",text)
-		#authutil.log(eventtypes.RATTBE_LOGEVENT_PROSTORE_NOTICE_SENT.id,member_id=member.id,message=notices,doneby=current_user.id,commit=0)
+		authutil.log(eventtypes.RATTBE_LOGEVENT_PROSTORE_NOTICE_SENT.id,member_id=member.id,message=notices,doneby=current_user.id,commit=0)
+		db.session.commit()
 	except BaseException as e:
 		err=1
 		logger.error("Failed to send Pro-Storage email: "+str(e))
-	db.session.commit()
 	return err
 
 def addfield(memberNotice,m,field,value):
