@@ -8,7 +8,10 @@
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.message",resource=rec.name) }}" class="btn btn-link">Message Users</a>
 	</div>
 <form method="POST">
-	<input type="hidden" name="resource" value="{{ rec.name }}" />
+  <div class="form-group">
+    <label for="subject">Subject</label>
+    <input type="text" class="form-control" id="subject" name="subject">
+  </div>
 	<div class="form-group">
 		<label for="exampleFormControlTextarea1">Compose Email</label>
 		<textarea class="form-control" id="exampleFormControlTextarea1" name="bodyText" rows="15"></textarea>

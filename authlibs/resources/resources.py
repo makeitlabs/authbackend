@@ -8,6 +8,7 @@ from authlibs import ago
 from authlibs.comments import comments
 import datetime
 import graph
+from ..google_admin import genericEmailSender
 
 blueprint = Blueprint("resources", __name__, template_folder='templates', static_folder="static",url_prefix="/resources")
 # ----------------------------------------------------
@@ -486,7 +487,7 @@ def maintenance(resource):
 	print "RETURNING TOOLDATA",tooldata
 	return render_template('maintenance.html',resource=r,readonly=readonly,tools=tools,maint=maint,tooldata=tooldata,current_datetime=current_datetime)
 
-@blueprint.route('/<string:resource>/message')
+@blueprint.route('/<string:resource>/message',methods=['POST','GET'])
 @login_required
 def message(resource):
 		"""(Controller) Update an existing resource from HTML form POST"""
@@ -498,6 +499,32 @@ def message(resource):
 		if accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
 			flash("Error: Permission denied")
 			return redirect(url_for('resources.resources'))
+
+		if 'Send' in request.form:
+			emails=[]
+			#print "SENDING",request.form['bodyText']
+			bodyText = request.form['bodyText']
+			subject = request.form['subject']
+			#print "RESOURCE",resource
+			#print "BODY",bodyText
+			#print "SUBJECT",subject
+			members = Member.query
+			members = members.join(AccessByMember,(Member.id == AccessByMember.member_id))
+			members = members.join(Subscription,(Subscription.member_id == Member.id))
+			members = members.join(Resource,((Resource.name == resource) & (Resource.id == AccessByMember.resource_id )))
+			members = members.add_column(Member.member)
+			members = members.add_column(Member.email)
+			members = members.add_column(Member.alt_email)
+			members = accesslib.addQuickAccessQuery(members)
+			members = members.all()
+			for x in members:
+				if x.active in ('Active','Grace Period'): print x
+				if x.email: emails.append(x.email)
+				if x.alt_email: emails.append(x.alt_email)
+			#print emails
+			for e in emails:
+				genericEmailSender("info@makeitlabs.com",e,subject,bodyText)
+			flash("Sent","success")
 		return render_template('email.html',rec=r)
 
 def _get_resources():
