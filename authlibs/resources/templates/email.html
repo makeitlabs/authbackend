@@ -1,0 +1,20 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div class="sectionhead"><h3>Message {{ rec.name }} Users</h3></div>
+	<div class="btn-group my-2" role="group">
+		<a class="btn btn-outline-secondary" href="{{ url_for("resources.resource_usage",resource=rec.name) }}" class="btn btn-link">Usage Graphs</a>
+		<a class="btn btn-outline-secondary" href="{{ url_for("resources.resource_usage_reports",resource=rec.name) }}" class="btn btn-link">Usage Reports</a>
+		<a class="btn btn-outline-secondary" href="{{ url_for("resources.maintenance",resource=rec.name) }}" class="btn btn-link">Maintenance</a>
+		<a class="btn btn-outline-secondary" href="{{ url_for("resources.message",resource=rec.name) }}" class="btn btn-link">Message Users</a>
+	</div>
+<form method="POST">
+	<input type="hidden" name="resource" value="{{ rec.name }}" />
+	<div class="form-group">
+		<label for="exampleFormControlTextarea1">Compose Email</label>
+		<textarea class="form-control" id="exampleFormControlTextarea1" name="bodyText" rows="15"></textarea>
+	</div>
+	<div class="form-group">
+		<input type="submit" class="btn btn-primary" name="Send" value="Send" />
+	</div>
+</form>
+{% endblock %}

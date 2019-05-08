@@ -482,9 +482,23 @@ def maintenance(resource):
 					print "CTA", tooldata[t.name]['maint'][m.name]['clock_time_ago']
 						
 
-		current_datetime=datetime.datetime.strftime(datetime.datetime.now(),"%Y-%m-%dT%H:%M")
-		print "RETURNING TOOLDATA",tooldata
+	current_datetime=datetime.datetime.strftime(datetime.datetime.now(),"%Y-%m-%dT%H:%M")
+	print "RETURNING TOOLDATA",tooldata
 	return render_template('maintenance.html',resource=r,readonly=readonly,tools=tools,maint=maint,tooldata=tooldata,current_datetime=current_datetime)
+
+@blueprint.route('/<string:resource>/message')
+@login_required
+def message(resource):
+		"""(Controller) Update an existing resource from HTML form POST"""
+		rname = (resource)
+		r = Resource.query.filter(Resource.name==resource).one_or_none()
+		if not r:
+			flash("Error: Resource not found")
+			return redirect(url_for('resources.resources'))
+		if accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+			flash("Error: Permission denied")
+			return redirect(url_for('resources.resources'))
+		return render_template('email.html',rec=r)
 
 def _get_resources():
 	q = db.session.query(Resource.name,Resource.owneremail, Resource.description, Resource.id)
