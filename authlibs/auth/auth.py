@@ -56,6 +56,8 @@ def authorize():
                         #print "%s granted access to %s" % (m,r.name)
                         flash("%s granted access to %s" % (m,r.name),"success")
                         db.session.add(AccessByMember(member_id=Member.query.filter(Member.member == m).with_entities(Member.id),resource_id=r.id,level=0))
+                        mid=Member.query.filter(Member.member == m).one().id
+                        db.session.add(Logs(member_id=mid,resource_id=r.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,doneby=current_user.id))
 
         db.session.commit()
         #others['message']="Authorized "+" ".join(members)+" on "+" ".join([x.name for x in resources])
