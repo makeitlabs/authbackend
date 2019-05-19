@@ -6,6 +6,7 @@ import math
 from authlibs import accesslib
 from authlibs import ago
 from authlibs.comments import comments
+from authlibs.slackutils import send_slack_message
 import datetime
 import graph
 from ..google_admin import genericEmailSender
@@ -505,9 +506,16 @@ def message(resource):
 			#print "SENDING",request.form['bodyText']
 			bodyText = request.form['bodyText']
 			subject = request.form['subject']
-			#print "RESOURCE",resource
-			#print "BODY",bodyText
-			#print "SUBJECT",subject
+			mt_email = True if 'message_type_email' in request.form else False
+			mt_alt_email = True if 'message_type_alt_email' in request.form else False
+			mt_slack = True if 'message_type_slack_individual' in request.form else False
+			mt_slack_group = True if 'message_type_slack_group' in request.form else False
+			mt_slack_admin = True if 'message_type_slack_admingroup' in request.form else False
+			print "RESOURCE",resource
+			print "BODY",bodyText
+			print "SUBJECT",subject
+			print "email",mt_email,"alt_email",mt_alt_email
+			print "slack",mt_slack,"slack_group",mt_slack_group,"slack_admin",mt_slack_admin
 			members = Member.query
 			members = members.join(AccessByMember,(Member.id == AccessByMember.member_id))
 			members = members.join(Subscription,(Subscription.member_id == Member.id))
@@ -515,16 +523,40 @@ def message(resource):
 			members = members.add_column(Member.member)
 			members = members.add_column(Member.email)
 			members = members.add_column(Member.alt_email)
+			members = members.add_column(Member.slack)
 			members = accesslib.addQuickAccessQuery(members)
 			members = members.all()
+
+			print "SLACK",r.slack_chan
+			print "SLACK_ADMIN",r.slack_admin_chan
 			for x in members:
 				if x.active in ('Active','Grace Period'): print x
 				if x.email: emails.append(x.email)
 				if x.alt_email: emails.append(x.alt_email)
+				if mt_slack and x.slack:
+					send_slack_message(x.slack,bodyText)
 			#print emails
+			if mt_slack_group and r.slack_chan:
+				mod=""
+				if request.form['slack_group_option']  == "here": mod = "<!here|here> "
+				if request.form['slack_group_option']  == "channel": mod = "<!channel> "
+				send_slack_message(r.slack_chan,mod+bodyText)
+			if mt_slack_admin and r.slack_admin_chan:
+				mod=""
+				if request.form['slack_admingroup_option']  == "here": mod = "<!here|here> "
+				if request.form['slack_admingroup_option']  == "channel": mod = "<!channel> "
+				send_slack_message(r.slack_admin_chan,mod+bodyText)
+			email_errors=0
+			email_ok=0
 			for e in emails:
-				genericEmailSender("info@makeitlabs.com",e,subject,bodyText)
-			flash("Sent","success")
+				try:
+					genericEmailSender("info@makeitlabs.com",e,subject,bodyText)
+				except:
+					email_errors += 1
+			if email_errors:
+				flash("%s email send errors" % email_errors,"warning")
+			else:
+				flash("Sent %s emails" % (email_ok),"success")
 		return render_template('email.html',rec=r)
 
 def _get_resources():

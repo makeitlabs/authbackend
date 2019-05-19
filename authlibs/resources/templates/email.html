@@ -8,12 +8,55 @@
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.message",resource=rec.name) }}" class="btn btn-link">Message Users</a>
 	</div>
 <form method="POST">
+	<div class="form-group">
+			<h3>Send as</h3>
+			<div class="mx-5">
+							<input type="checkbox" name="message_type_email" />
+							<label for="message_type_email">Email (@makeitlabs.com)</label>
+		</div>
+			<div class="mx-5">
+							<input type="checkbox" name="message_type_alt_email" />
+							<label for="message_type_alt_email">Non-MakeIt Labs Email</label>
+		</div>
+			<div class="mx-5">
+							<input type="checkbox" name="message_type_slack_individual" />
+							<label for="message_type_slack_individual">Slack (Individuals)</label>
+		</div>
+		<div class="mx-5">
+			{% if rec.slack_chan %}
+							<input type="checkbox" name="message_type_slack_group" />
+							<label for="message_type_slack_group">Slack (Resource User Channel {{ rec.slack_chan }})</label>
+							<label for="slack_group_option">with:</label>
+							<select name="slack_group_option">
+								<option>No Modifiers</option>
+								<option value="here" >@here</option>
+								<option value="channel" >@channel</option>
+							</select>
+			{% else %}
+			<p>(No Slack User Channel for this resource)</p>
+			{% endif %}
+		</div>
+			<div class="mx-5">
+			{% if rec.slack_admin_chan %}
+							<input type="checkbox" name="message_type_slack_admingroup" />
+							<label for="message_type_slack_admingroup">Slack (Resource Admin Channel {{ rec.slack_admin_chan }})</label>
+							<label for="slack_admingroup_option">with:</label>
+							<select name="slack_admingroup_option">
+								<option>No Modifiers</option>
+								<option value="here" >@here</option>
+								<option value="channel" >@channel</option>
+							</select>
+			{% else %}
+							<p>(No Slack Admin Channel for this resource)</p>
+			{% endif %}
+		</div>
+	</div>
   <div class="form-group">
-    <label for="subject">Subject</label>
+    <label for="subject">Subject (For email only)</label>
     <input type="text" class="form-control" id="subject" name="subject">
   </div>
 	<div class="form-group">
-		<label for="exampleFormControlTextarea1">Compose Email</label>
+		<label for="exampleFormControlTextarea1">Message</label>
 		<textarea class="form-control" id="exampleFormControlTextarea1" name="bodyText" rows="15"></textarea>
 	</div>
 	<div class="form-group">

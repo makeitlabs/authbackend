@@ -194,4 +194,13 @@ def cli_slack(cmd,**kwargs):
         print get_unmatched_members()
                 
 
+def send_slack_message(towho,message):
+  sc = SlackClient(slack_token)
+  if sc.rtm_connect():
+    print "SLACK-SEND",towho,message
+    res = sc.api_call(
+        "chat.postMessage",
+        channel=towho,
+        text=message
+        )
 
