@@ -60,6 +60,7 @@ def authorize():
                         db.session.add(Logs(member_id=mid,resource_id=r.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,doneby=current_user.id))
 
         db.session.commit()
+        authutil.kick_backend()
         #others['message']="Authorized "+" ".join(members)+" on "+" ".join([x.name for x in resources])
     if 'search' in request.form and (request.form['search'] != ""):
       searchstr = authutil._safestr(request.form['search'])
