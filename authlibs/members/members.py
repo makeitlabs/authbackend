@@ -539,6 +539,43 @@ def member_tagdelete(tag_ident):
                 flash("Tag deleted","success")
                 return redirect(url_for("members.member_tagadd",id=mid))
 
+@blueprint.route('/tags/enable/<string:tag_ident>', methods = ['GET'])
+@login_required
+@roles_required(['Admin','Finance','Useredit'])
+def member_tagenable(tag_ident):
+		"""(Controller) Enable a Tag from a Member (HTTP GET, for use from a href link)"""
+                t = MemberTag.query.filter(MemberTag.id == tag_ident).join(Member,Member.id == MemberTag.member_id).one_or_none()
+                if not t:
+                    flash("Tag not found",'warning')
+                    return redirect(url_for('index'))
+                mid = t.member_id
+                if not t.tag_type.startswith("inactive-"):
+                  flash("Tag was already enabled","warning")
+                else:
+                  t.tag_type = t.tag_type.replace("inactive-","")
+                  db.session.commit()
+                  authutil.kick_backend()
+                  flash("Tag Enabled","success")
+                return redirect(url_for("members.member_tagadd",id=mid))
+
+@blueprint.route('/tags/disable/<string:tag_ident>', methods = ['GET'])
+@login_required
+@roles_required(['Admin','Finance','Useredit'])
+def member_tagdisable(tag_ident):
+                t = MemberTag.query.filter(MemberTag.id == tag_ident).join(Member,Member.id == MemberTag.member_id).one_or_none()
+                if not t:
+                  flash("Tag not found",'warning')
+                  return redirect(url_for('index'))
+                mid = t.member_id
+                if t.tag_type.startswith("inactive-"):
+                  flash("Tag was already disabled","warning")
+                else:
+                  t.tag_type = "inactive-"+t.tag_type
+                  db.session.commit()
+                  authutil.kick_backend()
+                  flash("Tag Disabled","success")
+                return redirect(url_for("members.member_tagadd",id=mid))
+
 def generate_member_report(members):
 	fields=[ 'member', "email", "alt_email", "firstname", "lastname", "phone",
 					"plan", "slack_id","access_enabled", "access_reason", "active", "rate_plan", "sub_active",'Waiver']

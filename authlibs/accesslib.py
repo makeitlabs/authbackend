@@ -24,6 +24,7 @@ from authlibs.init import GLOBAL_LOGGER_LEVEL
 logger = logging.getLogger(__name__)
 logger.setLevel(GLOBAL_LOGGER_LEVEL)
 from sqlalchemy import case, DateTime
+from sqlalchemy.sql.expression import null as sql_null
 
 
 ###
@@ -36,7 +37,7 @@ from sqlalchemy import case, DateTime
 # meaningful dictionary for easier handling. If you change
 # the results of this query - change this function!
 def accessQueryToDict(y):
-        x = y[1:] # Get rid of the first parameter - which is a MemberTag record
+        x = y[1:] # Get rid of the first parameter - which is a MemberTag or Member record
         return {
             'tag_ident':x[0],
             'plan':x[1],
@@ -51,8 +52,9 @@ def accessQueryToDict(y):
             'member':x[10],
             'lockout_reason':x[11],
             'member_id':x[12],
-            'membership':x[13],
-            'expires_date':x[14],
+            'tag_type':x[13],
+            'membership':x[14],
+            'expires_date':x[15],
             'last_accessed':"" # We may never want to report this for many reasons
             }
 
@@ -120,6 +122,9 @@ def determineAccess(u,resource_text):
         elif u['grace_period'] == 'true':
             warning = """Your membership expired (%s) and you are in the temporary grace period. Correct this
             as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
+        elif u['tag_type'] and u['tag_type'].startswith("inactive-"):
+            warning = "This fob has been disabled"
+            allowed = 'false'
         return (warning,allowed)
 
 # Main entry to fetch an Access Control List for a given resource
@@ -238,8 +243,10 @@ def access_query(resource_id,member_id=None,tags=True):
     # BKG DEBUG LINES 
     if (tags):
       q = q.add_column(MemberTag.member_id)
+      q = q.add_column(MemberTag.tag_type)
     else:
       q = q.add_column(AccessByMember.id)
+      q = q.add_column(sql_null())
     q = q.add_column(Subscription.membership)
     q = q.add_column(Subscription.expires_date)
     # BKG DEBUG ITEMS
