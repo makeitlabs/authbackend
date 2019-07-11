@@ -530,6 +530,7 @@ def api_cron_nightly():
     return json_dump({'status':'error','reason':'Member sync failed'}, 200, {'Content-type': 'text/plain'})
   cli_waivers([])
   connect_waivers()
+  authutil.kick_backend()
   logger.info("Nightly CRON finished")
   return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
 
