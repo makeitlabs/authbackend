@@ -454,6 +454,10 @@ def create_routes():
        return resp
        #return redirect(url_for('login'))
 
+    @app.route("/empty")
+    def empty():
+       return render_template('empty.html')
+
     @app.route("/index")
     @app.route('/')
     @login_required
@@ -544,7 +548,6 @@ with app.app_context():
 
     # Register Pages
     
-    authutil.kick_backend()
     create_routes()
     auth.register_pages(app)
     members.register_pages(app)
@@ -569,6 +572,7 @@ with app.app_context():
     #app.login_manager.login_view="test"
     #print app.login_manager.login_view
     logger.info("STARTING")
+    authutil.kick_backend()
     
 # Start development web server
 if __name__ == '__main__':

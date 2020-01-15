@@ -63,6 +63,7 @@ def authinit(app):
     @userauth.route("/google_login")
     def google_login():
         if not google.authorized:
+            logger.debug("Not google authorized")
             return redirect(url_for("google.login"))
         resp = google.get(SCOPE)
         assert resp.ok, resp.text
@@ -77,7 +78,8 @@ def authinit(app):
             member=email.split("@")[0]
             if not email.endswith("@makeitlabs.com"):
                 flash("Not a MakeIt Labs account",'warning')
-                return redirect(url_for('login'))
+                logger.error("Not a MakeIt Labs account "+str(email))
+                return redirect(url_for('empty'))
             #query = Member.query.filter_by(Member.member.ilike(member))
             #if not query:
             query = Member.query.filter(Member.email.ilike(email))
@@ -87,16 +89,16 @@ def authinit(app):
                 if len(user) > 1:
                         flash("Error - Multiple accounts with same email - please seek assistance",'warning')
                         logger.error("%s has multiple account (GUI Login)" % email)
-                        return redirect(url_for('index'))
+                        return redirect(url_for('empty'))
 
                 if len(user) ==0:
                         flash("Error - No account found - please seek assistance",'warning')
                         logger.error("No account matchin %s for GUI login" % email)
-                        return redirect(url_for('index'))
+                        return redirect(url_for('empty'))
 
                 user = user[0]
                 sub = quickSubscriptionCheck(member_id=user.id)
-                print "UserID %s SUB IS %s" % (user.id,sub)
+                #print "UserID %s SUB IS %s" % (user.id,sub)
                 if sub == "Active":
                   if (UserRoles.query.filter(UserRoles.member_id == user.id).count() >= 1):
                     login_user(user, remember=True)
@@ -106,17 +108,21 @@ def authinit(app):
                   if logintype == "resource":
                     if  (AccessByMember.query.filter(AccessByMember.member_id == user.id,AccessByMember.level >= AccessByMember.LEVEL_TRAINER).count() ==0):
                       flash("Only resource managers may log in")
+                      logger.error("Only resource managers may log in "+str(email))
                     else:
                       login_user(user, remember=True)
                   else:
                     flash("Welcome!")
                     login_user(user, remember=True)
+                    return redirect(url_for('index'))
                 else:
-                  flash("Login Denied - "+sub,'danger')
-                return redirect(url_for('index'))
+                  flash("Login Denied - "+str(sub),'danger')
+                  logger.error("Login Denied - "+str(email)+" is "+str(sub))
+                return redirect(url_for('empty'))
             except NoResultFound:
-                flash("Email adddress "+str(email)+" not found in member database")
-                return redirect(url_for('index'))
+                flash("Email adddress "+str(email)+" not found in member database","warning")
+                logger.error("Email adddress "+str(email)+" not found in member database")
+                return redirect(url_for('empty'))
 
 
     @userauth.route('/google_logout')
@@ -132,6 +138,7 @@ def authinit(app):
                 )
             except InvalidClientIdError:  # token expiration
                 del google.token
+                flash("OAuth error: Invalid Client ID",'danger')
                 redirect(url_for('main.index'))
         session.clear()
         logout_user()

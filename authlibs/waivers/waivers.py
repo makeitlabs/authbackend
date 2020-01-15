@@ -116,6 +116,8 @@ def cli_fix_waiver_types(cmd,**kwargs):
 
 def register_pages(app):
   app.register_blueprint(blueprint)
+
+def removed_from_register_pages():
   waiversystem = {}
   waiversystem['Apikey'] = app.config['globalConfig'].Config.get('Smartwaiver','Apikey')
   logger.debug ("Getting ALL waivers...")
