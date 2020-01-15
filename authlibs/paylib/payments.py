@@ -156,6 +156,7 @@ def update_payments():
       isTest=True
       logger.error("Non-Production environment - NOT creating google/slack accounts")
     membership.syncWithSubscriptions(isTest)
+    authutil.kick_backend()
     flash("Payment and Member data adjusted")
     return redirect(url_for('payments.payments'))
 
