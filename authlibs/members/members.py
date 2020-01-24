@@ -50,7 +50,7 @@ def member_add():
                         
 		member = {}
 		mandatory_fields = ['firstname','lastname','memberid','plan','payment']
-		optional_fields = ['alt_email','phone','nickname']
+		optional_fields = ['alt_email','phone','dob','nickname']
 		for f in mandatory_fields:
 				member[f] = ''
 				if f in request.form:
@@ -112,7 +112,7 @@ def member_edit(id):
 				else:
 					flash ("You do not have authority to delete users","warning")
 		elif request.method=="POST" and 'SaveChanges' in  request.form:
-				flash ("Changes Saved (Please Review!)")
+				nocommit=False
 				m=Member.query.filter(Member.id==mid).one()
 				f=request.form
 				m.member= f['input_member']
@@ -126,6 +126,18 @@ def member_edit(id):
 						m.phone=None
 				else:
 					m.phone= f['input_phone']
+				if f['input_dob'] == "None" or f['input_dob'].strip() == "":
+						m.dob=None
+				else:
+					if re.match('^\d\d\/\d\d/\d\d\d\d$',f['input_dob']):
+						dt = datetime.datetime.strptime(f['input_dob'],"%m/%d/%Y")
+						m.dob= dt
+					elif re.match('^\d\d\d\d-\d\d-\d\d\s+\d+:\d+:\d+',f['input_dob']):
+						dt = datetime.datetime.strptime(f['input_dob'],"%Y-%m-%d %H:%M:%S")
+						m.dob= dt
+					else:
+						flash("Invalid Date of Birth Format - must be \"MM/DD/YYYY\"","danger")
+						nocommit=True
 				m.slack= f['input_slack']
 				m.alt_email= f['input_alt_email']
 				m.email= f['input_email']
@@ -139,8 +151,10 @@ def member_edit(id):
 						authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,member_id=m.id,doneby=current_user.id,commit=0)
 					m.access_enabled=0
 					m.access_reason= f['input_access_reason']
-				db.session.commit()
-				authutil.kick_backend()
+				if not nocommit:
+					flash("Changes Saved (Please Review/Verify)","success")
+					db.session.commit()
+					authutil.kick_backend()
 				
 		#(member,subscription)=Member.query.outerjoin(Subscription).filter(Member.member==mid).first()
 		member=db.session.query(Member,Subscription)
@@ -577,7 +591,7 @@ def member_tagdisable(tag_ident):
                 return redirect(url_for("members.member_tagadd",id=mid))
 
 def generate_member_report(members):
-	fields=[ 'member', "email", "alt_email", "firstname", "lastname", "phone",
+	fields=[ 'member', "email", "alt_email", "firstname", "lastname", "phone","dob",
 					"plan", "slack_id","access_enabled", "access_reason", "active", "rate_plan", "sub_active",'Waiver']
 	s=""
 	for f in fields:
@@ -587,7 +601,7 @@ def generate_member_report(members):
 	for m in members:
 		s = ""
 		values = (m.Member.member,m.Member.email, m.Member.alt_email, m.Member.firstname, m.Member.lastname,
-			m.Member.phone, m.Member.plan, m.Member.slack, m.Member.access_enabled, m.Member.access_reason,
+			m.Member.phone, m.Member.dob, m.Member.plan, m.Member.slack, m.Member.access_enabled, m.Member.access_reason,
 			m.Member.active)
 		if m.Subscription:
 			values += (m.Subscription.rate_plan, m.Subscription.active)
@@ -803,9 +817,9 @@ def _createMember(m):
     if members:
         return {'status': 'error','message':'That User ID already exists'}
     else:
-        sqlstr = """insert into members (member,firstname,lastname,phone,plan,nickname,access_enabled,active)
+        sqlstr = """insert into members (member,firstname,lastname,phone,dob,plan,nickname,access_enabled,active)
                     VALUES ('%s','%s','%s','%s','','%s',0,0)
-                 """ % (m['memberid'],m['firstname'],m['lastname'],m['phone'],m['nickname'])
+                 """ % (m['memberid'],m['firstname'],m['lastname'],m['phone'],m['dob'],m['nickname'])
         execute_db(sqlstr)
         get_db().commit()
     return {'status':'success','message':'Member %s was created' % m['memberid']}

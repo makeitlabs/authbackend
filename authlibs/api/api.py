@@ -642,15 +642,17 @@ def cli_listapikeys(cmd,**kwargs):
 
 # Placeholder to test stuff
 def cli_querytest(cmd,**kwargs):
-	doorid = Resource.query.filter(Resource.name=="frontdoor").one().id
+	door = Resource.query.filter(Resource.name=="frontdoor").one()
+	doorid = door.id
 	memberquery = Member.query
 	if len(cmd) >= 2:
 		memberquery = Member.query.filter(Member.member.ilike("%"+cmd[1]+"%"))
 	for member in memberquery.all():
-		acc= accesslib.access_query(doorid,member_id=member.id,tags=False).one_or_none()
+		#acc= accesslib.access_query(doorid,member_id=member.id,tags=False).one_or_none()
+		acc= accesslib.access_query(doorid,member_id=member.id,tags=False).first()
 		if acc: 
 			acc=accesslib.accessQueryToDict(acc)
-			(warning,allowed)=accesslib.determineAccess(acc,"DENIED")
+			(warning,allowed)=accesslib.determineAccess(acc,"DENIED",door)
 			print member.member,allowed,warning
 		else:
 			print member.member,"NODOORACCESS"

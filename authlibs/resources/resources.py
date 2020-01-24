@@ -43,6 +43,17 @@ def resource_create():
 	r.info_url = (request.form['input_info_url'])
 	r.info_text = (request.form['input_info_text'])
 	r.slack_info_text = (request.form['input_slack_info_text'])
+	r.slack_info_text = (request.form['input_slack_info_text'])
+	if request.form['input_age_restrict']:
+		ar = 0
+		try:
+			ar = int(request.form['input_age_restrict'])
+		except:
+			pass
+		if ar == 0:
+			flash("Age restriction should be empty, or greater than zero","warning")
+	else:
+		r.age_restrict = None
 	db.session.add(r)
 	db.session.commit()
 	authutil.kick_backend()
@@ -246,6 +257,17 @@ def resource_update(resource):
 		r.info_url = (request.form['input_info_url'])
 		r.info_text = (request.form['input_info_text'])
 		r.slack_info_text = (request.form['input_slack_info_text'])
+		if request.form['input_age_restrict']:
+			ar = 0
+			try:
+				ar = int(request.form['input_age_restrict'])
+				r.age_restrict = ar
+			except:
+				pass
+			if ar <= 0:
+				flash("Age restriction should be empty, or greater than zero","warning")
+		else:
+			r.age_restrict = None
 		db.session.commit()
 		authutil.kick_backend()
 		flash("Resource updated")

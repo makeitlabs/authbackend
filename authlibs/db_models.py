@@ -47,6 +47,7 @@ class Member(db.Model,UserMixin):
     slack = db.Column(db.String(50))
     lastname = db.Column(db.String(50))
     phone = db.Column(db.String(50))
+    dob = db.Column(db.DateTime())
     plan = db.Column(db.String(50))	 # "Pro", "Hobbiest" - "ProDuo" - from stripe??
     access_enabled = db.Column(db.Integer(),default=0) # Defaults to "0" for new member - Waiver will make this non-zero - means no access
     access_reason = db.Column(db.String(50)) # If access_enabled is nonzero - access_reason will be a MANUAL reason for no access (empty means waiver-block)
@@ -179,6 +180,7 @@ class Resource(db.Model):
     info_url = db.Column(db.String(150))
     info_text = db.Column(db.String(150))
     slack_info_text = db.Column(db.String())
+    age_restrict = db.Column(db.Integer())  # Years old
 
 class ResourceAlias(db.Model):
     __tablename__ = 'resourcealiases'

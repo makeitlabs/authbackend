@@ -9,6 +9,7 @@ import pprint
 import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response,Blueprint
+from datetime import timedelta,datetime
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
@@ -51,10 +52,11 @@ def accessQueryToDict(y):
             'level':x[9],
             'member':x[10],
             'lockout_reason':x[11],
-            'member_id':x[12],
-            'tag_type':x[13],
-            'membership':x[14],
-            'expires_date':x[15],
+            'dob':x[12],
+            'member_id':x[13],
+            'tag_type':x[14],
+            'membership':x[15],
+            'expires_date':x[16],
             'last_accessed':"" # We may never want to report this for many reasons
             }
 
@@ -87,7 +89,7 @@ def _getResourceUsers(resource):
 
 		returns a "false" or "allowed" string, and a warning message
 """
-def determineAccess(u,resource_text):
+def determineAccess(u,resource_text,resource_rec=None):
         if not resource_text:
           resource_text = "You do not have access to this resource. See the Wiki for training information and resource manager contact info."
 
@@ -125,6 +127,19 @@ def determineAccess(u,resource_text):
         elif u['tag_type'] and u['tag_type'].startswith("inactive-"):
             warning = "This fob has been disabled"
             allowed = 'false'
+
+        # Do a final age-check
+        if allowed and resource_rec and resource_rec.age_restrict:
+          if not u['dob']:
+            warning = "Age-restricted -  Verification required"
+            allowed = 'false'
+          else:
+            if ((u['dob'] + timedelta(days=365.25*(resource_rec.age_restrict))) > datetime.now()):
+              warning = "Age-Restricted: Must be {0} years old".format(resource_rec.age_restrict)
+              #print ("BAD",(u['dob'] + timedelta(days=365.25*(resource_rec.age_restrict))) , datetime.now())
+              allowed = 'false'
+              
+        
         return (warning,allowed)
 
 # Main entry to fetch an Access Control List for a given resource
@@ -144,7 +159,7 @@ def getAccessControlList(resource):
         resource_url = resource_rec.info_url
 
     for u in users:
-        (warning,allowed) = determineAccess(u,resource_text)
+        (warning,allowed) = determineAccess(u,resource_text,resource_rec)
         hashed_tag_id = authutil.hash_rfid(u['tag_ident'])
         jsonarr.append({'tagid':hashed_tag_id,'tag_ident':u['tag_ident'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level'],'raw_tag_id':u['tag_ident']})
     return json_dump(jsonarr,indent=2)
@@ -239,6 +254,7 @@ def access_query(resource_id,member_id=None,tags=True):
     q = q.add_column(case([(AccessByMember.level != None , AccessByMember.level )], else_ = 0).label('level'))
     q = q.add_column(Member.member)
     q = q.add_column(AccessByMember.lockout_reason)
+    q = q.add_column(Member.dob)
 
     # BKG DEBUG LINES 
     if (tags):
