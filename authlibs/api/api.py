@@ -8,6 +8,7 @@ from authlibs.ubersearch import ubersearch
 from authlibs import membership
 from authlibs import payments
 from authlibs.waivers.waivers import cli_waivers,connect_waivers
+from authlibs.slackutils import automatch_missing_slack_ids
 from authlibs.members.notices import send_all_notices
 import slackapi
 import random,string
@@ -530,6 +531,10 @@ def api_cron_nightly():
     return json_dump({'status':'error','reason':'Member sync failed'}, 200, {'Content-type': 'text/plain'})
   cli_waivers([])
   connect_waivers()
+  try:
+    automatch_missing_slack_ids()
+  except:
+    logger.info("Error in nightly slack sync")
   authutil.kick_backend()
   logger.info("Nightly CRON finished")
   return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})

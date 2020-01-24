@@ -121,6 +121,7 @@ def automatch_missing_slack_ids():
     
     db.session.commit()
     logger.info("Slack Member match Total %s name %s emails %d altemail %s unfound %s" %(total,name,email,altemail,(total-(name+email+altemail))))
+    return ("Slack Member match Total %s name %s emails %d altemail %s unfound %s" %(total,name,email,altemail,(total-(name+email+altemail))))
 
 def get_unmatched_slack_ids():
     missing=[]
@@ -159,6 +160,9 @@ def create_routes(app):
             m.slack=None
             db.session.commit()
             flash("Undone.")
+
+        if "Update" in request.values:
+					flash( automatch_missing_slack_ids())
 
         if "Link" in request.form:
             print request.form['member']
