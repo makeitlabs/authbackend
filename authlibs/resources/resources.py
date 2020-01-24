@@ -417,7 +417,7 @@ def maintenance(resource):
 			machine_units=None
 			if m.machinetime_span:
 				tooldata[t.name]['maint'][m.name]['run_interval']="%s %s" % (m.machinetime_span,m.machinetime_unit)
-				activeSecs = usage.activeSecs if usage else 0
+				activeSecs = usage.activeSecs if usage.activeSecs else 0
 				if m.machinetime_unit == "hours":
 					tooldata[t.name]['maint'][m.name]['activeTime']="%s Hrs." % int(activeSecs/3600)
 					remain_span =  int(m.machinetime_span) - int(activeSecs/3600)
@@ -457,31 +457,31 @@ def maintenance(resource):
 				if 'clock_time_done' in tooldata[t.name]['maint'][m.name]:
 					ctd = tooldata[t.name]['maint'][m.name]['clock_time_done'].total_seconds()
 					if m.realtime_unit == "hours":
-						tooldata[t.name]['maint'][m.name]['clock_time_ago']="{0:.1f} Hrs.".format (ctd/3600)
 						ctr=(m.realtime_span-(ctd/3600))
 					elif m.realtime_unit == "minutes":
-						tooldata[t.name]['maint'][m.name]['clock_time_ago']="{0} Min.".format (int(ctd/60))
 						ctr=(m.realtime_span-(ctd/60))
 					elif m.realtime_unit == "days":
-						tooldata[t.name]['maint'][m.name]['clock_time_ago']="{0:.1f} Days".format (ctd/(3600*24))
 						ctr=(m.realtime_span-(ctd/(3600*24)))
 					elif m.realtime_unit == "weeks":
-						tooldata[t.name]['maint'][m.name]['clock_time_ago']="{0:.1f} Weeks".format (ctd/(3600*24*7))
 						ctr=(m.realtime_span-(ctd/(3600*24*7)))
 					elif m.realtime_unit == "months":
-						tooldata[t.name]['maint'][m.name]['clock_time_ago']="{0:.1f} Months".format (ctd/(3600*24*30))
 						ctr=(m.realtime_span-(ctd/(3600*24*30)))
 					elif m.realtime_unit == "years":
-						tooldata[t.name]['maint'][m.name]['clock_time_ago']="{0:.1f} Years".format (ctd/(3600*24*365))
 						ctr=(m.realtime_span-(ctd/(3600*24*365)))
 					else:
-						tooldata[t.name]['maint'][m.name]['clock_time_ago']="{0} Sec.".format (int(ctd))
 						ctr=(m.realtime_span-(ctd))
 					if (ctr > 0):
 						tooldata[t.name]['maint'][m.name]['clock_time_remaining'] = "{0:.1f} {1} Remaining".format(ctr,m.realtime_unit)
 					else:
 						tooldata[t.name]['maint'][m.name]['clock_time_remaining'] = "<b>Overdue</b> {0:.1f} {1}".format(-ctr,m.realtime_unit)
-					print "CTA", tooldata[t.name]['maint'][m.name]['clock_time_ago']
+					#print "CTA", tooldata[t.name]['maint'][m.name]['clock_time_ago']
+
+			# How long ago when it was done?
+			if 'clock_time_done' in tooldata[t.name]['maint'][m.name]:
+				ctd = tooldata[t.name]['maint'][m.name]['clock_time_done']
+				tooldata[t.name]['maint'][m.name]['clock_time_ago']=ago.ago(datetime.datetime.now()-ctd)[1]
+			else:
+				tooldata[t.name]['maint'][m.name]['clock_time_ago']="(Never)"
 						
 
 	current_datetime=datetime.datetime.strftime(datetime.datetime.now(),"%Y-%m-%dT%H:%M")
