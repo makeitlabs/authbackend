@@ -26,62 +26,91 @@ temporary file (/tmp/waivers.xml) is kept for the last API call result to aid in
 
 """
 
-import pycurl
-import urllib
+import urllib2
 import re
 import xml.etree.ElementTree as ET
 import ConfigParser
 from db_models import db, Waiver
 from StringIO import StringIO
+import json
 from flask import current_app
+import datetime
 
 from templateCommon import *
 
-baseuri = "https://www.smartwaiver.com/api/v3/"
+baseuri = "https://api.smartwaiver.com"
 
-def _getWaiversXML(api_key,waiverid):
-    buffer = StringIO()
-    c = pycurl.Curl()
-    if waiverid is not None:
-        uri = "%s?rest_request=%s&rest_asc&rest_since_waiverid=%s" % (baseuri,api_key,waiverid)
-    else:
-        uri = "%s?rest_request=%s&rest_asc" % (baseuri,api_key)
-    #print uri
-    c.setopt(c.URL, uri)
-    c.setopt(c.WRITEDATA,buffer)
-    c.perform()
-    c.close()
-    body = buffer.getvalue()
-    return body
+def _getWaiversJSON(api_key,waiverid,last_date):
+		resp = []
+		response = urllib2.urlopen(baseuri+"/ping")
+		html = response.read()
+	
+		headers = {'sw-api-key': api_key}
+
+		params = "?sort=asc"
+		if (last_date):
+			#fromDts = (last_date.date()-datetime.timedelta(days=13)).isoformat()
+			fromDts = (last_date.date()-datetime.timedelta(days=1)).isoformat()
+			toDts = datetime.datetime.now().date().isoformat()
+		params += "&fromDts={0}&toDts={1}".format(fromDts,toDts)
+		#params += "&fromDts={0}".format(fromDts)
+		#print "PARAMS",params
+		
+		req = urllib2.Request(baseuri+"/v4/search"+params, None, headers)
+		response = urllib2.urlopen(req)
+		#the_page = response.read()
+		j = json.load(response)
+		#print json.dumps(j,indent=2)
+		guid = j['search']["guid"]
+		pages = j['search']['pages']
+		#print "SEARCH GUID {0} PAGES {1}".format(guid,pages)
+
+		for i in range(0,pages):
+			req = urllib2.Request(baseuri+"/v4/search/{0}/results?page={1}".format(guid,str(i)), None, headers)
+			response = urllib2.urlopen(req)
+			j = json.load(response)
+			for r in j['search_results']:
+				x = {
+					'waiver_id':r['waiverId'],
+					'date_created_utc':r['createdOn'],
+					'primary_email':r['email'],
+					'waiver_title':r['title']
+				}
+				for p in r['participants']:
+					x['firstname']=p['firstName']
+					x['lastname']=p['lastName']
+					#print x
+					resp.append(x)
+			#print json.dumps(resp,indent=2)
+			#print json.dumps(j,indent=2)
+			#print "PAGES {0}".format(i,j);
+			
+		#print "RETURING WAIVERS",len(resp)
+		return resp
+		
 
 def getWaivers(waiver_dict):
     members = list()
     more_members = True
     waiver_id = waiver_dict.get('waiver_id',None)
-    xmlwaivers = _getWaiversXML(waiver_dict['api_key'],waiver_id)
-    f = open("/tmp/waivers.xml","w") # REMOVE TODO
-    while more_members:
-        f.write(xmlwaivers) #REMOVE TODO
-        root = ET.fromstring(xmlwaivers)
-        for child in root.iter('participant'):
-            email = child.find('primary_email').text
-            waiver_id = child.find('waiver_id').text
-            title = child.find('waiver_title').text
-            firstname = child.find('firstname').text
-            lastname = child.find('lastname').text
-            created_date = child.find('date_created_utc').text
-            m = {'email': email, 'waiver_id': waiver_id, 'firstname': firstname,
-                 'lastname': lastname, 'title': title, 'created_date': created_date}
-            members.append(m)
-            # TEMP
-            #logger.debug("%s %s" % (firstname,lastname))
-        more = root.find('more_participants_exist')
-        if more is None:
-            more_members = False
-        else:
-            logger.debug ("More members... getting those after %s" % waiver_id)
-            xmlwaivers = _getWaiversXML(waiver_dict['api_key'],waiver_id)
-    f.close() # REMOVE TODO
+    last_date = waiver_dict.get('last_date',None)
+    logger.debug ("Fetching waivers after %s" % last_date)
+		try:
+			jsonwaivers = _getWaiversJSON(waiver_dict['api_key'],waiver_id,last_date)
+		except BaseException as e:
+			logger.error ("Error fetching waivers {0}".format(str(e)))
+			return
+	
+    for j in  jsonwaivers:
+			email = j['primary_email']
+			waiver_id = j['waiver_id']
+			title = j['waiver_title']
+			firstname = j['firstname']
+			lastname = j['lastname']
+			created_date = j['date_created_utc']
+			m = {'email': email, 'waiver_id': waiver_id, 'firstname': firstname,
+					 'lastname': lastname, 'title': title, 'created_date': created_date}
+			members.append(m)
     return members
     
 def waiverXML():
@@ -95,14 +124,14 @@ def waiverXML():
         print child.find('primary_email').text
         print child.find('participant_id').text
 
-def getLastWaiverId():
+def getLastWaiver():
     """Retrieve the most recently created (last) waiver from the database"""
     #sqlstr = "select waiverid from waivers order by created_date desc limit 1"
     #w = query_db(sqlstr,"",True)
     w = Waiver.query.order_by(Waiver.created_date.desc()).limit(1).one_or_none()
     if not w:
       return None
-    return w.waiver_id
+    return (w.waiver_id,w.created_date)
 
 
 if __name__ == "__main__":
