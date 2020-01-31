@@ -74,7 +74,6 @@ noprivs_mustfail="""
 /logs/
 /logs/?format=csv
 /belog/
-/logs/large.csv
 /apikeys/
 /tools/
 /tools/5002

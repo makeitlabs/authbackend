@@ -288,7 +288,10 @@ def logs():
                                     fields=['datetime','user','tool','node','resource','event','doneby','message']
                                     s = ""
                                     for f in fields:
-                                        s += "\""+str(r[f])+"\","
+                                        if f in r:
+                                          s += "\""+str(r[f])+"\","
+                                        else:
+                                          s += "\"\","
                                     yield s+"\n"
                                 else:
                                     yield (r)
