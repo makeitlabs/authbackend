@@ -52,7 +52,7 @@ def _getWaiversJSON(api_key,waiverid,last_date):
 			#fromDts = (last_date.date()-datetime.timedelta(days=13)).isoformat()
 			fromDts = (last_date.date()-datetime.timedelta(days=1)).isoformat()
 			toDts = datetime.datetime.now().date().isoformat()
-			params += "&fromDts={0}&toDts={1}".format(fromDts,toDts)
+		params += "&fromDts={0}&toDts={1}".format(fromDts,toDts)
 		#params += "&fromDts={0}".format(fromDts)
 		#print "PARAMS",params
 		
@@ -112,35 +112,7 @@ def getWaivers(waiver_dict):
 					 'lastname': lastname, 'title': title, 'created_date': created_date}
 			members.append(m)
     return members
-
-# Update the waiver types of all members - not recorded prior to v1.0
-def fix_waiver_types(waiver_dict):
-    members = list()
-    more_members = True
-    logger.debug ("Fixing waiver types");
-		try:
-			jsonwaivers = _getWaiversJSON(waiver_dict['api_key'],None,None)
-		except BaseException as e:
-			logger.error ("Error fetching waivers {0}".format(str(e)))
-			return
-	
-    for j in  jsonwaivers:
-			email = j['primary_email']
-			waiver_id = j['waiver_id']
-			title = j['waiver_title']
-			firstname = j['firstname']
-			lastname = j['lastname']
-			created_date = j['date_created_utc']
-			m = {'email': email, 'waiver_id': waiver_id, 'firstname': firstname,
-					 'lastname': lastname, 'title': title, 'created_date': created_date}
-			for w in  Waiver.query.filter(Waiver.waiver_id == waiver_id).all():
-				if not w.waivertype:
-					w.waivertype = Waiver.codeFromWaiverTitle(j['waiver_title'])
-					print "{0} updated to {1}".format(w.waiver_id,w.waivertype)
-			else:
-					print "{0} SKIP TYPE {1}".format(w.waiver_id,w.waivertype)
-    db.session.commit()
-											
+    
 def waiverXML():
     f = open('/tmp/waivers.xml','r')
     data = f.read();

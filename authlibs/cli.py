@@ -15,7 +15,7 @@ from init import GLOBAL_LOGGER_LEVEL
 from slackutils import cli_slack
 import getpass
 from authlibs.prostore import prostore
-from waivers.waivers import cli_waivers_connect, cli_waivers, cli_waivers_fixtype
+from waivers.waivers import cli_waivers_connect, cli_waivers, cli_fix_waiver_types
 from members.notices import cli_member_notices
 
 import logging
@@ -167,7 +167,7 @@ commands = {
 	},
 	"fixwaivers":{
 		'usage':"fixwaivers -- Migrate waivers from v0.7 to v0.8",
-		'cmd':cli_waivers_fixtype
+		'cmd':cli_fix_waiver_types
 	},
 	"connectwaivers":{
 		'usage':"connectwaivers -- Connect waivers with member records",

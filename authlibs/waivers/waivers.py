@@ -76,7 +76,6 @@ def _addWaivers(waiver_list):
       n.firstname=w['firstname']
       n.lastname=w['lastname']
       n.waivertype = Waiver.codeFromWaiverTitle(w['title'])
-      print "IMPORT WAIVER TITLE "+w['title']+" AS CODE "+str(n.waivertype)
       n.created_date=authutil.parse_datetime(w['created_date'])
       cnt = db.session.query(Waiver).filter(Waiver.waiver_id == w['waiver_id']).count()
       #print "WID {0} count {1}".format(w['waiver_id'],cnt)
@@ -104,7 +103,7 @@ def cli_waivers(cmd,**kwargs):
 	addNewWaivers()
 
 # This should ONLY be required for v0.7->v0.8 Migrations
-def cli_fix_waiver_typesXXX(cmd,**kwargs):
+def cli_fix_waiver_types(cmd,**kwargs):
   logger.debug ("Updating waivers...")
   waiversystem = {}
   waiversystem['Apikey'] = current_app.config['globalConfig'].Config.get('Smartwaiver','Apikey')
@@ -155,12 +154,5 @@ def connect_waivers():
 					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,message="Waiver found, but access otherwise denied",member_id=m[0].id,commit=0)
 	db.session.commit()
 
-
 def cli_waivers_connect(*cmd,**kvargs):
 	connect_waivers()
-
-def cli_waivers_fixtype(*cmd,**kvargs):
-	waiversystem = {}
-	waiversystem['Apikey'] = current_app.config['globalConfig'].Config.get('Smartwaiver','Apikey')
-	waiver_dict = {'api_key': waiversystem['Apikey']}
-	smartwaiver.fix_waiver_types(waiver_dict)
