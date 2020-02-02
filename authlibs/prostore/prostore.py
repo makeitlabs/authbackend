@@ -254,7 +254,7 @@ def notices():
 			bb['lastNoticeWhat'] = ""
 		# Which notices are recommented??
 		rcmd = []
-		if b.waiverCount ==0: rcmd.append("NoWaiver")
+		if b.waiverCount <1: rcmd.append("NoWaiver")
 		if b.active != "Active": rcmd.append("Subscription")
 
 		if b.ProBin.status == ProBin.BINSTATUS_GONE:
