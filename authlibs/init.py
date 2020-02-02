@@ -22,31 +22,9 @@ from flask_dance.contrib.google import  google as google_flask
 import requests
 import logging.handlers
 
-# Load general configuration from file
-
-def get_config():
-    config={}
-    defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
-    ConfigObj = ConfigParser.ConfigParser(defaults)
-    ConfigObj.read('makeit.ini')
-    """
-    This doesn't work for some reason???
-    for s in ConfigObj.sections():
-        config[s]={}
-        for o in ConfigObj.options(s):
-            print "GET",o
-            config[s][o]=ConfigObj.get(s,o)
-            print "GOT",o
-    """
-    return ConfigObj
-
 # SET THIS 
 GLOBAL_LOGGER_LEVEL = logging.DEBUG
-#GLOBAL_LOGGER_LOGFILE = "/tmp/authit.log"
-Config = get_config()
-GLOBAL_LOGGER_LOGFILE = Config.get('General','BackendLogfile')
-if not GLOBAL_LOGGER_LOGFILE:
-  raise BaseException("no BackendLogfile specified in makeit.ini")
+GLOBAL_LOGGER_LOGFILE = "/tmp/authit.log"
 
 
 ## SETUP LOGGING
@@ -71,6 +49,23 @@ logger.addHandler(handler)
 
 from google_user_auth import authinit
 
+# Load general configuration from file
+
+def get_config():
+    config={}
+    defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
+    ConfigObj = ConfigParser.ConfigParser(defaults)
+    ConfigObj.read('makeit.ini')
+    """
+    This doesn't work for some reason???
+    for s in ConfigObj.sections():
+        config[s]={}
+        for o in ConfigObj.options(s):
+            print "GET",o
+            config[s][o]=ConfigObj.get(s,o)
+            print "GOT",o
+    """
+    return ConfigObj
 
 def createDefaultRoles(app):
     for role in defined_roles:
