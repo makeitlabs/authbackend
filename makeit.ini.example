@@ -15,7 +15,7 @@ Logins: all
 DefaultLogin: oauth
 ; "oauth" or "local"
 HelpURL: https://github.com/makeitlabs/authbackend/wiki/RATT-Tool-Authentication-Backend
-; BackendLogfile: /tmp/authit.log  NOT USED YET
+BackendLogfile: /tmp/authit.log
 
 [Payments]
 Modules: stripe

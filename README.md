@@ -209,3 +209,5 @@ You will also need to update waiver data to include [new] waiver-types before go
 Get a jumpstart on entering pro-storage stuff with:
 
 `python authserver.py --command prostore_migrate`
+
+`BackendLogfile` must now be set in `makeit.ini` - full path to logfile
