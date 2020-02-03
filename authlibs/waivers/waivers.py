@@ -152,6 +152,8 @@ def connect_waivers():
 					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,member_id=m[0].id,commit=0)
 				else:
 					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,message="Waiver found, but access otherwise denied",member_id=m[0].id,commit=0)
+		#else:
+		#	print s+" ?? len "+str(len(m))
 	db.session.commit()
 
 def cli_waivers_connect(*cmd,**kvargs):

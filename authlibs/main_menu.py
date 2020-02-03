@@ -84,6 +84,8 @@ def get_raw_menu():
             {
                     'privs':'Prostore',
                     'url':url_for('prostore.bins'),
+                    'img':url_for("static",filename="ProStoreBin.png"),
+                    'alt':"Manage storage bins & locations",
                     'title':"Pro Storage Bins"
             },
             {
