@@ -1,8 +1,10 @@
 #!/bin/sh
 cd ~/authbackend_bkg
-curl  http://testkey:testkey@127.0.0.1:5000/api/v1/resources/frontdoor/acl > ~/new2_doorbot_v1.acl
-curl  http://testkey:testkey@127.0.0.1:5000/api/v0/resources/frontdoor/acl > ~/new2_doorbot_v0.acl
-test/doorbot_compare_v1.py > ../doorbot-cmp.txt
-test/denied.py | tee ../denied.txt
-diff ../firstmigrate_doorbot_v0.acl ../new2_doorbot_v0.acl
-python authserver.py --command querytest > ../indquery_door.txt
+curl  https://bkgtest:${BKGTEST_APIKEY}@${LIVE_URL}/api/v1/resources/frontdoor/acl > ~/live_doorbot_v1.acl
+curl  https://bkgtest:${BKGTEST_APIKEY}@${LIVE_URL}/api/v0/resources/frontdoor/acl > ~/live_doorbot_v0.acl
+curl  https://bkgtest:${BKGTEST_APIKEY}@${STAGING_URL}/api/v1/resources/frontdoor/acl > ~/staging_doorbot_v1.acl
+curl  https://bkgtest:${BKGTEST_APIKEY}@${STAGING_URL}/api/v0/resources/frontdoor/acl > ~/staging_doorbot_v0.acl
+echo "V1 DIFFS"
+diff ~/live_doorbot_v1.acl ~/staging_doorbot_v1.acl
+echo "V0 DIFFS"
+diff ~/live_doorbot_v0.acl ~/staging_doorbot_v0.acl
