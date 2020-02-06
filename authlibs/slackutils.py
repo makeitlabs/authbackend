@@ -100,31 +100,31 @@ def automatch_missing_slack_ids():
     for x in byuser:
       print x
     q = db.session.query(Member)
-    #q = q.filter((Member.slack== None) | (Member.slack==""))
+    q = q.filter((Member.slack== None) | (Member.slack==""))
     for m in q.all():
         found=False
         total += 1
         if m.member.lower() in byuser:
             name+=1
             found=True
-            m.slack = byuser[m.member.lower()]['name']
+            m.slack = byuser[m.member.lower()]['slack_id']
 
         if not found  and m.alt_email:
             if m.alt_email.lower() in byrawemail:
                 altemail+=1
-                m.slack = byrawemail[m.alt_email.lower()]['name']
+                m.slack = byrawemail[m.alt_email.lower()]['slack_id']
                 found=True
 
         if not found  and m.email:
             if m.email.lower() in byrawemail:
                 altemail+=1
-                m.slack = byrawemail[m.email.lower()]['name']
+                m.slack = byrawemail[m.email.lower()]['slack_id']
                 found=True
 
         if not found:
             if m.member.lower() in byemail:
                 email+=1
-                m.slack = byemail[m.member.lower()]['name']
+                m.slack = byemail[m.member.lower()]['slack_id']
                 found=True
 
         #if not found:
