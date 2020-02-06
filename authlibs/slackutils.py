@@ -28,6 +28,7 @@ from templateCommon import *
 
 Config = init.get_config()
 slack_token = Config.get('Slack','BOT_API_TOKEN')
+admin_slack_token = Config.get('Slack','ADMIN_API_TOKEN')
 
 
 def get_users():
@@ -96,7 +97,11 @@ def automatch_missing_slack_ids():
     byuser  = get_users_by_name(slackdata)
     byemail = get_users_by_email(slackdata)
     byrawemail = get_users_by_raw_email(slackdata)
-    for m in db.session.query(Member).filter((Member.slack== None) | (Member.slack=="")).all():
+    for x in byuser:
+      print x
+    q = db.session.query(Member)
+    #q = q.filter((Member.slack== None) | (Member.slack==""))
+    for m in q.all():
         found=False
         total += 1
         if m.member.lower() in byuser:
@@ -108,6 +113,12 @@ def automatch_missing_slack_ids():
             if m.alt_email.lower() in byrawemail:
                 altemail+=1
                 m.slack = byrawemail[m.alt_email.lower()]['name']
+                found=True
+
+        if not found  and m.email:
+            if m.email.lower() in byrawemail:
+                altemail+=1
+                m.slack = byrawemail[m.email.lower()]['name']
                 found=True
 
         if not found:
@@ -186,7 +197,6 @@ def create_routes(app):
           flash("Could not reach slack. Communication or configuration error","warning")
           slacks=[]
           members={}
-        print "RENDERING"
         return render_template('slack.html',slacks=slacks,members=members)
 
 def cli_slack(cmd,**kwargs):
@@ -208,3 +218,18 @@ def send_slack_message(towho,message):
         text=message
         )
 
+def add_user_to_channel(channel,user):
+  sc = SlackClient(slack_token)
+  if sc.rtm_connect():
+    res = sc.api_call(
+        "chat.postMessage",
+        channel=user,
+        text="Please join #"+str(channel)
+        )
+    res = sc.api_call(
+        "conversations.invite",
+        channel=channel,
+        user=user
+        )
+    print "SLACK RESP",res
+    return res

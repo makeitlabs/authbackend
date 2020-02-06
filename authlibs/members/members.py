@@ -331,6 +331,7 @@ def member_editaccess(id):
 		elif (accesslib.user_is_authorizor(current_user)): allowsave=True
 		return render_template('member_access.html',rec=member,access=access,tags=tags,roles=roles,page="access",allowsave=allowsave)
 
+
 @blueprint.route('/<string:id>/access', methods = ['POST'])
 @login_required
 def member_setaccess(id):

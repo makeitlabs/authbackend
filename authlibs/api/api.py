@@ -8,7 +8,7 @@ from authlibs.ubersearch import ubersearch
 from authlibs import membership
 from authlibs import payments
 from authlibs.waivers.waivers import cli_waivers,connect_waivers
-from authlibs.slackutils import automatch_missing_slack_ids
+from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel
 from authlibs.members.notices import send_all_notices
 import slackapi
 import random,string
@@ -664,3 +664,60 @@ def cli_cron(cmd,**kwargs):
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
+
+# Like: curl 'http://test:test@127.0.0.1:5000/api/v1/setaccess/user@makeitlabs.com?resource=fake-resource-users&slack=CID1234'
+@blueprint.route('/v1/setaccess/<string:email>', methods = ['GET'])
+@api_only
+def member_api_setaccess(email):
+	resource = request.args.get('resource','')
+	slack = request.args.get('slack','')
+	result = {'status':'success'}
+
+	m = Member.query.filter(Member.email.ilike(email))
+	m = m.join(Resource,(AccessByMember.resource_id == Resource.id) & (Resource.name == resource))
+	m = m.join(AccessByMember,AccessByMember.member_id == Member.id)
+	m = m.add_column(AccessByMember.level)
+	m = m.one_or_none()
+
+  if m:
+    # Record already exists
+    if m.level < 0:
+      result = {'status':'error',"description":"User already prohibited from using resource"}
+    else:
+      result = {'status':'success',"description":"User was already authorized"}
+  else:
+    m = Member.query.filter(Member.email.ilike(email)).one_or_none()
+    r = Resource.query.filter(Resource.name == resource).one_or_none()
+    if not m:
+      result = {'status':'error',"description":"Email not found"}
+    elif not r:
+      result = {'status':'error',"description":"Resource not found"}
+    else:
+      ac = AccessByMember(member_id = m.id,resource_id = r.id,level=0)
+      db.session.add(ac)
+      authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=r.id,message="Self-Auth",member_id=m.id,commit=0)
+        
+      db.session.commit()
+      authutil.kick_backend()
+      if m.slack and slack != "":
+        add_user_to_channel(slack,m.slack)
+  
+	return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+# Query like: http://test:test@127.0.0.1:5000/api/v1/getaccess/myemail@makeitlabs.com?resource=resource-users
+@blueprint.route("/v1/getaccess/<string:email>", methods = ['GET'])
+@api_only
+def member_api_getaccess(email):
+	resource = request.args.get('resource','')
+  #print "FIND ",email,resource
+	m = Member.query.filter(Member.email.ilike(email))
+	m = m.join(Resource,(AccessByMember.resource_id == Resource.id) & (Resource.name == resource))
+	m = m.join(AccessByMember,AccessByMember.member_id == Member.id)
+	m = m.add_column(AccessByMember.level)
+	m = m.one_or_none()
+  if not m:
+    result = {'status':'error','description':'Not Found'}
+  else:
+    print m
+    result = {'status':'success','level':m[1]}
+	return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
