@@ -97,8 +97,6 @@ def automatch_missing_slack_ids():
     byuser  = get_users_by_name(slackdata)
     byemail = get_users_by_email(slackdata)
     byrawemail = get_users_by_raw_email(slackdata)
-    for x in byuser:
-      print x
     q = db.session.query(Member)
     q = q.filter((Member.slack== None) | (Member.slack==""))
     for m in q.all():
