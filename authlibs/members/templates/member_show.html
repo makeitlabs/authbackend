@@ -33,7 +33,9 @@
 								{% endfor %}
 			{% endif %}
 </div>
+		{% if rec.has_privs() %}
 							<a href="{{ url_for("members.link_waiver",id=rec.id) }}" class="btn btn-primary">Find Waiver</a>
+		{% endif %}
 		 
 		
 <div class="compact form-row row">

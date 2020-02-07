@@ -82,7 +82,7 @@ def get_raw_menu():
                     'title':"Logout (Soft)"
             },
             {
-                    'privs':'Prostore',
+                    'privs':'ProStore',
                     'url':url_for('prostore.bins'),
                     'img':url_for("static",filename="ProStoreBin.png"),
                     'alt':"Manage storage bins & locations",
@@ -94,11 +94,12 @@ def get_raw_menu():
                     'title':"Member Notifications"
             },
             {
-                    'privs':'Prostore',
+                    'privs':'ProStore',
                     'url':url_for('prostore.locations'),
                     'title':"Pro Storage Locations"
             },
             {
+                    'privs':'ProStore',
                     'url':url_for('prostore.grid'),
                     'title':"Pro Storage Grid"
             },

@@ -23,6 +23,8 @@ def apikeys_create():
   r = ApiKey()
   r.name = (request.form['input_name'])
   r.username = (request.form['input_username'])
+  r.acl = (request.form['input_acl'])
+  if r.acl.strip() =="": r.acl=None
   pwgen  = (request.form['pwgen'])
   if pwgen == "manual":
     pw1  = (request.form['input_newpw1']).strip()
@@ -55,6 +57,7 @@ def apikeys_create():
 def apikeys_show(apikey):
 	"""(Controller) Display information about a given apikey"""
 	r = ApiKey.query.filter(ApiKey.id==apikey).one_or_none()
+	if not r.acl: r.acl=""
 	if not r:
 		flash("ApiKey not found")
 		return redirect(url_for('apikeys.apikeys'))
@@ -71,6 +74,8 @@ def apikeys_update(apikey):
                   flash("Error: ApiKey not found")
                   return redirect(url_for('apikeys.apikeys'))
   r.name = (request.form['input_name'])
+  r.acl = (request.form['input_acl'])
+  if r.acl.strip() =="": r.acl=None
   pwgen  = (request.form['pwgen'])
   newpw=""
   if pwgen == "manual":

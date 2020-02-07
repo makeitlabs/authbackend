@@ -261,6 +261,7 @@ def getAccessLevel(user,resource):
 		pass
 
 @blueprint.route('/<string:id>/waiver', methods = ['GET','POST'])
+@roles_required(['Admin','Finance','Useredit'])
 @login_required
 def link_waiver(id):
 	mid = safestr(id)

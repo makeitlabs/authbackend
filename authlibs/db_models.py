@@ -35,6 +35,9 @@ class AnonymousMember(AnonymousUserMixin):
 		def is_arm(self):
 				return False
 
+    def has_privs(self):
+      return False
+
 # Members and their data
 class Member(db.Model,UserMixin):
     __tablename__ = 'members'
@@ -94,6 +97,11 @@ class Member(db.Model,UserMixin):
     def resource_roles(self):
         return [x[0] for x in db.session.query(Resource.name).join(AccessByMember,AccessByMember.resource_id == Resource.id).filter(AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).all()]
 
+    def has_privs(self):
+      if not self.is_arm() and (len(self.effective_roles()) == 0):
+        return False
+      else:
+        return True
 
 class ApiKey(db.Model):
     __tablename__ = 'apikeys'
@@ -103,6 +111,7 @@ class ApiKey(db.Model):
     name = db.Column(db.String(50),nullable=False)
     username = db.Column(db.String(50),nullable=False)
     password = db.Column(db.String(50),nullable=True)
+    acl = db.Column(db.String(255),nullable=True)
     tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'),nullable=True)
 
 class Tool(db.Model):

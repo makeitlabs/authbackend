@@ -24,6 +24,17 @@ def authenticate():
     'You have to login with proper credentials', 401,
     {'WWW-Authenticate': 'Basic realm="Login Required"'})
 
+def bad_acl():
+    """Sends a 403 response """
+    return Response(
+    'Forbiden - ACL restruction\n',403)
+
+def malformed_acl():
+    """Sends a 403 response """
+    return Response(
+    'Forbiden - Malformed ACL\n',403)
+
+
 # This is to allow non "member" accounts in via API
 # NOTE we are decorating the one we are importing from flask-user
 def api_only(f):
@@ -32,8 +43,36 @@ def api_only(f):
         auth = request.authorization
         if not auth:
             return error_401()
-        if not check_api_access(auth.username, auth.password):
+        a = check_api_access(auth.username, auth.password)
+        if not a:
             return authenticate() # Send a "Login required" Error
+        #print "CHECK",request.url,request.url_root
+        check = request.url.replace(request.url_root,"")
+        #print check
+        if a.acl:
+          for x in a.acl.split("\n"):
+            #print "LINE",x
+            x = x.strip().lower()
+            if x == "deny": 
+              logger.warning("ACL denied {0} for {1} url {2}".format(str(x),a.name,str(check)))
+              return bad_acl()
+            if x == "allow": break
+            try:
+              (k,v) = x.split(" ",2)
+              if k not in ("allow","deny"):
+                logger.error("Not allow or deny acl line {0} for {1} url {2}".format(str(x),a.name,str(check)))
+                return malformed_acl()
+              r = re.match(v,check)
+              #print "A",a,"C",c,"G",r
+              if r:
+                if k == "allow": break
+                if k == "deny": 
+                  logger.warning("ACL denied {0} for {1} url {2}".format(str(x),a.name,str(check)))
+                  return bad_acl()
+            except b as BaseException:
+              logger.error("Malformed acl line {0} for {1} url {2}".format(str(x),a.name,str(request.url)))
+              return malformed_acl()
+        
         g.apikey=auth.username
         return f(*args, **kwargs)
     return decorated
@@ -60,9 +99,9 @@ def check_api_access(username,password):
     if not a.password:
         return False
     if current_app.user_manager.verify_password( password,a.password):
-        return True
+        return a
     else:
-        return False
+        return None
 
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
@@ -718,6 +757,6 @@ def member_api_getaccess(email):
   if not m:
     result = {'status':'error','description':'Not Found'}
   else:
-    print m
+    #print m
     result = {'status':'success','level':m[1]}
 	return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)

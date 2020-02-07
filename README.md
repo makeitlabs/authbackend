@@ -177,6 +177,7 @@ ALTER TABLE nodes ADD last_ping datetime;
 ALTER TABLE tools ADD displayname VARCHAR(50);
 ALTER TABLE members ADD COLUMN dob DATETIME;
 ALTER TABLE resources ADD COLUMN age_restrict INTEGER;
+ALTER TABLE apikeys ADD COLUMN acl VARCHAR(255);
 
 CREATE TABLE prostorelocations (
 	location VARCHAR(50) NOT NULL, 
