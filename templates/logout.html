@@ -1,0 +1,10 @@
+{% extends "layout_bootstrap.html" %}
+
+{% block body %}
+<div class="content">
+<h3>You have <i>probably</i> been logged out...</h3>
+<p>Some browsers may cache credentials for your Google session, which would still allow access to your account
+If you are okay with this - you are logged out. If you want to force a logout of <i>all<i/> your Google sessions (Gmail, etc).) click the link below.</p>
+<a class="btn btn-primary" href="{{ url_for("logout_hard") }}">Google Logout</a>
+</div>
+{% endblock %}

@@ -454,8 +454,19 @@ def create_routes():
        return resp
        #return redirect(url_for('login'))
 
+    @app.route("/training_login")
+    def training_login():
+        logger.debug("Not google authorized")
+        return redirect(url_for("google.login"))
+        resp = google.get(SCOPE)
+        assert resp.ok, resp.text
+        return resp.text
+
     @app.route("/empty")
     def empty():
+       print  dir(request)
+       print  request.headers
+       print  request.referrer
        return render_template('empty.html')
 
     @app.route("/index")
