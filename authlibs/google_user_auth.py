@@ -72,12 +72,12 @@ def authinit(app):
     @oauth_authorized.connect_via(google_blueprint)
     def google_logged_in(blueprint, token):
         resp = google.get("/oauth2/v2/userinfo")
-        print "RESP",dir(resp)
-        print "RESP",resp.headers
-        print "RESP",resp.reason
-        print "RESP",resp.text
-        print "RESP",resp.url
-        print "RESP",resp.is_redirect
+        #print "RESP",dir(resp)
+        #print "RESP",resp.headers
+        #print "RESP",resp.reason
+        #print "RESP",resp.text
+        #print "RESP",resp.url
+        #print "RESP",resp.is_redirect
         if resp.ok:
             account_info_json = resp.json()
             email = account_info_json['email']
