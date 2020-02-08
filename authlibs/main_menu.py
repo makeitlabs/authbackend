@@ -45,6 +45,13 @@ def get_raw_menu():
                     'importance':1100
             },
             {
+                    'url':url_for('training.training'),
+                    'img':url_for("static",filename="training.png"),
+                    'alt':"Self-Training Portal",
+                    'title':"Training",
+                    'importance':1200
+            },
+            {
                     'privs':'RATT',
                     'checkfunc':rm_check,
                     'url':url_for('tools.tools'),
