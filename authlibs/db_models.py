@@ -198,6 +198,15 @@ class ResourceAlias(db.Model):
     alias = db.Column(db.String(50), unique=True)
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
+class ResourceQuiz(db.Model):
+    __tablename__ = 'resourcequiz'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    question = db.Column(db.String())
+    answer = db.Column(db.String())
+    idx = db.Column(db.Integer())
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+
 class Subscription(db.Model):
     __tablename__ = 'subscriptions'
     __bind_key__ = 'main'

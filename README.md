@@ -200,6 +200,15 @@ CREATE TABLE prostorebins (
 );
 ALTER TABLE waivers ADD waivertype Integer;
 insert into roles ('name')  values ('ProStore');
+CREATE TABLE resourcequiz (
+	id INTEGER NOT NULL, 
+	question TEXT,
+	answer TEXT, 
+	idx INTEGER, 
+	resource_id INTEGER NOT NULL,
+	PRIMARY KEY (id), 
+	FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
+);
 COMMIT;
 ```
 
