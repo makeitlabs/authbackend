@@ -34,16 +34,24 @@ def resources():
 def resource_create():
 	"""(Controller) Create a resource from an HTML form POST"""
 	r = Resource()
-	r.name = (request.form['input_name'])
-	r.short = (request.form['input_short'])
-	r.description = (request.form['input_description'])
-	r.owneremail = (request.form['input_owneremail'])
-	r.slack_chan = (request.form['input_slack_chan'])
-	r.slack_admin_chan = (request.form['input_slack_admin_chan'])
-	r.info_url = (request.form['input_info_url'])
-	r.info_text = (request.form['input_info_text'])
-	r.slack_info_text = (request.form['input_slack_info_text'])
-	r.slack_info_text = (request.form['input_slack_info_text'])
+	r.name = (request.form['input_name']).strip()
+	r.short = (request.form['input_short']).strip()
+	r.description = (request.form['input_description']).strip()
+	if r.name=="" or r.short=="" or r.description=="":
+	  flash("Name, Short and Description are manditory","warning")
+	  return redirect(url_for('resources.resources'))
+	r.owneremail = (request.form['input_owneremail']).strip()
+	r.slack_chan = (request.form['input_slack_chan']).strip()
+	r.slack_admin_chan = (request.form['input_slack_admin_chan']).strip()
+	r.info_url = (request.form['input_info_url']).strip()
+	r.info_text = (request.form['input_info_text']).strip()
+	r.slack_info_text = (request.form['input_slack_info_text']).strip()
+	r.slack_info_text = (request.form['input_slack_info_text']).strip()
+	r.sa_days = int("0"+request.form['input_sa_days'])
+	r.sa_hours = int("0"+request.form['input_sa_hours'])
+	r.sa_url = (request.form['input_sa_url']).strip()
+	r.sa_required = int(request.form['input_sa_required'])
+	if (r.sa_required == -1): r.sa_required = None
 	if request.form['input_age_restrict']:
 		ar = 0
 		try:
@@ -78,7 +86,8 @@ def resource_show(resource):
 
 	maint= MaintSched.query.filter(MaintSched.resource_id==r.id).all()
 
-	return render_template('resource_edit.html',rec=r,readonly=readonly,tools=tools,comments=cc,maint=maint)
+	resources = Resource.query.all()
+	return render_template('resource_edit.html',rec=r,resources=resources,readonly=readonly,tools=tools,comments=cc,maint=maint)
 
 @blueprint.route('/<string:resource>/usage', methods=['GET'])
 @login_required
@@ -248,15 +257,24 @@ def resource_update(resource):
 			flash("Error: Permission denied")
 			return redirect(url_for('resources.resources'))
 
-		r.name = (request.form['input_name'])
-		r.short = (request.form['input_short'])
-		r.description = (request.form['input_description'])
-		r.owneremail = (request.form['input_owneremail'])
-		r.slack_chan = (request.form['input_slack_chan'])
-		r.slack_admin_chan = (request.form['input_slack_admin_chan'])
-		r.info_url = (request.form['input_info_url'])
-		r.info_text = (request.form['input_info_text'])
-		r.slack_info_text = (request.form['input_slack_info_text'])
+		r.name = (request.form['input_name']).strip()
+		r.short = (request.form['input_short']).strip()
+		r.description = (request.form['input_description']).strip()
+		if r.name=="" or r.short=="" or r.description=="":
+		  flash("Name, Short and Description are manditory","warning")
+		  return redirect(url_for('resources.resources'))
+		r.owneremail = (request.form['input_owneremail']).strip()
+		r.slack_chan = (request.form['input_slack_chan']).strip()
+		r.slack_admin_chan = (request.form['input_slack_admin_chan']).strip()
+		r.info_url = (request.form['input_info_url']).strip()
+		r.info_text = (request.form['input_info_text']).strip()
+		r.slack_info_text = (request.form['input_slack_info_text']).strip()
+		r.sa_days = int("0"+request.form['input_sa_days'])
+		r.sa_hours = int("0"+request.form['input_sa_hours'])
+		r.sa_url = (request.form['input_sa_url']).strip()
+		r.sa_required = int(request.form['input_sa_required'])
+		print "SA RESOURCE IS",r.sa_required
+		if (r.sa_required == -1): r.sa_required = None
 		if request.form['input_age_restrict']:
 			ar = 0
 			try:
