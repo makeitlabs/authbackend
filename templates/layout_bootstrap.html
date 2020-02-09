@@ -72,7 +72,13 @@
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-sm navbar-light bannerGradient">
   <a class="navbar-brand" href="{{ url_for('index') }}">
-    <img class="hvr-grow-shadow" src="{{ url_for('static',filename='MakeIt.svg') }}"  alt="">
+    <img 
+{% if DEPLOYTYPE  or TESTDB %}
+    class="hvr-grow-shadow-flipped" 
+{% else %}
+    class="hvr-grow-shadow" 
+{% endif %}
+    src="{{ url_for('static',filename='MakeIt.svg') }}"  alt="">
   </a>
 {% if current_user.is_authenticated %}
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">

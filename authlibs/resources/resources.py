@@ -273,7 +273,6 @@ def resource_update(resource):
 		r.sa_hours = int("0"+request.form['input_sa_hours'])
 		r.sa_url = (request.form['input_sa_url']).strip()
 		r.sa_required = int(request.form['input_sa_required'])
-		print "SA RESOURCE IS",r.sa_required
 		if (r.sa_required == -1): r.sa_required = None
 		if request.form['input_age_restrict']:
 			ar = 0
