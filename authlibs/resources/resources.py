@@ -49,6 +49,7 @@ def resource_create():
 	r.slack_info_text = (request.form['input_slack_info_text']).strip()
 	r.sa_days = int("0"+request.form['input_sa_days'])
 	r.sa_hours = int("0"+request.form['input_sa_hours'])
+	r.sa_permit = int("0"+request.form['input_sa_permit'])
 	r.sa_url = (request.form['input_sa_url']).strip()
 	r.sa_required = int(request.form['input_sa_required'])
 	if (r.sa_required == -1): r.sa_required = None
@@ -272,6 +273,7 @@ def resource_update(resource):
 		r.sa_days = int("0"+request.form['input_sa_days'])
 		r.sa_hours = int("0"+request.form['input_sa_hours'])
 		r.sa_url = (request.form['input_sa_url']).strip()
+		r.sa_permit = int("0"+request.form['input_sa_permit'])
 		r.sa_required = int(request.form['input_sa_required'])
 		if (r.sa_required == -1): r.sa_required = None
 		if request.form['input_age_restrict']:

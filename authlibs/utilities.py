@@ -101,6 +101,8 @@ def accessLevelString(level,noaccess=None,user=None):
 
     if (level==AccessByMember.LEVEL_USER) and user is not None:
         return user
+    elif level == AccessByMember.LEVEL_PENDING:
+	return "Pending"
     elif level == AccessByMember.LEVEL_NOACCESS:
         if noaccess is not None:
             return noaccess
@@ -128,7 +130,7 @@ def getResourcePrivs(resource=None,resourceid=None,member=None,resourcename=None
     if (member and member.privs('HeadRM')):
         level=AccessByMember.LEVEL_ADMIN
     if member and (not member.active or member.active.lower() != "true"): 
-        level=0
+        level=-1
     else:
         try:
             level=int(level)

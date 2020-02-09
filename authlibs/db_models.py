@@ -151,9 +151,11 @@ class AccessByMember(db.Model):
     LEVEL_ADMIN=4 
     LEVEL_HEADRM=4 # Equiv of Admin
     LEVEL_NOACCESS=-1
+    LEVEL_PENDING=-2
 
 def accessLevelToString(x,blanks=[]):
 	if x in blanks: return ""
+	if x==AccessByMember.LEVEL_PENDING: return "Pending"
 	if x==AccessByMember.LEVEL_NOACCESS: return "NoAccess"
 	try:
 		return AccessByMember.ACCESS_LEVEL[x]
@@ -192,6 +194,7 @@ class Resource(db.Model):
     age_restrict = db.Column(db.Integer())  # Years old
     # Resource that you must already be authorized on for self-auth
     sa_hours = db.Column(db.Integer())  # Machine hours required for self-auth
+    sa_permit = db.Column(db.Integer())  # 0=Grant Permission 1=Set Pending
     sa_days = db.Column(db.Integer())  # Authorization days required for self-auth
     sa_url = db.Column(db.String(150))  # URL to training info for Self-Auth - If empty - no self-auth
     sa_required = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE')) 

@@ -181,6 +181,7 @@ ALTER TABLE apikeys ADD COLUMN acl VARCHAR(255);
 
 ALTER TABLE resources ADD COLUMN sa_required INTEGER;
 ALTER TABLE resources ADD COLUMN sa_hours INTEGER;
+ALTER TABLE resources ADD COLUMN sa_permit INTEGER;
 ALTER TABLE resources ADD COLUMN sa_days INTEGER;
 ALTER TABLE resources ADD COLUMN sa_url VARCHAR(150);
 pragma writable_schema=1;
