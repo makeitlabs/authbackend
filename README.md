@@ -227,3 +227,7 @@ You will also need to update waiver data to include [new] waiver-types before go
 Get a jumpstart on entering pro-storage stuff with:
 
 `python authserver.py --command prostore_migrate`
+
+Migrate some bin data with 
+
+`./probinmigrate.py` (If you have the script)

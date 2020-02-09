@@ -52,7 +52,7 @@ def _getWaiversJSON(api_key,waiverid,last_date):
 			#fromDts = (last_date.date()-datetime.timedelta(days=13)).isoformat()
 			fromDts = (last_date.date()-datetime.timedelta(days=1)).isoformat()
 			toDts = datetime.datetime.now().date().isoformat()
-		params += "&fromDts={0}&toDts={1}".format(fromDts,toDts)
+			params += "&fromDts={0}&toDts={1}".format(fromDts,toDts)
 		#params += "&fromDts={0}".format(fromDts)
 		#print "PARAMS",params
 		
