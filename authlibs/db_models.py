@@ -190,6 +190,11 @@ class Resource(db.Model):
     info_text = db.Column(db.String(150))
     slack_info_text = db.Column(db.String())
     age_restrict = db.Column(db.Integer())  # Years old
+    # Resource that you must already be authorized on for self-auth
+    sa_hours = db.Column(db.Integer())  # Machine hours required for self-auth
+    sa_days = db.Column(db.Integer())  # Authorization days required for self-auth
+    sa_url = db.Column(db.String(150))  # URL to training info for Self-Auth - If empty - no self-auth
+    sa_required = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE')) 
 
 class ResourceAlias(db.Model):
     __tablename__ = 'resourcealiases'

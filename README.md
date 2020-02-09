@@ -179,6 +179,14 @@ ALTER TABLE members ADD COLUMN dob DATETIME;
 ALTER TABLE resources ADD COLUMN age_restrict INTEGER;
 ALTER TABLE apikeys ADD COLUMN acl VARCHAR(255);
 
+ALTER TABLE resources ADD COLUMN sa_required INTEGER;
+ALTER TABLE resources ADD COLUMN sa_hours INTEGER;
+ALTER TABLE resources ADD COLUMN sa_days INTEGER;
+ALTER TABLE resources ADD COLUMN sa_url VARCHAR(150);
+pragma writable_schema=1;
+UPDATE SQLITE_MASTER SET SQL = replace(sql, 'PRIMARY KEY (id)', 'PRIMARY KEY(id), FOREIGN KEY(sa_required) REFERENCES resources (id) ON DELETE CASCADE') where name = 'resources' and type = 'table';
+pragma writable_schema=0;
+
 CREATE TABLE prostorelocations (
 	location VARCHAR(50) NOT NULL, 
 	id INTEGER NOT NULL, 
