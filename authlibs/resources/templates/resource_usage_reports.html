@@ -60,7 +60,7 @@
                 {% set ff = f['name']+"_secs" %}
                 <td
                   {% if f['type'] == 'num' %}style="text-align:right"{% endif %}
-                  {% if r[ff]  %}sortvalue={{ r[ff] }}{% endif %}
+                  {% if r[ff] != None  %}sortvalue={{ r[ff] }}{% endif %}
                 >{{ r[f['name']] }}</td>
               {% endfor %} {# fields #}
             </tr>
