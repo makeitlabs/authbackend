@@ -1,0 +1,30 @@
+{# 
+vim:tabstop=2:expandtab:shiftwidth=2
+#}
+{% extends "layout_bootstrap.html" %}
+{% block search %}
+<div class=body>
+	<div class="container"> {# outer container #}
+	<h1>Training Portal</h1>
+	  <table class="table table-sm">
+      <tr>
+        <th>Resource</th>
+        <th>Description</th>
+        <th></th>
+      </tr>
+      {% for a in training %}
+        <tr>
+          <td>{{ a.resource }}</td>
+          <td>{{ a.desc }}</td>
+          <td>
+            {% if a.status == 'can' %}
+              <button class="btn btn-primary" onClick="location.href='{{ a.url }}';">Training</button>
+              <button class="btn btn-primary" onClick="location.href='{{ a.quiz_url }}';">Take Quiz</button>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

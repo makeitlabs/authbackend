@@ -1,0 +1,90 @@
+{# 
+vim:tabstop=2:expandtab:shiftwidth=2
+#}
+{% extends "layout_bootstrap.html" %}
+{% block search %}
+<div class=body>
+	<div class="container"> {# outer container #}
+  <form method="POST">
+  <input type="hidden" name="resource_id" value={{ res.id }} >
+	<h3>{{ res.name }} Self-Authorization Quiz</h3>
+    <div id="questions" class="container"> {# outer container #}
+    {% for q in questions %}
+      {% set i=loop.index %}
+        <div id="question_{{ i }}">
+          <div class="form-row my-2">
+            <div class="col-md-2">
+              <h4>Question</h4>
+            </div>
+            <div class="col-md-8">
+              <textarea name="question_{{ i }}" rows="4" cols="40">{{ q.question }}</textarea>
+            </div>
+            <div class="col-md-1">
+              <button class="btn btn-seondary glyphicon glyphicon-trash" onClick="deleteQuestion({{ i }});"type="button"></button>
+            </div>
+          </div>
+          <div class="form-row my-2">
+            <div class="col-md-2">
+              <h4>Answer</h4>
+            </div>
+            <div class="col-md-8">
+              <input size=60 name="answer_{{ i }}" value="{{ q.answer }}"/>
+            </div>
+          </div>
+          <div class="border-top my-3"></div>
+        </div>
+    {% endfor %}
+    </div>
+  <button class="btn btn-secondary my-3" type="button" onClick="addQuestion();">
+    Add Question
+    </button>
+	</div>
+</div>
+  <input type="submit"  class="btn btn-primary" name="Save" value="Save" />
+</form>
+<script type="text/javascript">
+var nextQuestion = {{ questions|length }} +1;
+function deleteQuestion(num) {
+  x=document.getElementById("question_"+num);
+  x.innerHTML = `
+    <input type="hidden" name="question_`+num+`" value="">
+    <input type="hidden" name="answer_`+num+`" value="">
+  `;
+}
+
+function addQuestion() {
+  lst=document.getElementById("questions");
+
+  el = document.createElement("div");
+  el.id="question_"+nextQuestion;
+
+    el.innerHTML = `
+        <div class="form-row my-2">
+          <div class="col-md-2">
+            <h4>Question</h4>
+          </div>
+          <div class="col-md-8">
+            <textarea name="question_`+nextQuestion+`" rows="4" cols="40"></textarea>
+          </div>
+          <div class="col-md-1">
+            <button class="btn btn-seondary glyphicon glyphicon-trash" onClick="deleteQuestion(`+nextQuestion+`);"type="button"></button>
+          </div>
+        </div>
+        <div class="form-row my-2">
+          <div class="col-md-2">
+            <h4>Answer</h4>
+          </div>
+          <div class="col-md-8">
+            <input size=60 name="answer_`+nextQuestion+`" />
+          </div>
+          <div class="border-top my-3"></div>
+        </div>
+    `;
+    nextQuestion++;
+
+  //el.classList.add("memberrow");
+  lst.appendChild(el);
+}
+</script>
+{% endblock %}
+
