@@ -256,3 +256,8 @@ It's a bit of a freakin mystery - the good news is that if you run
 `./slacktest./py`
 
 .... it will tell you at the very end if there were errors in the permissions, and what permissins it was lacking.
+
+You can add API stuff here: https://api.slack.com/apps
+* Click your app
+* "Features and Functionality"
+* "Permissions"
