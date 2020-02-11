@@ -3,6 +3,7 @@ from ..templateCommon import  *
 import random
 import string
 import datetime
+from ..slackutils import add_user_to_channel
 
 blueprint = Blueprint("training", __name__, template_folder='templates', static_folder="static",url_prefix="/training")
 
@@ -68,7 +69,7 @@ def training():
                 active_hours = int(q[2]/3600)
                 enabled_hours = int(q[3]/3600)
               total_hours=idle_hours+active_hours+enabled_hours
-              print "IDLE",idle_hours,"ACTIVE",active_hours,"ENABLED",enabled_hours,"TOTAL",total_hours
+              #print "IDLE",idle_hours,"ACTIVE",active_hours,"ENABLED",enabled_hours,"TOTAL",total_hours
               if total_hours < r.sa_hours:
                 ar['desc'] = 'Must meet expereince prerequisites on '+r2.description
                 ar['status'] = 'cannot'
@@ -101,7 +102,7 @@ def training():
       
       sa.append(ar)
 
-  print sa
+  #print sa
   return render_template('training.html',training=sa)
 
 @blueprint.route('/editquiz', methods=['GET','POST'])
@@ -161,13 +162,19 @@ def quiz(resource):
     if 'acknowledge' not in request.form:
       hilight=True
     if wc == 0 and hilight == False:
-      ac = AccessByMember(member_id = current_user.id,resource_id = r.id,level=0)
-      db.session.add(ac)
-      flash("Congratulations! You are authorized!","success")
-      authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=r.id,message="Self-Auth",member_id=current_user.id,commit=0)
-        
-      db.session.commit()
-      authutil.kick_backend()
+      cnt = AccessByMember.query.filter((AccessByMember.member_id == current_user.id) & (AccessByMember.resource_id == r.id)).count()
+      if cnt == 0:
+        ac = AccessByMember(member_id = current_user.id,resource_id = r.id,level=0)
+        db.session.add(ac)
+        flash("Congratulations! You are authorized!","success")
+        authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=r.id,message="Self-Auth",member_id=current_user.id,commit=0)
+          
+        db.session.commit()
+        authutil.kick_backend()
+        if r.slack_chan and r.slack_chan.strip() != "":
+          add_user_to_channel(r.slack_chan,current_user)
+      else:
+        flash("Access record already exists","warning")
       return redirect(url_for('training.training'))
 
 	return render_template('quiz.html',resource=r,quiz=quiz,highlight=hilight)

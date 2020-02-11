@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-vim:tabstop=2:noexpandtab
+vim:tabstop=2:expandtab:shiftwidth=2
 Get from: https://www.digicert.com/CACerts/DigiCertGlobalRootCA.crt
 export WEBSOCKET_CLIENT_CA_BUNDLE=DigiCertGlobalRootCA.crt
 
@@ -28,7 +28,6 @@ from templateCommon import *
 
 Config = init.get_config()
 slack_token = Config.get('Slack','BOT_API_TOKEN')
-admin_slack_token = Config.get('Slack','ADMIN_API_TOKEN')
 
 
 def get_users():
@@ -216,18 +215,43 @@ def send_slack_message(towho,message):
         text=message
         )
 
-def add_user_to_channel(channel,user):
+def add_user_to_channel(channel,member):
+  if not member.slack:
+    return False
   sc = SlackClient(slack_token)
-  if sc.rtm_connect():
-    res = sc.api_call(
-        "chat.postMessage",
-        channel=user,
-        text="Please join #"+str(channel)
+  if sc:
+    next_cursor=None
+    while True:
+      res = sc.api_call(
+        "conversations.list",
+          cursor=next_cursor,
+          exclude_archived=True
         )
+      d = None
+      for x in res['channels']:
+        #if x['is_channel']: print channel,x['name']
+        if channel == x['name'] and x['is_channel']:
+          d = x['id']
+          break
+      if 'response_metadata' not in res or 'next_cursor' not in res['response_metadata']:
+        break
+      next_cursor = res['response_metadata']['next_cursor']
+      if next_cursor.strip() == "": break
+    if not d:
+      logger.error("ID for channel {0} not found".format(channel))
+      return False
+    # Bot can't invite users to channels it doesn't belong to
     res = sc.api_call(
-        "conversations.invite",
-        channel=channel,
-        user=user
-        )
-    print "SLACK RESP",res
-    return res
+      "conversations.join",
+      channel="CTN7EK3A9"
+      )
+    res = sc.api_call(
+          "conversations.invite",
+          channel=d,
+          users=member.slack
+          )
+    if not res['ok']:
+      logger.error("Error inviting {0} to slack channel {1}: {2}".format(member.member,channel,res['error']))
+      return False
+    
+  return True

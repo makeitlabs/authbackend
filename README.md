@@ -156,7 +156,7 @@ You will want to run `nightly.py` on some nightly cron job. It will:
 To help restore backups - you can use the `restore.py` helper script
 
 
-# v0.8 Migration
+# v0.7.x to v1.0 Migration
 
 You will need to apply the following DB schema changes *manually* when migrating from v0.7 to v0.8
 
@@ -232,3 +232,27 @@ Get a jumpstart on entering pro-storage stuff with:
 Migrate some bin data with 
 
 `./probinmigrate.py` (If you have the script)
+
+
+### If you care about getting Slack training invites working:
+
+Slack permissions changed - so you might want to go into slack API and regenerate permissions for the API user. You need to have bunch of new permisions to allow training bot to add people to channels, including:
+
+`channels:manage` and `channels:write` 
+
+...But these scopes don't seem to be directly listed - but there are abunch of others that you seem to need, possibly including:
+
+Bot token scopes:
+```
+calls:read calls:write channels:join channels:manage channels:read chat:write dnd:read files:read groups:read
+groups:write im:history im:read im:write incoming-webhook mpim:history mpim:read mpim:write pins:write reactions:read
+reactions:write remote_files:read remote_files:share remote_files:write team:read users:read users:read.email users:write```
+
+User token scopes:
+``` channels:write ```
+
+It's a bit of a freakin mystery - the good news is that if you run
+
+`./slacktest./py`
+
+.... it will tell you at the very end if there were errors in the permissions, and what permissins it was lacking.
