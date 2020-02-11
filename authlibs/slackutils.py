@@ -203,7 +203,7 @@ def cli_slack(cmd,**kwargs):
         print  get_unmatched_slack_ids()
         print "Members`"
         print get_unmatched_members()
-                
+
 
 def send_slack_message(towho,message):
   sc = SlackClient(slack_token)
@@ -214,6 +214,53 @@ def send_slack_message(towho,message):
         channel=towho,
         text=message
         )
+
+def get_channel_id(sc,channel):
+  channel = channel.strip().lower()
+  if channel[0] == "#": channel = channel[1:]
+  next_cursor=None
+  while True:
+    res = sc.api_call(
+      "conversations.list",
+        cursor=next_cursor,
+        exclude_archived=True
+      )
+    if not res['ok'] and res['error'] == 'ratelimit':
+      time.sleep(2)
+      continue
+    d = None
+    for x in res['channels']:
+      #if x['is_channel']: print channel,x['name']
+      if channel == x['name'].lower() and x['is_channel']:
+        d = x['id']
+        return d
+    if 'response_metadata' not in res or 'next_cursor' not in res['response_metadata']:
+      break
+    next_cursor = res['response_metadata']['next_cursor']
+    if next_cursor.strip() == "": break
+  return d
+
+def cli_slack_add_all_to_channels(cmd,**kwargs):
+  print "Adding everytone to their user channels (This takes a while..)"
+  members = db.session.query(Member).all()
+  resources = db.session.query(Resource).all()
+  sc = SlackClient(slack_token)
+  if sc:
+    for r in resources:
+      if r.slack_chan:
+        cid = get_channel_id(sc,r.slack_chan)
+        print r," uses ",r.slack_chan,cid
+        if not cid:
+          logger.warning("{1} resource Slack channel {0} does not exist".format(r.slack_chan,r.short))
+        else:
+          mm = AccessByMember.query.filter(AccessByMember.resource_id == r.id)
+          mm = mm.outerjoin(Member,(AccessByMember.member_id == Member.id))
+          mm = mm.add_column(Member.member)
+          mm = mm.add_column(Member.id)
+          mm = mm.add_column(Member.slack)
+          for (acc,member,dd,slack) in mm.all():
+            print acc,member,dd,slack
+                
 
 def add_user_to_channel(channel,member):
   if not member.slack:
@@ -243,7 +290,7 @@ def add_user_to_channel(channel,member):
     # Bot can't invite users to channels it doesn't belong to
     res = sc.api_call(
       "conversations.join",
-      channel="CTN7EK3A9"
+      channel=channel
       )
     res = sc.api_call(
           "conversations.invite",
