@@ -233,6 +233,15 @@ Migrate some bin data with
 
 `./probinmigrate.py` (If you have the script)
 
+You probably want to add for *Staging* and *non-production* instnaces in `makeit.ini`:
+
+```
+[Slack]
+Disabled=True
+```
+
+(This will avoid sending real users slack messages for things you do in non-production environments
+
 
 ### If you care about getting Slack training invites working:
 
