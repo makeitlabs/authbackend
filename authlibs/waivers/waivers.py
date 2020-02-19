@@ -71,8 +71,14 @@ def _addWaivers(waiver_list):
       n.firstname=w['firstname']
       n.lastname=w['lastname']
       n.created_date=authutil.parse_datetime(w['created_date'])
-      db.session.add(n)
+      cnt = db.session.query(Waiver).filter(Waiver.waiver_id == w['waiver_id']).count()
+      #print "WID {0} count {1}".format(w['waiver_id'],cnt)
+      if cnt==0:
+        logger.debug("Add new waiver {0} {1} {2} {3} {4}".format(n.waiver_id,n.email,n.lastname,n.firstname,n.created_date))
+        db.session.add(n)
+    logger.debug("Skipping existing waiver {0} {1} {2} {3} {4}".format(n.waiver_id,n.email,n.lastname,n.firstname,n.created_date))
     db.session.commit()
+    logger.debug("Waiver updates committed")
     return len(waiver_list)
 
 def addNewWaivers():
@@ -80,9 +86,11 @@ def addNewWaivers():
 	logger.debug ("Updating waivers...")
 	waiversystem = {}
 	waiversystem['Apikey'] = current_app.config['globalConfig'].Config.get('Smartwaiver','Apikey')
-	last_waiverid = smartwaiver.getLastWaiverId()
-	waiver_dict = {'api_key': waiversystem['Apikey'],'waiver_id': last_waiverid}
+	(last_waiverid,last_date) = smartwaiver.getLastWaiver()
+	waiver_dict = {'api_key': waiversystem['Apikey'],'waiver_id': last_waiverid,'last_date':last_date}
 	waivers = smartwaiver.getWaivers(waiver_dict)
+	logger.debug("Checking {0} new waivers".format(len(waivers)))
+	return _addWaivers(waivers)
 	logger.debug ("Done.")
 	return _addWaivers(waivers)
 
