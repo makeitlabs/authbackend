@@ -19,10 +19,10 @@ def training():
       ar = {'resource':r.description,'rid':r.id,'status':'?','url':r.sa_url,'quiz_url':url_for('training.quiz',resource=r.name)}
       if ma:
         if ma.level == 0: 
-          ar['desc'] = 'You are already authorized'
+          ar['desc'] = 'Authorized'
           ar['status'] = 'already'
         elif ma.level == -2:  
-          ar['desc'] = 'Access already pending'
+          ar['desc'] = 'Access is pending'
           ar['status'] = 'cannot'
         elif ma.level == -1:  
           ar['desc'] = 'Authorization was revoked'
