@@ -242,6 +242,9 @@ Disabled=True
 
 (This will avoid sending real users slack messages for things you do in non-production environments
 
+### Fix wsgl config
+
+Verify that `authserver.wsgi` is set for your appopriate deploy!
 
 ### If you care about getting Slack training invites working:
 

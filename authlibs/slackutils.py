@@ -280,7 +280,7 @@ def cli_slack_add_all_to_channels(cmd,**kwargs):
                       users=dd
                       )
                 if not res['ok']:
-                  logger.error("Error inviting {0} to slack channel {1}: {2}".format(member,r.slack_chan,res['error']))
+                  logger.error("Error inviting {0} to slack channel {1}  {2}".format(member,r.slack_chan,res['error']))
                 
 
 def api_call_ratelimit(sc,api,**kwargs):
@@ -296,30 +296,14 @@ def add_user_to_channel(channel,member):
     return False
   sc = SlackClient(slack_token)
   if sc:
-    next_cursor=None
-    while True:
-      res = api_call_ratelimit(sc,
-        "conversations.list",
-          cursor=next_cursor,
-          exclude_archived=True
-        )
-      d = None
-      for x in res['channels']:
-        #if x['is_channel']: print channel,x['name']
-        if channel == x['name'] and x['is_channel']:
-          d = x['id']
-          break
-      if 'response_metadata' not in res or 'next_cursor' not in res['response_metadata']:
-        break
-      next_cursor = res['response_metadata']['next_cursor']
-      if next_cursor.strip() == "": break
-    if not d:
+    cid = get_channel_id(sc,channel)
+    if not cid:
       logger.error("ID for channel {0} not found".format(channel))
       return False
     # Bot can't invite users to channels it doesn't belong to
     res = api_call_ratelimit(sc,
       "conversations.join",
-      channel=channel
+      channel=cid
       )
     if slack_disabled:
         logger.warning("SLack is Disabled")
@@ -327,11 +311,11 @@ def add_user_to_channel(channel,member):
       res = api_call_ratelimit(
             sc,
             "conversations.invite",
-            channel=d,
+            channel=cid,
             users=member.slack
             )
       if not res['ok']:
-        logger.error("Error inviting {0} to slack channel {1}: {2}".format(member.member,channel,res['error']))
+        logger.error("Error Inviting {0} to slack channel {1}  {2}".format(member.member,channel,res['error']))
       return False
     
   return True
