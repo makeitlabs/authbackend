@@ -33,12 +33,13 @@ slack_disabled =  Config.has_option('Slack','Disabled')
 
 def get_users():
     sc = SlackClient(slack_token)
-    if sc.rtm_connect():
-      sc.server.websocket.sock.setblocking(1)
-      #print json.dumps(get_users(sc),indent=2)
-      if sc.server.connected:
-	users={}
-	return sc.api_call("users.list")
+    #if sc.rtm_connect():
+    #  sc.server.websocket.sock.setblocking(1)
+    #print json.dumps(get_users(sc),indent=2)
+    #if sc.server.connected:
+    return sc.api_call("users.list")
+    #else:
+    #  logger.error("get_users slack connection fail")
 
 def get_users_by_name(all_users=None):
 	# Get a summarized, simplified recordeset
@@ -199,11 +200,14 @@ def create_routes(app):
 
 def cli_slack(cmd,**kwargs):
         db.session.query(Member).all()
-        automatch_missing_slack_ids()
-        print "Slack"
-        print  get_unmatched_slack_ids()
-        print "Members`"
-        print get_unmatched_members()
+        print "Automatching missing IDs"
+        print automatch_missing_slack_ids()
+        #print "\n\nSlack"
+        #print  get_unmatched_slack_ids()
+        #print "\n\nMembers"
+        #print get_unmatched_members()
+        #print "\n\nall users"
+        print get_users()
 
 
 def send_slack_message(towho,message):
