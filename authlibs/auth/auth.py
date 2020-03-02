@@ -58,6 +58,7 @@ def authorize():
                         db.session.add(AccessByMember(member_id=Member.query.filter(Member.member == m).with_entities(Member.id),resource_id=r.id,level=0))
 
         db.session.commit()
+        authutil.kick_backend()
         #others['message']="Authorized "+" ".join(members)+" on "+" ".join([x.name for x in resources])
     if 'search' in request.form and (request.form['search'] != ""):
       searchstr = authutil._safestr(request.form['search'])
