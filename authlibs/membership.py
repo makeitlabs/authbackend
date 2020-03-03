@@ -190,6 +190,7 @@ def addMissingMembers(missing):
             mm.stripe_name = p.name # TODO BKG FIX - Depricate - use first and last names only
             mm.time_created = p.created_date
             mm.time_updated = p.created_date
+            mm.email_confirmed_at = datetime.now()
             db.session.add(mm)
             db.session.flush()
             s = Subscription.query.filter(Subscription.email==p.email).filter(Subscription.name==p.name).one()

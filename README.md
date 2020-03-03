@@ -218,6 +218,7 @@ CREATE TABLE resourcequiz (
 	PRIMARY KEY (id), 
 	FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
 );
+update members set email_confirmed_at=current_timestamp  where email_confirmed_at is NULL;
 COMMIT;
 ```
 
