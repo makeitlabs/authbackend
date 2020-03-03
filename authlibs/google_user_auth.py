@@ -76,11 +76,11 @@ def authinit(app):
         print "RESP",dir(resp)
         print "HEADERS",resp.headers
         print "REASON",resp.reason
-        print "TEXT",resp.text
-        print "NEXT",resp.next
-        print "LINKS",resp.links
-        print "URL",resp.url
-        print "IS_REDIRECT",resp.is_redirect
+        #print "TEXT",resp.text
+        #print "NEXT",resp.next
+        #print "LINKS",resp.links
+        #print "URL",resp.url
+        #print "IS_REDIRECT",resp.is_redirect
         if resp.ok:
             account_info_json = resp.json()
             email = account_info_json['email']
