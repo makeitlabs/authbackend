@@ -64,6 +64,7 @@ def authinit(app):
     def google_login():
         if not google.authorized:
             logger.debug("Not google authorized")
+            session['next_url'] = request.args.get('next')
             return redirect(url_for("google.login"))
         resp = google.get(SCOPE)
         assert resp.ok, resp.text
@@ -72,12 +73,14 @@ def authinit(app):
     @oauth_authorized.connect_via(google_blueprint)
     def google_logged_in(blueprint, token):
         resp = google.get("/oauth2/v2/userinfo")
-        #print "RESP",dir(resp)
-        #print "RESP",resp.headers
-        #print "RESP",resp.reason
-        #print "RESP",resp.text
-        #print "RESP",resp.url
-        #print "RESP",resp.is_redirect
+        print "RESP",dir(resp)
+        print "HEADERS",resp.headers
+        print "REASON",resp.reason
+        #print "TEXT",resp.text
+        #print "NEXT",resp.next
+        #print "LINKS",resp.links
+        #print "URL",resp.url
+        #print "IS_REDIRECT",resp.is_redirect
         if resp.ok:
             account_info_json = resp.json()
             email = account_info_json['email']
@@ -105,7 +108,7 @@ def authinit(app):
                 user = user[0]
                 sub = quickSubscriptionCheck(member_id=user.id)
                 #print "UserID %s SUB IS %s" % (user.id,sub)
-                if sub == "Active":
+                if sub == "Active" or sub == "Grace Period":
                   if (UserRoles.query.filter(UserRoles.member_id == user.id).count() >= 1):
                     login_user(user, remember=True)
                     flash("Welcome!")

@@ -28,16 +28,18 @@ from templateCommon import *
 
 Config = init.get_config()
 slack_token = Config.get('Slack','BOT_API_TOKEN')
+slack_disabled =  Config.has_option('Slack','Disabled')
 
 
 def get_users():
     sc = SlackClient(slack_token)
-    if sc.rtm_connect():
-      sc.server.websocket.sock.setblocking(1)
-      #print json.dumps(get_users(sc),indent=2)
-      if sc.server.connected:
-	users={}
-	return sc.api_call("users.list")
+    #if sc.rtm_connect():
+    #  sc.server.websocket.sock.setblocking(1)
+    #print json.dumps(get_users(sc),indent=2)
+    #if sc.server.connected:
+    return sc.api_call("users.list")
+    #else:
+    #  logger.error("get_users slack connection fail")
 
 def get_users_by_name(all_users=None):
 	# Get a summarized, simplified recordeset
@@ -198,11 +200,14 @@ def create_routes(app):
 
 def cli_slack(cmd,**kwargs):
         db.session.query(Member).all()
-        automatch_missing_slack_ids()
-        print "Slack"
-        print  get_unmatched_slack_ids()
-        print "Members`"
-        print get_unmatched_members()
+        print "Automatching missing IDs"
+        print automatch_missing_slack_ids()
+        #print "\n\nSlack"
+        #print  get_unmatched_slack_ids()
+        #print "\n\nMembers"
+        #print get_unmatched_members()
+        #print "\n\nall users"
+        print get_users()
 
 
 def send_slack_message(towho,message):
@@ -253,6 +258,14 @@ def cli_slack_add_all_to_channels(cmd,**kwargs):
         if not cid:
           logger.warning("{1} resource Slack channel {0} does not exist".format(r.slack_chan,r.short))
         else:
+          # Can't add if we're not a member
+          res = api_call_ratelimit(sc,
+            "conversations.join",
+            channel=cid
+            )
+          if not res['ok']:
+            logger.error("Error addming myself to slack channel {1}: {2}".format(channel,res['error']))
+
           mm = AccessByMember.query.filter(AccessByMember.resource_id == r.id)
           mm = mm.outerjoin(Member,(AccessByMember.member_id == Member.id))
           mm = mm.add_column(Member.member)
@@ -260,45 +273,53 @@ def cli_slack_add_all_to_channels(cmd,**kwargs):
           mm = mm.add_column(Member.slack)
           for (acc,member,dd,slack) in mm.all():
             print acc,member,dd,slack
+            if dd:
+              if slack_disabled:
+                logger.error("SLACK DISABLED inviting {0} to slack channel {1}: {2}".format(member,r.slack_chan,res['error']))
+              else:
+                res = api_call_ratelimit(
+                      sc,
+                      "conversations.invite",
+                      channel=cid,
+                      users=dd
+                      )
+                if not res['ok']:
+                  logger.error("Error inviting {0} to slack channel {1}  {2}".format(member,r.slack_chan,res['error']))
                 
 
+def api_call_ratelimit(sc,api,**kwargs):
+  while True:
+    x = sc.api_call(api,**kwargs)
+    if x['ok'] or x['error'] != "ratelimit":
+      return x
+    time.sleep(1)
+      
+    
 def add_user_to_channel(channel,member):
   if not member.slack:
     return False
   sc = SlackClient(slack_token)
   if sc:
-    next_cursor=None
-    while True:
-      res = sc.api_call(
-        "conversations.list",
-          cursor=next_cursor,
-          exclude_archived=True
-        )
-      d = None
-      for x in res['channels']:
-        #if x['is_channel']: print channel,x['name']
-        if channel == x['name'] and x['is_channel']:
-          d = x['id']
-          break
-      if 'response_metadata' not in res or 'next_cursor' not in res['response_metadata']:
-        break
-      next_cursor = res['response_metadata']['next_cursor']
-      if next_cursor.strip() == "": break
-    if not d:
+    cid = get_channel_id(sc,channel)
+    if not cid:
       logger.error("ID for channel {0} not found".format(channel))
       return False
     # Bot can't invite users to channels it doesn't belong to
-    res = sc.api_call(
+    res = api_call_ratelimit(sc,
       "conversations.join",
-      channel=channel
+      channel=cid
       )
-    res = sc.api_call(
-          "conversations.invite",
-          channel=d,
-          users=member.slack
-          )
-    if not res['ok']:
-      logger.error("Error inviting {0} to slack channel {1}: {2}".format(member.member,channel,res['error']))
+    if slack_disabled:
+        logger.warning("SLack is Disabled")
+    else:
+      res = api_call_ratelimit(
+            sc,
+            "conversations.invite",
+            channel=cid,
+            users=member.slack
+            )
+      if not res['ok']:
+        logger.error("Error Inviting {0} to slack channel {1}  {2}".format(member.member,channel,res['error']))
       return False
     
   return True

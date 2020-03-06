@@ -218,6 +218,7 @@ CREATE TABLE resourcequiz (
 	PRIMARY KEY (id), 
 	FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
 );
+update members set email_confirmed_at=current_timestamp  where email_confirmed_at is NULL;
 COMMIT;
 ```
 
@@ -233,6 +234,18 @@ Migrate some bin data with
 
 `./probinmigrate.py` (If you have the script)
 
+You probably want to add for *Staging* and *non-production* instnaces in `makeit.ini`:
+
+```
+[Slack]
+Disabled=True
+```
+
+(This will avoid sending real users slack messages for things you do in non-production environments
+
+### Fix wsgl config
+
+Verify that `authserver.wsgi` is set for your appopriate deploy!
 
 ### If you care about getting Slack training invites working:
 

@@ -4,6 +4,7 @@ from ..templateCommon import  *
 
 from authlibs import accesslib
 from sqlalchemy import case
+from authlibs.slackutils import add_user_to_channel
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
 # Version 1:
@@ -56,8 +57,11 @@ def authorize():
                         #print "%s granted access to %s" % (m,r.name)
                         flash("%s granted access to %s" % (m,r.name),"success")
                         db.session.add(AccessByMember(member_id=Member.query.filter(Member.member == m).with_entities(Member.id),resource_id=r.id,level=0))
-                        mid=Member.query.filter(Member.member == m).one().id
+                        mem=Member.query.filter(Member.member == m).one()
+                        mid = mem.id
                         db.session.add(Logs(member_id=mid,resource_id=r.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,doneby=current_user.id))
+                        if (r.slack_chan):
+                          add_user_to_channel(r.slack_chan,mem)
 
         db.session.commit()
         authutil.kick_backend()

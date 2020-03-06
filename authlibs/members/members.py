@@ -9,6 +9,7 @@ from ..api import api
 from .. import accesslib 
 from .. import ago 
 from authlibs.members.notices import get_notices,sendnotices
+from authlibs.slackutils import add_user_to_channel
 import stripe    
 
 ## TODO make sure member's w/o Useredit can't see other users' data or search for them
@@ -445,6 +446,8 @@ def member_setaccess(id):
 										db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,doneby=current_user.id))
 										acc = AccessByMember(member_id=member.id,resource_id=resource.id)
 										db.session.add(acc)
+										if (resource.slack_chan):
+										  add_user_to_channel(resource.slack_chan,member)
 								elif acc and newcheck == False and p>=myPerms:
 										flash("You aren't authorized to disable %s privs on %s" % (alstr,r),'warning')
 

@@ -75,6 +75,7 @@ SLACKBOT_API_USERNAME=slackbot
 SLACKBOT_API_PASSWORD=somethinglongandrandom
 LOGFILE=slackbot.log
 SLACK_API_TOKEN=xoxp-...BOT_with_admin_privs_to_create_user_accts
+;Disabled=True  --- Set to avoid doing things in test that would impact real users COMMENT OUT to remove
 
 [SlackReporter]
 BOT_API_TOKEN=<another slack api token>

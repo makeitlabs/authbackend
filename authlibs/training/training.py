@@ -3,6 +3,7 @@ from ..templateCommon import  *
 import random
 import string
 import datetime
+from authlibs import accesslib
 from ..slackutils import add_user_to_channel
 
 blueprint = Blueprint("training", __name__, template_folder='templates', static_folder="static",url_prefix="/training")
@@ -19,10 +20,10 @@ def training():
       ar = {'resource':r.description,'rid':r.id,'status':'?','url':r.sa_url,'quiz_url':url_for('training.quiz',resource=r.name)}
       if ma:
         if ma.level == 0: 
-          ar['desc'] = 'You are already authorized'
+          ar['desc'] = 'Authorized'
           ar['status'] = 'already'
         elif ma.level == -2:  
-          ar['desc'] = 'Access already pending'
+          ar['desc'] = 'Access is pending'
           ar['status'] = 'cannot'
         elif ma.level == -1:  
           ar['desc'] = 'Authorization was revoked'
@@ -65,9 +66,9 @@ def training():
               active_hours=0
               enabled_hours=0
               if q:
-                idle_hours = int(q[1]/3600)
-                active_hours = int(q[2]/3600)
-                enabled_hours = int(q[3]/3600)
+                if q[1]: idle_hours = int(q[1]/3600)
+                if q[2]: active_hours = int(q[2]/3600)
+                if q[3]: enabled_hours = int(q[3]/3600)
               total_hours=idle_hours+active_hours+enabled_hours
               #print "IDLE",idle_hours,"ACTIVE",active_hours,"ENABLED",enabled_hours,"TOTAL",total_hours
               if total_hours < r.sa_hours:
@@ -115,6 +116,9 @@ def editquiz():
 			rid = int(request.form['resource_id'])
 			i=1
 			o=0
+      if accesslib.user_privs_on_resource(member=current_user,resource_id=rid) < AccessByMember.LEVEL_ARM:
+        flash("You are not authorized to edit this quiz","warning")
+        return redirect(url_for('training.training'))
 			ResourceQuiz.query.filter(ResourceQuiz.resource_id == rid).delete()
 			while True:
 				if 'question_'+str(i) not in request.form or 'answer_'+str(i) not in request.form:
@@ -130,6 +134,9 @@ def editquiz():
 			db.session.commit()
 			flash("Saved","success")
 	res = Resource.query.filter(Resource.id == request.values['resid']).one_or_none()
+  if accesslib.user_privs_on_resource(member=current_user,resource=res) < AccessByMember.LEVEL_ARM:
+    flash("You are not authorized to edit this quiz","warning")
+    return redirect(url_for('training.training'))
 	questions = ResourceQuiz.query.filter(ResourceQuiz.resource_id == res.id).order_by(ResourceQuiz.idx).all()
 	return render_template('quiz_edit.html',res=res,training={},questions=questions)
 
@@ -141,6 +148,9 @@ def quiz(resource):
   if not r:
     flash("No resrouce","warning")
     return redirect(url_for('empty'))
+  if accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+    flash("You are not authorized to edit this quiz","warning")
+    return redirect(url_for('training.training'))
   qz = ResourceQuiz.query.filter(ResourceQuiz.resource_id == r.id).all()
   if len(qz) == 0:
     flash("Quiz is missing - contact Resource Manager","warning")

@@ -303,9 +303,9 @@ def user_is_authorizor(member,member_id=None,level=1):
 # What privs do we have on this resource?
 def user_privs_on_resource(member=None,member_id=None,resource=None,resource_id=None):
   if member_id:
-    member=Member.query.filter(Member.id == member_id).one().id
+    member=Member.query.filter(Member.id == member_id).one()
   if resource_id:
-    resource=Resource.query.filter(Resource.id == resource_id).one().id
+    resource=Resource.query.filter(Resource.id == resource_id).one()
 
   if (member.privs('HeadRM','RATT')):
     return AccessByMember.LEVEL_ADMIN

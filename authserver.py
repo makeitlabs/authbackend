@@ -365,6 +365,7 @@ def create_routes():
     # Flask login uses /user/sign-in
     @app.route('/login')
     def login():
+       session['next_url'] = request.args.get('next')
        if current_app.config['globalConfig'].DefaultLogin.lower() == "oauth":
          return redirect(url_for("google.login"))
        else:
@@ -380,6 +381,7 @@ def create_routes():
     def login_check():
         """Validate username and password from form against static credentials"""
         user = Member.query.filter(Member.member.ilike(request.form['username'])).one_or_none()
+        session['next_url'] = request.args.get('next')
         if not user or not  user.password:
             # User has no password - make the use oauth
             return redirect(url_for('google.login'))
