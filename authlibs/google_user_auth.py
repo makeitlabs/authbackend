@@ -26,6 +26,7 @@ You can (and probably should) set OAUTHLIB_RELAX_TOKEN_SCOPE when running in pro
 """
 def our_login():
     # Do something like this but not this
+    logger.error("OUR LOGIN (Unauthenticated?)")
     return redirect(url_for('login'))
 
 
@@ -55,9 +56,15 @@ def authinit(app):
 
     @login_manager.user_loader
     def load_user(user_id):
-        if not user_id.lower().endswith("@makeitlabs.com"): return None
+        if not user_id.lower().endswith("@makeitlabs.com"): 
+          logger.error("User {0} invalid for login".format(user_id))
+          return None
         mid = user_id.split("@")[0]
-        return Member.query.filter(Member.member == mid).one_or_none()
+        mr =  Member.query.filter(Member.member == mid).one_or_none()
+        if not mr:
+          logger.error("User {0} Found no member record".format(user_id))
+        logger.debug("User {0} loaded".format(user_id))
+        return mr
         #return Member.get(user_id)
 
     @userauth.route("/google_login")
@@ -73,9 +80,9 @@ def authinit(app):
     @oauth_authorized.connect_via(google_blueprint)
     def google_logged_in(blueprint, token):
         resp = google.get("/oauth2/v2/userinfo")
-        print "RESP",dir(resp)
-        print "HEADERS",resp.headers
-        print "REASON",resp.reason
+        #print "RESP",dir(resp)
+        #print "HEADERS",resp.headers
+        #print "REASON",resp.reason
         #print "TEXT",resp.text
         #print "NEXT",resp.next
         #print "LINKS",resp.links
@@ -85,6 +92,7 @@ def authinit(app):
             account_info_json = resp.json()
             email = account_info_json['email']
             member=email.split("@")[0]
+            logger.debug("Google auth RESP for {0} {1}".format(email,member))
             if not email.endswith("@makeitlabs.com"):
                 flash("Not a MakeIt Labs account",'warning')
                 logger.error("Not a MakeIt Labs account "+str(email))
@@ -132,6 +140,8 @@ def authinit(app):
                 flash("Email adddress "+str(email)+" not found in member database","warning")
                 logger.error("Email adddress "+str(email)+" not found in member database")
                 return redirect(url_for('empty'))
+        else:
+          logger.error("Google auth RESP is NOT okay")
 
 
     @userauth.route('/google_logout')

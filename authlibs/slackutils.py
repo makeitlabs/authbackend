@@ -27,7 +27,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from templateCommon import *
 
 Config = init.get_config()
-slack_token = Config.get('Slack','BOT_API_TOKEN')
+slack_token = Config.get('Slack','ADMIN_API_TOKEN')
 slack_disabled =  Config.has_option('Slack','Disabled')
 
 
@@ -212,13 +212,13 @@ def cli_slack(cmd,**kwargs):
 
 def send_slack_message(towho,message):
   sc = SlackClient(slack_token)
-  if sc.rtm_connect():
-    print "SLACK-SEND",towho,message
-    res = sc.api_call(
-        "chat.postMessage",
-        channel=towho,
-        text=message
-        )
+  #if sc.rtm_connect():
+  #  print "SLACK-SEND",towho,message
+  res = sc.api_call(
+      "chat.postMessage",
+      channel=towho,
+      text=message
+      )
 
 def get_channel_id(sc,channel):
   channel = channel.strip().lower()

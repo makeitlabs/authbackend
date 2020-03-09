@@ -346,8 +346,10 @@ def create_routes():
         m = Member.query.filter(Member.member==user).one_or_none()
         if m:
                 flash("User changed","success")
+                logger.error("{1} loginas User {0} ".format(user,current_user.member))
                 login_user(m, remember=True)
         else:
+                logger.error("loginas User {0} not found".format(user))
                 flash("User not found","warning")
         return redirect(url_for('index'))
 
@@ -365,6 +367,7 @@ def create_routes():
     # Flask login uses /user/sign-in
     @app.route('/login')
     def login():
+       logger.debug("login")
        session['next_url'] = request.args.get('next')
        if current_app.config['globalConfig'].DefaultLogin.lower() == "oauth":
          return redirect(url_for("google.login"))
@@ -373,12 +376,14 @@ def create_routes():
 
     @app.route('/locallogin')
     def locallogin():
+       logger.debug("Locallogin")
        return render_template('login.html')
 
     # BKG LOGIN CHECK - when do we use thigs?
     # This is from old flask-login module??
     @app.route('/login/check', methods=['post'])
     def login_check():
+        logger.debug("logincheck")
         """Validate username and password from form against static credentials"""
         user = Member.query.filter(Member.member.ilike(request.form['username'])).one_or_none()
         session['next_url'] = request.args.get('next')

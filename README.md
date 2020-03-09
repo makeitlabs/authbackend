@@ -264,9 +264,11 @@ reactions:write remote_files:read remote_files:share remote_files:write team:rea
 User token scopes:
 ``` channels:write ```
 
+This should ALREADY be done - just set the ADMIN_API_TOKEN to the "Authorizaiton Bot" and run Slacktest below.
+
 It's a bit of a freakin mystery - the good news is that if you run
 
-`./slacktest./py`
+`./slacktest.py`
 
 .... it will tell you at the very end if there were errors in the permissions, and what permissins it was lacking.
 

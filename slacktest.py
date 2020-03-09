@@ -29,21 +29,33 @@ from  authlibs import eventtypes
 Config = ConfigParser.ConfigParser({})
 Config.read('makeit.ini')
 slack_api_token = Config.get('Slack','BOT_API_TOKEN')
+admin_api_token = Config.get('Slack','ADMIN_API_TOKEN')
 
 if __name__ == '__main__':
         parser=argparse.ArgumentParser()
         parser.add_argument("--command",help="Special command",action="store_true")
         (args,extras) = parser.parse_known_args(sys.argv[1:])
 
+        print "ADMIN API TOKEN",admin_api_token
+        sc1 = SlackClient(slack_api_token)
+        if sc1.rtm_connect():
+          print "RTM connected on BOT"
+        else:
+          print "RTM Connection Failed"
+          sys.exit(1)
+
         print "API TOKEN",slack_api_token
-        sc = SlackClient(slack_api_token)
-        """
+        sc = SlackClient(admin_api_token)
+        res = sc1.api_call(
+          "chat.postMessage",
+          channel="U03126YLY",
+          text="Admin Test Message"
+          )
         res = sc.api_call(
-        "chat.postMessage",
-        channel="U03126YLY",
-        text="TEST MESSAGE"
-        )
-        """
+          "chat.postMessage",
+          channel="U03126YLY",
+          text="Bot Test Message"
+          )
         next_cursor=None
         while True:
           res = sc.api_call(
@@ -55,7 +67,6 @@ if __name__ == '__main__':
             print "conversaitons.list failed ",res
             sys.exit(1)
           for x in res['channels']:
-            #print x['name'],x['id']
             if x['is_channel']:
               print x['name'],x['id']
             pass
@@ -65,6 +76,7 @@ if __name__ == '__main__':
           if next_cursor.strip() == "": break
           print "NEXT CUROSR IS",next_cursor
           
+        # fake-resource-users
         res = sc.api_call(
         "conversations.join",
         channel="CTN7EK3A9"
