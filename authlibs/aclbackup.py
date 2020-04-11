@@ -22,8 +22,8 @@ BASE= Config.get("backups","localurl")
 api_creds = (api_username,api_password)
 sc = SlackClient(slack_token)
 
-sc.rtm_connect()
-sc.server.websocket.sock.setblocking(1)
+#sc.rtm_connect()
+#sc.server.websocket.sock.setblocking(1)
 
 def compare_v1(first,second,resource):
 	str=""
