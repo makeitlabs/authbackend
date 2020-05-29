@@ -83,6 +83,7 @@ def _addWaivers(waiver_list):
         logger.debug("Add new waiver {0} {1} {2} {3} {4} {5}".format(n.waiver_id,n.email,n.lastname,n.firstname,n.waivertype,n.created_date))
         db.session.add(n)
     logger.debug("Skipping existing waiver {0} {1} {2} {3} {4} {5}".format(n.waiver_id,n.email,n.lastname,n.firstname,n.waivertype,n.created_date))
+
     db.session.commit()
     logger.debug("Waiver updates committed")
     return len(waiver_list)
