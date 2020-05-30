@@ -1,0 +1,64 @@
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+<script type="text/javascript">
+function SelectNone() {
+	var cbs = $(".member_cb");
+	cbs.each(function(i,obj) {
+		obj.checked=false;
+	});
+}
+function SelectAll() {
+	var cbs = $(".member_cb");
+	cbs.each(function(i,obj) {
+		obj.checked=true;
+	});
+}
+</script>
+{% endblock %}
+{% block widebody %}
+	<h2>Member Notifications</h2>
+<a href="javascript:SelectAll();" class="btn btn-secondary">Select All</a>
+<a href="javascript:SelectNone();" class="btn btn-secondary">Select None</a>
+<div class="nodeslist">
+	<form method="POST">
+	<table class="table supercompact table-sm subtle-hover-table">
+        <tr>
+						<td></td>
+            <th>First</th>
+            <th>Last</th>
+            <th>Needs Notices</th>
+            <th>Last Notices</th>
+            <th colspan=2>Last Sent</th>
+        </tr>
+	{% for n in notices %}
+	  <tr>
+			<td>
+				<input class="member_cb" type="checkbox" name="notify_send_{{ notices[n].id }}" value="{{ "|".join(notices[n].notices)  }}" 
+					checked 
+				/>
+			</td>
+			<td>{{ notices[n].firstname }}</td>
+			<td>{{ notices[n].lastname }}</td>
+			<td>{{ " ".join(notices[n].notices) }}</td>
+			<td>{{ notices[n].lastNoticeWhat }}</td>
+			<td>{{ notices[n].when }}</td>
+			<td>{{ notices[n].ago }} {% if notices[n].ago %}Ago{% endif %}</td>
+			<td>
+				{{ n.notices }}
+				<input type="hidden" name="notify_notices_{{ n.id }}" value="{{ n.notices }}" />
+			</td>
+			<td>
+				<a href="{{ url_for("members.member_show",id=notices[n].member) }}">
+				<span class="glyphicon glyphicon-pencil"></span>
+				</a>
+			</td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+
+<input type="submit" name="send_notices" value="Send Notifications" />
+</form>
+</div>
+{% endblock %}

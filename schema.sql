@@ -1,5 +1,5 @@
 CREATE TABLE accessbyid(resource,rfidtag,enabled,lastmodified);
-CREATE TABLE resources (name,description,owneremail, last_updated text);
+CREATE TABLE resources (name,description,owneremail, age_restrict INTEGER,last_updated text);
 CREATE TABLE blacklist (entry TEXT, entrytype text, reason TEXT, updated_date TEXT);
 CREATE TABLE payments (member TEXT, paysystem TEXT, plan TEXT, customerid TEXT, expires_date TEXT, updated_date TEXT, checked_date TEXT, created_date text, email text);
 CREATE TABLE accessbymember (member text, resource text, enabled text, updated_date text, level);
@@ -58,6 +58,7 @@ CREATE TABLE members (
 	nickname VARCHAR(50), 
 	name VARCHAR(50), 
 	created_date DATETIME, 
+	dob DATE,
 	PRIMARY KEY (id), 
 	UNIQUE (member)
 );

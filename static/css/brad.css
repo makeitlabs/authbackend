@@ -118,12 +118,48 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#007db9e8', e
     -webkit-transition-property:  transform;
     transition-property:  transform;
 }
+
 .hvr-grow-shadow:hover, .hvr-grow-shadow:focus, .hvr-grow-shadow:active {
     -webkit-transform: scale(1.1);
     transform: scale(1.1);
 }
 
+.hvr-grow-shadow-flipped {
+    display: inline-block;
+    vertical-align: middle;
+    -webkit-transform: perspective(1px) translateZ(0) scaleY(-1);
+    transform: perspective(1px) translateZ(0) scaleY(-1);
+    -webkit-transition-duration: 0.3s;
+    transition-duration: 0.3s;
+    -webkit-transition-property:  transform;
+    transition-property:  transform;
+}
+
+.hvr-grow-shadow-flipped:hover, .hvr-grow-shadow-flipped:focus, .hvr-grow-shadow-flipped:active {
+    -webkit-transform: scale(1.1) scaleY(-1);
+    transform: scale(1.1) scaleY(-1);
+}
 
 .brad-table-row-hover:hover  {
 	background-color:#ffff80
 }
+
+.greenbar-table  tr:nth-child(even)  {
+	background-color:#ffffff
+}
+
+.greenbar-table  tr:nth-child(odd)  {
+	background-color:#e0ffe0
+}
+
+.greenbar-table  tr:hover  {
+	background-color:#ffff80
+}
+.greenbar-table  thead th  {
+	background-color:#80e080
+}
+
+.subtle-hover-table tr:hover {
+	background-color:#ffffe0
+}
+

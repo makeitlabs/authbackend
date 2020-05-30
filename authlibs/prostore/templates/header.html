@@ -1,0 +1,10 @@
+{% if current_user.privs("ProStore") %}
+<div class="container">
+	<div class="btn-group my-2" role="group" aria-label="Member Pages">
+		<button onclick='location.href="{{ url_for("prostore.bins") }}";'  type="button" class="btn btn-{% if page!="bins" %}outline-{% endif %}info">Bins</button>
+		<button onclick='location.href="{{ url_for("prostore.locations") }}";'  type="button" class="btn btn-{% if page!="locations" %}outline-{% endif %}info">Locations</button>
+		<button onclick='location.href="{{ url_for("prostore.grid") }}";'  type="button" class="btn btn-{% if page!="grid" %}outline-{% endif %}info">Grid</button>
+		<button onclick='location.href="{{ url_for("prostore.notices") }}";'  type="button" class="btn btn-{% if page!="notices" %}outline-{% endif %}info">Notices</button>
+	</div>
+</div>
+    {% endif %}

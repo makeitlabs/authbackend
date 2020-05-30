@@ -125,6 +125,11 @@ def on_message(client,userdata,msg):
                 member_cache={}
             elif topic[0]=="ratt" and topic[1]=="status":
                 if topic[2]=="node":
+                    print topic
+                    n=Node.query.filter(Node.mac == topic[3]).one_or_none()
+                    if n:
+                      n.last_ping=datetime.utcnow()
+                      db.session.commit()
                     t=Tool.query.join(Node,((Node.id == Tool.node_id) & (Node.mac == topic[3]))).one_or_none()
                     if t is None:
                       toolname="Node #"+str(topic[3])
@@ -331,13 +336,16 @@ if __name__ == '__main__':
       (base_topic,opts,slack_api_token) = get_mqtt_opts(app)
       sc = SlackClient(slack_api_token)
       # TODO BKG BUG change channel
-      res = sc.api_call(
-        "chat.postMessage",
-        channel="#test-resource-admins",
-        text="mqtt daemon alive :tada:"
-      )
-      if res['ok'] == False:
-        logger.error("Slack MQTT test message failed: %s"%res['error'])
+      try:
+              res = sc.api_call(
+                "chat.postMessage",
+                channel="#test-resource-admins",
+                text="mqtt daemon alive :tada:"
+              )
+              if res['ok'] == False:
+                logger.error("Slack MQTT test message failed: %s"%res['error'])
+      except:
+        pass
       while True:
           # TODO BKG BUG re-add error-safe logic here
           try:

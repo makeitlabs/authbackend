@@ -155,3 +155,124 @@ You will want to run `nightly.py` on some nightly cron job. It will:
 
 To help restore backups - you can use the `restore.py` helper script
 
+
+# v0.7.x to v1.0 Migration
+
+You will need to apply the following DB schema changes *manually* when migrating from v0.7 to v0.8
+
+```BEGIN TRANSACTION;
+CREATE TABLE maintsched (
+        id INTEGER NOT NULL,
+        name VARCHAR(50),
+        "desc" VARCHAR(100),
+        realtime_span INTEGER,
+        realtime_unit VARCHAR(12),
+        machinetime_span INTEGER,
+        machinetime_unit VARCHAR(12),
+        resource_id INTEGER,
+        PRIMARY KEY (id),
+        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
+);
+ALTER TABLE nodes ADD last_ping datetime;
+ALTER TABLE tools ADD displayname VARCHAR(50);
+ALTER TABLE members ADD COLUMN dob DATETIME;
+ALTER TABLE resources ADD COLUMN age_restrict INTEGER;
+ALTER TABLE apikeys ADD COLUMN acl VARCHAR(255);
+
+ALTER TABLE resources ADD COLUMN sa_required INTEGER;
+ALTER TABLE resources ADD COLUMN sa_hours INTEGER;
+ALTER TABLE resources ADD COLUMN sa_permit INTEGER;
+ALTER TABLE resources ADD COLUMN sa_days INTEGER;
+ALTER TABLE resources ADD COLUMN sa_url VARCHAR(150);
+pragma writable_schema=1;
+UPDATE SQLITE_MASTER SET SQL = replace(sql, 'PRIMARY KEY (id)', 'PRIMARY KEY(id), FOREIGN KEY(sa_required) REFERENCES resources (id) ON DELETE CASCADE') where name = 'resources' and type = 'table';
+pragma writable_schema=0;
+
+CREATE TABLE prostorelocations (
+	location VARCHAR(50) NOT NULL, 
+	id INTEGER NOT NULL, 
+	loctype INTEGER NOT NULL, 
+	PRIMARY KEY (id), 
+	UNIQUE (location)
+);
+
+CREATE TABLE prostorebins (
+	id INTEGER NOT NULL, 
+	member_id INTEGER, 
+	name VARCHAR(20), 
+	status INTEGER NOT NULL, 
+	location_id INTEGER, 
+	PRIMARY KEY (id), 
+	UNIQUE (name),
+	FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE, 
+	FOREIGN KEY(location_id) REFERENCES prostorelocations (id) ON DELETE CASCADE
+);
+ALTER TABLE waivers ADD waivertype Integer;
+insert into roles ('name')  values ('ProStore');
+CREATE TABLE resourcequiz (
+	id INTEGER NOT NULL, 
+	question TEXT,
+	answer TEXT, 
+	idx INTEGER, 
+	resource_id INTEGER NOT NULL,
+	PRIMARY KEY (id), 
+	FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
+);
+update members set email_confirmed_at=current_timestamp  where email_confirmed_at is NULL;
+COMMIT;
+```
+
+You will also need to update waiver data to include [new] waiver-types before going live:
+
+`python authserver.py --command fixwaivers`
+
+Get a jumpstart on entering pro-storage stuff with:
+
+`python authserver.py --command prostore_migrate`
+
+Migrate some bin data with 
+
+`./probinmigrate.py` (If you have the script)
+
+You probably want to add for *Staging* and *non-production* instnaces in `makeit.ini`:
+
+```
+[Slack]
+Disabled=True
+```
+
+(This will avoid sending real users slack messages for things you do in non-production environments
+
+### Fix wsgl config
+
+Verify that `authserver.wsgi` is set for your appopriate deploy!
+
+### If you care about getting Slack training invites working:
+
+Slack permissions changed - so you might want to go into slack API and regenerate permissions for the API user. You need to have bunch of new permisions to allow training bot to add people to channels, including:
+
+`channels:manage` and `channels:write` 
+
+...But these scopes don't seem to be directly listed - but there are abunch of others that you seem to need, possibly including:
+
+Bot token scopes:
+```
+calls:read calls:write channels:join channels:manage channels:read chat:write dnd:read files:read groups:read
+groups:write im:history im:read im:write incoming-webhook mpim:history mpim:read mpim:write pins:write reactions:read
+reactions:write remote_files:read remote_files:share remote_files:write team:read users:read users:read.email users:write```
+
+User token scopes:
+``` channels:write ```
+
+This should ALREADY be done - just set the ADMIN_API_TOKEN to the "Authorizaiton Bot" and run Slacktest below.
+
+It's a bit of a freakin mystery - the good news is that if you run
+
+`./slacktest.py`
+
+.... it will tell you at the very end if there were errors in the permissions, and what permissins it was lacking.
+
+You can add API stuff here: https://api.slack.com/apps
+* Click your app
+* "Features and Functionality"
+* "Permissions"

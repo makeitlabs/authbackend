@@ -7,11 +7,22 @@
         <tr>
             <th>Name</th>
             <th>MAC</th>
+            <th colspan=2>Last Ping</th>
         </tr>
 	{% for nodes in nodes %}
 	  <tr>
 		<td><a href="{{ url_for('nodes.nodes_show',node=nodes.id) }}">{{ nodes.name }}</a></td>
 		<td>{{ nodes.mac }}</td>
+		<td>
+			{% if nodes.when %}
+			{{ nodes.when }}
+			{% endif %}
+		</td>
+		<td>
+			{% if nodes.ago %}
+			{{ nodes.ago }}
+			{% endif %}
+		</td>
 	  </tr>
 	{% endfor %}
 	</table>

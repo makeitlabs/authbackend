@@ -24,9 +24,11 @@ basic="""
 """
 
 noprivs_mustfail="""
+/member/
 /member/13/edit
 /member/13/access
 /member/13/tags
+/member/13/waiver
 /tools/5000
 /reports/blacklist
 /member/tags/lookup
@@ -43,6 +45,38 @@ noprivs_mustfail="""
 /resources
 /api/ubersearch/brad
 /member/Bradley.Goodman
+/member/updatebackends
+/member/member_report
+/member/tags/lookup
+/member/revokeadmin
+/member/grantadmin
+/member/admin_roles
+/nodes/
+/nodes/5002
+/prostore/bins
+/prostore/bin/1
+/prostore/locations
+/prostore/grid
+/prostore/notices
+/resources/
+/resources/frontdoor
+/resources/laser-rabbit-users/usage
+/resources/laser-rabbit-users/usagereports
+/resources/laser-rabbit-users/list
+/resources/laser-rabbit-users/maintenance
+/resource/graphs/api/v1/weekly/3
+/resource/graphs/api/v1/monthly/3
+/resource/graphs/api/v1/weekUsers/3
+/resource/graphs/api/v1/monthUsers/3
+/resource/graphs/api/v1/weekCalendar/3
+/authorize/membersearch/brad
+/kvopts/
+/logs/
+/logs/?format=csv
+/belog/
+/apikeys/
+/tools/
+/tools/5002
 """
 
 mustfail="""
@@ -69,6 +103,7 @@ api_tests = [
 	{'url':"/api/membersearch/admin"},
 	{'url':"/api/v1/resources/frontdoor/acl"},
 	{'url':"/api/v0/resources/frontdoor/acl"},
+	{'url':"/member/member_report_api"},
 	{'url':"/api/v1/memberprivs/252"}
 ]
 later="""
@@ -284,7 +319,7 @@ url = BASE+"/api/v0/resources/frontdoor/acl"
 r = req.get(url, auth=('testkey', 'testkey'))
 if r.status_code != 200:
 	raise BaseException ("%s API failed %d" % (url,r.status_code))
-allowed=0
+allowed=-1 # because header has "allowed"
 denied=0
 other=0
 for x in  r.text.split("\n"):

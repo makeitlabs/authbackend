@@ -67,7 +67,7 @@ def delta(daysago,tm,short=False):
 		agostr = "{0} Months".format(roundunit(daysago.days / 30))
 		if tm: ctxstr = tm.strftime("%a %b %d %I:%M %p")
 	else:
-		agostr = "{0:.1f} Years".format(roundunit(daysago.days/365.0))
+		agostr = "{0} Years".format(roundunit(daysago.days/365.0))
 		if tm: ctxstr = tm.strftime("%a, %b %d, %Y")
 	if tm:
 		return whichday(tm),agostr,ctxstr

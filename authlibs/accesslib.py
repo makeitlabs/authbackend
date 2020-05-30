@@ -9,6 +9,7 @@ import pprint
 import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response,Blueprint
+from datetime import timedelta,datetime
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
@@ -24,6 +25,7 @@ from authlibs.init import GLOBAL_LOGGER_LEVEL
 logger = logging.getLogger(__name__)
 logger.setLevel(GLOBAL_LOGGER_LEVEL)
 from sqlalchemy import case, DateTime
+from sqlalchemy.sql.expression import null as sql_null
 
 
 ###
@@ -36,7 +38,7 @@ from sqlalchemy import case, DateTime
 # meaningful dictionary for easier handling. If you change
 # the results of this query - change this function!
 def accessQueryToDict(y):
-        x = y[1:] # Get rid of the first parameter - which is a MemberTag record
+        x = y[1:] # Get rid of the first parameter - which is a MemberTag or Member record
         return {
             'tag_ident':x[0],
             'plan':x[1],
@@ -50,9 +52,11 @@ def accessQueryToDict(y):
             'level':x[9],
             'member':x[10],
             'lockout_reason':x[11],
-            'member_id':x[12],
-            'membership':x[13],
-            'expires_date':x[14],
+            'dob':x[12],
+            'member_id':x[13],
+            'tag_type':x[14],
+            'membership':x[15],
+            'expires_date':x[16],
             'last_accessed':"" # We may never want to report this for many reasons
             }
 
@@ -85,7 +89,7 @@ def _getResourceUsers(resource):
 
 		returns a "false" or "allowed" string, and a warning message
 """
-def determineAccess(u,resource_text):
+def determineAccess(u,resource_text,resource_rec=None):
         if not resource_text:
           resource_text = "You do not have access to this resource. See the Wiki for training information and resource manager contact info."
 
@@ -120,6 +124,22 @@ def determineAccess(u,resource_text):
         elif u['grace_period'] == 'true':
             warning = """Your membership expired (%s) and you are in the temporary grace period. Correct this
             as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
+        elif u['tag_type'] and u['tag_type'].startswith("inactive-"):
+            warning = "This fob has been disabled"
+            allowed = 'false'
+
+        # Do a final age-check
+        if allowed and resource_rec and resource_rec.age_restrict:
+          if not u['dob']:
+            warning = "Age-restricted -  Verification required"
+            allowed = 'false'
+          else:
+            if ((u['dob'] + timedelta(days=365.25*(resource_rec.age_restrict))) > datetime.now()):
+              warning = "Age-Restricted: Must be {0} years old".format(resource_rec.age_restrict)
+              #print ("BAD",(u['dob'] + timedelta(days=365.25*(resource_rec.age_restrict))) , datetime.now())
+              allowed = 'false'
+              
+        
         return (warning,allowed)
 
 # Main entry to fetch an Access Control List for a given resource
@@ -139,7 +159,7 @@ def getAccessControlList(resource):
         resource_url = resource_rec.info_url
 
     for u in users:
-        (warning,allowed) = determineAccess(u,resource_text)
+        (warning,allowed) = determineAccess(u,resource_text,resource_rec)
         hashed_tag_id = authutil.hash_rfid(u['tag_ident'])
         jsonarr.append({'tagid':hashed_tag_id,'tag_ident':u['tag_ident'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level'],'raw_tag_id':u['tag_ident']})
     return json_dump(jsonarr,indent=2)
@@ -148,6 +168,8 @@ def getAccessControlList(resource):
     it is used to ADD access check functions to a query you
     are defining elsewhere - so we can keep the logic for this
     in one common place
+
+    (See addQuickSubscritionQuery below)
 """
 def addQuickAccessQuery(query):
   query = query.add_column(case([
@@ -158,6 +180,21 @@ def addQuickAccessQuery(query):
           ((Subscription.expires_date > db.func.DateTime('now','-45 days')), 'Recent Expire'),
           ], else_ = 'Expired').label('active'))
   return query
+
+""" Just like quickAccessQuery above  but only looks at health
+of subscription, ignoring  "access enabled" flag. This is for code
+that wants to report on subcriptions which may have access disabled
+"""
+
+def addQuickSubscriptionQuery(query):
+  query = query.add_column(case([
+          ((Subscription.expires_date  == None), 'No Subscription'),
+          ((Subscription.expires_date > db.func.DateTime('now',"-1 day")), 'Active'),
+          ((Subscription.expires_date > db.func.DateTime('now','-14 days')), 'Grace Period'),
+          ((Subscription.expires_date > db.func.DateTime('now','-45 days')), 'Recent Expire')
+          ], else_ = 'Expired').label('active'))
+  return query
+
 def quickSubscriptionCheck(member=None,member_id=None):
   if not member_id:
           member_id = Member.query.filter(Member.member==member).one().id
@@ -167,6 +204,7 @@ def quickSubscriptionCheck(member=None,member_id=None):
 
   res = addQuickAccessQuery(res)
   res = res.first()
+
 
   if not res: return 'No Subscription'
 
@@ -216,12 +254,15 @@ def access_query(resource_id,member_id=None,tags=True):
     q = q.add_column(case([(AccessByMember.level != None , AccessByMember.level )], else_ = 0).label('level'))
     q = q.add_column(Member.member)
     q = q.add_column(AccessByMember.lockout_reason)
+    q = q.add_column(Member.dob)
 
     # BKG DEBUG LINES 
     if (tags):
       q = q.add_column(MemberTag.member_id)
+      q = q.add_column(MemberTag.tag_type)
     else:
       q = q.add_column(AccessByMember.id)
+      q = q.add_column(sql_null())
     q = q.add_column(Subscription.membership)
     q = q.add_column(Subscription.expires_date)
     # BKG DEBUG ITEMS
@@ -262,9 +303,9 @@ def user_is_authorizor(member,member_id=None,level=1):
 # What privs do we have on this resource?
 def user_privs_on_resource(member=None,member_id=None,resource=None,resource_id=None):
   if member_id:
-    member=Member.query.filter(Member.id == member_id).one().id
+    member=Member.query.filter(Member.id == member_id).one()
   if resource_id:
-    resource=Resource.query.filter(Resource.id == resource_id).one().id
+    resource=Resource.query.filter(Resource.id == resource_id).one()
 
   if (member.privs('HeadRM','RATT')):
     return AccessByMember.LEVEL_ADMIN

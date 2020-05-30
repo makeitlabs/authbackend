@@ -19,7 +19,9 @@
 				<td><a class="btn btn-secondary" href="{{ url_for("payments.payment_membership",membership=s.membership) }}">Detail</a></td>
 				<td>{{ s.rate_plan }}</td>
 				<td><input type="radio" name="do_sub" value="assign:{{ s.membership }}">&nbsp;Assign to...</input></td>
+				{% if not linkmember %}
 				<td><input type="radio" name="do_sub" value="create:{{ s.membership }}">&nbsp;Create New Membership</input></td>
+				{% endif %}
 				</tr>
 					{% endfor %}
 			</table>
@@ -27,10 +29,45 @@
 			<input type="submit" value="Assign" name="Assign" />
 		</div>
 	<hr />
+	{% if linkmember %}
+	<h3>Attach to Member:</h4>
+	<div class="container">
+		<div class="form-row">
+			<div class="col-2">
+				Member:
+			</div>
+			<div class="col-2">
+				{{ linkmember.member }}
+			</div>
+		</div>
+		<div class="form-row">
+			<div class="col-2">
+				Name:
+			</div>
+			<div class="col-2">
+				{{ linkmember.firstname }}
+				{{ linkmember.lastname }}
+			</div>
+		</div>
+		<div class="form-row">
+			<div class="col-2">
+				Email:
+			</div>
+			<div class="col-4">
+				{{ linkmember.email }}
+			</div>
+			<div class="col-4">
+				{{ linkmember.alt_email }}
+			</div>
+	</div>
+	<input type="hidden" name="link_specific_member" value="{{ linkmember.id }}" />
+	<input type="hidden" name="member_radio" value="{{ linkmember.member }}" />
+	{% else %}
 		<div class="container">
 			{% with add_radiobuttons=1 %}
 			{% include 'userlist.html' %}
 			{% endwith %}
 		</div>
+	{% endif %}
   </form>
 {% endblock %}

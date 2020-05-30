@@ -12,9 +12,11 @@ from authlibs.ubersearch import cli_ubersearch
 from authlibs.api import api
 from flask_sqlalchemy import SQLAlchemy
 from init import GLOBAL_LOGGER_LEVEL
-from slackutils import cli_slack
+from slackutils import cli_slack,cli_slack_add_all_to_channels
 import getpass
-from waivers.waivers import cli_waivers_connect, cli_waivers
+from authlibs.prostore import prostore
+from waivers.waivers import cli_waivers_connect, cli_waivers, cli_fix_waiver_types
+from members.notices import cli_member_notices
 
 import logging
 logger = logging.getLogger(__name__)
@@ -155,6 +157,10 @@ commands = {
 		'usage':"slack -- Match slack users to members",
 		'cmd':cli_slack
 	},
+	"slack_all_channels":{
+		'usage':"slack_all_channels -- Add all users to resource channels",
+		'cmd':cli_slack_add_all_to_channels
+	},
 	"querytest":{
 		'usage':"querytest {member} -- Test DB Query",
 		'cmd':api.cli_querytest
@@ -163,6 +169,10 @@ commands = {
 		'usage':"updatewaivers -- Update waiver data from smartwaivers",
 		'cmd':cli_waivers
 	},
+	"fixwaivers":{
+		'usage':"fixwaivers -- Migrate waivers from v0.7 to v0.8",
+		'cmd':cli_fix_waiver_types
+	},
 	"connectwaivers":{
 		'usage':"connectwaivers -- Connect waivers with member records",
 		'cmd':cli_waivers_connect
@@ -170,6 +180,14 @@ commands = {
 	"cron":{
 		'usage':"cron -- Do nightly cron job",
 		'cmd':api.cli_cron
+	},
+	"prostore_migrate":{
+		'usage':"prostore_migrate -- Migrate Prostore v0.8",
+		'cmd':prostore.migrate
+	},
+	"notices":{
+		'usage':"notices -- Process member account notifications",
+		'cmd':cli_member_notices
 	},
 	"ubersearch":{
 		'usage':"ubersearch {searchstr} -- Try ubersearch",

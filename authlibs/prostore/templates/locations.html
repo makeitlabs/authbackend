@@ -1,0 +1,52 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+{% with page="locations" %}
+{% include 'header.html' %}
+{% endwith %}
+<div class="nodeslist">
+	<h2>Pro Storage Locations:  {{ locations |length }}</h2>
+	<table class="table table-lg table-striped">
+        <tr>
+            <th>Location</th>
+            <th></th>
+        </tr>
+	{% for loc in locations %}
+	  <tr>
+		<td>
+			<a href="{{ url_for("prostore.locations",delete=loc.ProLocation.location) }}"><span class="glyphicon glyphicon-trash" /></a> &nbsp;
+		{{ loc.ProLocation.location }}</td>
+		<td>{{ loc.loctypestr }}</td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+
+<!-- Add New Node -->
+
+
+	{% if current_user.privs("ProStore") %}
+  <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#nodes-add-collapse" aria-expanded="false" aria-controls="nodes-add-collapse">
+    Add New Locations
+  </button>
+  <div class="collapse" id="nodes-add-collapse">
+	<hr />
+  <h3> Add New Location(s) </h3>
+<form action="{{ url_for('prostore.locations') }}" method="post">
+
+<div class="input-group">
+  <input type="text" name="addloc_name" class="form-control" placeholder="Location Name" aria-label="Location Name" aria-describedby="basic-addon2">
+  <select name="input_loctype" class="custom-select" id="inputGroupSelect04">
+    <option value="0" selected>Single Bin</option>
+    <option value="1">Multiple Bins</option>
+  </select>
+  <div class="input-group-append">
+    <button class="btn btn-outline-secondary" name="AddLoc" value="AddLoc" type="submit">Add</button>
+  </div>
+</div>
+
+
+</form>
+</div>
+{% endif %} <!-- Add New Node -->
+{% endblock %}

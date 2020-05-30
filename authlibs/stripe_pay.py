@@ -120,9 +120,9 @@ def getSubscriptionsJSON():
 
 
         # expires_on = datetime.fromtimestamp(c['current_period_end']).strftime('%Y-%m-%d')
-        expires = utilities._utcTimestampToDatetime(s['current_period_end'])
-        created = utilities._utcTimestampToDatetime(s['created'])
-        updated = utilities.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+        expires = datetime.utcfromtimestamp(s['current_period_end'])
+        created = datetime.utcfromtimestamp(s['created'])
+        updated = datetime.utcnow()
 
         # Extract Name and Email Metadata from record
         # - Expecting comma-delimited!
@@ -146,6 +146,7 @@ def getSubscriptionsJSON():
             membership = "stripe:"+name.replace(" ",".")+":"+email
             sub = {'customerid': customerid, 'subid': subid, 'name': name, 'planname': plan, 'plantype': plantype, 'email': email, 'active': active, 'created': created, 'updatedon': updated, 'expires': expires, 'phone': phone , 'membership':membership}
             subscribers.append(sub)
+            #print names,created,expires
             #print(sub)
             print "IMPORTING",membership,email,name,expires,active
     return subscribers
@@ -200,9 +201,9 @@ def getSubscriptionsJSON2():
             continue
 
         # expires_on = datetime.fromtimestamp(c['current_period_end']).strftime('%Y-%m-%d')
-        expires = utilities._utcTimestampToDatetime(s['current_period_end'])
-        created = utilities._utcTimestampToDatetime(s['created'])
-        updated = utilities.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+        expires = datetime.utcfromtimestamp(s['current_period_end'])
+        created = datetime.utcfromtimestamp(s['created'])
+        updated = datetime.utcnow()
 
         for (m,e) in zip(names,emails):
             # For each person, create an associated subscription record

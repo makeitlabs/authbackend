@@ -1,0 +1,59 @@
+{# 
+vim:tabstop=2:expandtab:shiftwidth=2
+#}
+{% extends "layout_bootstrap.html" %}
+{% block search %}
+<div class=body>
+	<div class="container"> {# outer container #}
+	<h3>{{ resource.description }} Authorizaiton Quiz</h3>
+  <form method="POST">
+    <input type="hidden" name="grade" value="{{ resource.name }}" />
+    {% for q in quiz %}
+      <div class="form group my-4">
+        <div class="form-group row">
+          <div class="form-col col-sm-1"></div>
+          <div class="form-col col-sm-2">Question {{ loop.index }}:</div>
+          <div class="form-col col-sm-8"> {{ q.question }}</div>
+        </div>
+        <div class="form-group row">
+          <div class="form-col col-sm-1
+            {% if q.mark == "wrong" %} 
+              glyphicon glyphicon-remove"
+              style="color:#ff0000" 
+            {% else %}
+              "
+            {% endif %} 
+             ">
+          </div>
+          <div class="form-col col-sm-2">Answer {{ loop.index }}:</div>
+          <div class="form-col col-sm-6"><input 
+              {% if q.mark == "wrong" %} style="background-color:#ffe0e0"  {% endif %}
+              type="input" name="input_answer_{{ loop.index }}" value="{{ q.input_answer }}"></div>
+        </div>
+       </div>
+    {% endfor %}
+    <div class="form-group row">
+      <div class="form-col col-sm-1"></div>
+      <div class="form-col col-sm-8">
+      I have read/viewed all required training materials and acknowledge I am responsible for understanding and adhereing to any/all rules and policies discussed within. I will not divulge test questions to others, nor have I used answers aquired from others on this quiz. 
+      </div>
+    </div>
+    <div class="form-group row">
+          <div class="form-col col-sm-1
+            {% if highlight %} 
+              glyphicon glyphicon-remove"
+              style="color:#ff0000" 
+            {% else %}
+              "
+            {% endif %} 
+             ">
+          </div>
+      <div class="form-col col-sm-8"> <font {% if highlight %} style="background-color: #ffff80" {% endif %} >Click here to agree:</font>
+        <input type="checkbox" name="acknowledge" />
+      </div>
+    </div>
+    <input type="submit"  class="btn btn-primary" name="Done" value="Done" />
+  </form>
+  </div>
+</div>
+{% endblock %}
