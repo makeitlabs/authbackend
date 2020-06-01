@@ -47,6 +47,9 @@
     <div class="form-group col-md-6">
 			{{ input('description',"Description",'Descripton of resource') }}
     </div>
+    <div class="form-group col-md-6">
+			{{ input('age_restrict',"Age Restriction",small='Years of Age (If specified, users must have been verified to be of a certian age to use resoruce') }}
+    </div>
   </div>
   <div class="form-row">
     <div class="form-group col-md-6">
@@ -55,10 +58,10 @@
   </div>
   <div class="form-row">
     <div class="form-group col-md-6">
-			{{ input('slack_chan',"Public Slack Channel",'#resource-users',small="Public notices, like tool outages") }}
+			{{ input('slack_chan',"Public Slack Channel",'#resource-users',small="e.g. #resource-name users - Public notices, like tool outages") }}
     </div>
     <div class="form-group col-md-6">
-			{{ input('slack_admin_chan',"Admin Slack Channel",'#resource-admin',small="Notices to admins, like tool activity") }}
+			{{ input('slack_admin_chan',"Admin Slack Channel",'#resource-admin',small="e.g. #resource-name-admin - Notices to admins, like tool activity") }}
     </div>
   </div>
   <div class="form-row">
@@ -76,4 +79,51 @@
 			{{ input('slack_info_text',"Information Text (Longer, for RATT or Email)",'Click this URL for training classes...',small="Emailed to unauthorized users who want access") }}
     </div>
   </div>
+
+  <!-- Training Stuff -->
+  <h3 class="my-5">Training Self-Authorization</h3>
+  <div class="form-row">
+    <div class="form-group col-md-12">
+			{{ input('sa_url',"Training info/video URL",'',small="URL for video and info - if blank - no self-authorization") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-3">
+			<label for="input_sa_required">Prerequisite Resource</label>
+			<select name="input_sa_required">
+			<option value=-1>(None)</option>
+			
+			{% for r in resources %}
+				<option value={{ r.id }}
+				{{ 'selected' if (r.id == rec.sa_required) else '' }}
+				>{{ r.name }}
+				</option>
+			{% endfor %}
+			</select><br />
+			<small>Must already be qualified on this to self-authorize</small>
+    </div>
+    <div class="form-group col-md-3">
+			<label for="input_sa_permit">Approval Type</label>
+			<select name="input_sa_permit">
+			<option value=0
+				{{ 'selected' if (0 == rec.sa_permit) else '' }}
+				>Automatic access when Passed</option>
+			<option value=1
+				{{ 'selected' if (1 == rec.sa_permit) else '' }}
+				>RM must approve</option>
+			
+			</select><br />
+			<small>Automatically approve when quiz is passed, or hold user in "pending" state until RM approves</small>
+    </div>
+    <div class="form-group col-md-2">
+			{{ input('sa_days',"Days Required",'',small="Number of days users must be authorized on this to qualify. If zero or blank, not required") }}
+    </div>
+    <div class="form-group col-md-2">
+			{{ input('sa_hours',"Hours Required",'',small="Number of machine-houres user must have logged to qualify. If zero or blank, not required") }}
+    </div>
+    <div class="form-group col-md-2">
+	<button type="button" class="btn btn-secondary" onclick='location.href="{{ url_for("training.editquiz",resid=rec.id) }}";'>Edit Quiz</button>
+    </div>
+  </div>
+  <!-- End Training -->
 </div>

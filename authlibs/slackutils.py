@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-vim:tabstop=2:noexpandtab
+vim:tabstop=2:expandtab:shiftwidth=2
 Get from: https://www.digicert.com/CACerts/DigiCertGlobalRootCA.crt
 export WEBSOCKET_CLIENT_CA_BUNDLE=DigiCertGlobalRootCA.crt
 
@@ -27,17 +27,19 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from templateCommon import *
 
 Config = init.get_config()
-slack_token = Config.get('Slack','BOT_API_TOKEN')
+slack_token = Config.get('Slack','ADMIN_API_TOKEN')
+slack_disabled =  Config.has_option('Slack','Disabled')
 
 
 def get_users():
     sc = SlackClient(slack_token)
-    if sc.rtm_connect():
-      sc.server.websocket.sock.setblocking(1)
-      #print json.dumps(get_users(sc),indent=2)
-      if sc.server.connected:
-	users={}
-	return sc.api_call("users.list")
+    #if sc.rtm_connect():
+    #  sc.server.websocket.sock.setblocking(1)
+    #print json.dumps(get_users(sc),indent=2)
+    #if sc.server.connected:
+    return sc.api_call("users.list")
+    #else:
+    #  logger.error("get_users slack connection fail")
 
 def get_users_by_name(all_users=None):
 	# Get a summarized, simplified recordeset
@@ -96,24 +98,32 @@ def automatch_missing_slack_ids():
     byuser  = get_users_by_name(slackdata)
     byemail = get_users_by_email(slackdata)
     byrawemail = get_users_by_raw_email(slackdata)
-    for m in db.session.query(Member).filter((Member.slack== None) | (Member.slack=="")).all():
+    q = db.session.query(Member)
+    q = q.filter((Member.slack== None) | (Member.slack==""))
+    for m in q.all():
         found=False
         total += 1
         if m.member.lower() in byuser:
             name+=1
             found=True
-            m.slack = byuser[m.member.lower()]['name']
+            m.slack = byuser[m.member.lower()]['slack_id']
 
         if not found  and m.alt_email:
             if m.alt_email.lower() in byrawemail:
                 altemail+=1
-                m.slack = byrawemail[m.alt_email.lower()]['name']
+                m.slack = byrawemail[m.alt_email.lower()]['slack_id']
+                found=True
+
+        if not found  and m.email:
+            if m.email.lower() in byrawemail:
+                altemail+=1
+                m.slack = byrawemail[m.email.lower()]['slack_id']
                 found=True
 
         if not found:
             if m.member.lower() in byemail:
                 email+=1
-                m.slack = byemail[m.member.lower()]['name']
+                m.slack = byemail[m.member.lower()]['slack_id']
                 found=True
 
         #if not found:
@@ -121,6 +131,7 @@ def automatch_missing_slack_ids():
     
     db.session.commit()
     logger.info("Slack Member match Total %s name %s emails %d altemail %s unfound %s" %(total,name,email,altemail,(total-(name+email+altemail))))
+    return ("Slack Member match Total %s name %s emails %d altemail %s unfound %s" %(total,name,email,altemail,(total-(name+email+altemail))))
 
 def get_unmatched_slack_ids():
     missing=[]
@@ -160,6 +171,9 @@ def create_routes(app):
             db.session.commit()
             flash("Undone.")
 
+        if "Update" in request.values:
+					flash( automatch_missing_slack_ids())
+
         if "Link" in request.form:
             print request.form['member']
             print request.form['slack']
@@ -182,16 +196,130 @@ def create_routes(app):
           flash("Could not reach slack. Communication or configuration error","warning")
           slacks=[]
           members={}
-        print "RENDERING"
         return render_template('slack.html',slacks=slacks,members=members)
 
 def cli_slack(cmd,**kwargs):
         db.session.query(Member).all()
-        automatch_missing_slack_ids()
-        print "Slack"
-        print  get_unmatched_slack_ids()
-        print "Members`"
-        print get_unmatched_members()
+        print "Automatching missing IDs"
+        print automatch_missing_slack_ids()
+        #print "\n\nSlack"
+        #print  get_unmatched_slack_ids()
+        #print "\n\nMembers"
+        #print get_unmatched_members()
+        #print "\n\nall users"
+        print get_users()
+
+
+def send_slack_message(towho,message):
+  sc = SlackClient(slack_token)
+  #if sc.rtm_connect():
+  #  print "SLACK-SEND",towho,message
+  res = sc.api_call(
+      "chat.postMessage",
+      channel=towho,
+      text=message
+      )
+
+def get_channel_id(sc,channel):
+  channel = channel.strip().lower()
+  if channel[0] == "#": channel = channel[1:]
+  next_cursor=None
+  while True:
+    res = sc.api_call(
+      "conversations.list",
+        cursor=next_cursor,
+        exclude_archived=True
+      )
+    if not res['ok'] and res['error'] == 'ratelimit':
+      time.sleep(2)
+      continue
+    d = None
+    for x in res['channels']:
+      #if x['is_channel']: print channel,x['name']
+      if channel == x['name'].lower() and x['is_channel']:
+        d = x['id']
+        return d
+    if 'response_metadata' not in res or 'next_cursor' not in res['response_metadata']:
+      break
+    next_cursor = res['response_metadata']['next_cursor']
+    if next_cursor.strip() == "": break
+  return d
+
+def cli_slack_add_all_to_channels(cmd,**kwargs):
+  print "Adding everytone to their user channels (This takes a while..)"
+  members = db.session.query(Member).all()
+  resources = db.session.query(Resource).all()
+  sc = SlackClient(slack_token)
+  if sc:
+    for r in resources:
+      if r.slack_chan:
+        cid = get_channel_id(sc,r.slack_chan)
+        print r," uses ",r.slack_chan,cid
+        if not cid:
+          logger.warning("{1} resource Slack channel {0} does not exist".format(r.slack_chan,r.short))
+        else:
+          # Can't add if we're not a member
+          res = api_call_ratelimit(sc,
+            "conversations.join",
+            channel=cid
+            )
+          if not res['ok']:
+            logger.error("Error addming myself to slack channel {1}: {2}".format(channel,res['error']))
+
+          mm = AccessByMember.query.filter(AccessByMember.resource_id == r.id)
+          mm = mm.outerjoin(Member,(AccessByMember.member_id == Member.id))
+          mm = mm.add_column(Member.member)
+          mm = mm.add_column(Member.id)
+          mm = mm.add_column(Member.slack)
+          for (acc,member,dd,slack) in mm.all():
+            print acc,member,dd,slack
+            if dd:
+              if slack_disabled:
+                logger.error("SLACK DISABLED inviting {0} to slack channel {1}: {2}".format(member,r.slack_chan,res['error']))
+              else:
+                res = api_call_ratelimit(
+                      sc,
+                      "conversations.invite",
+                      channel=cid,
+                      users=dd
+                      )
+                if not res['ok']:
+                  logger.error("Error inviting {0} to slack channel {1}  {2}".format(member,r.slack_chan,res['error']))
                 
 
-
+def api_call_ratelimit(sc,api,**kwargs):
+  while True:
+    x = sc.api_call(api,**kwargs)
+    if x['ok'] or x['error'] != "ratelimit":
+      return x
+    time.sleep(1)
+      
+    
+def add_user_to_channel(channel,member):
+  if not member.slack:
+    return False
+  sc = SlackClient(slack_token)
+  if sc:
+    cid = get_channel_id(sc,channel)
+    if not cid:
+      logger.error("ID for channel {0} not found".format(channel))
+      return False
+    # Bot can't invite users to channels it doesn't belong to
+    res = api_call_ratelimit(sc,
+      "conversations.join",
+      channel=cid
+      )
+    if slack_disabled:
+        logger.warning("SLack is Disabled")
+    else:
+      res = api_call_ratelimit(
+            sc,
+            "conversations.invite",
+            channel=cid,
+            users=member.slack
+            )
+      if not res['ok']:
+        logger.error("Error Inviting {0} to slack channel {1}  {2}".format(member.member,channel,res['error']))
+      return False
+    
+  return True

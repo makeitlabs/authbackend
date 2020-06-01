@@ -28,12 +28,23 @@
 {% endif %}
 
 
-{% macro input(name, label, placeholder='', small='', type='text') -%}
+{% macro input(name, label, placeholder='', small='', type='text',rows=4) -%}
 			{% if readonly is not defined %}
 			{% set ph = placeholder %}
 			{% endif %}
       <label for="input_{{ name }}">{{ label }}</label>
-      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ apikey[name] }}">
+      
+			{% if type == "textarea" %}
+			<textarea
+			{% else %}
+			<input 
+			{% endif %}
+			type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ apikey[name] }}"
+			{% if type == 'textarea' %}
+			rows={{ rows }}>{{ apikey[name] }}</textarea>
+			{% else %}
+			>
+			{% endif %}
 			{% if small != '' %}
 			<small>{{ small }}</small>
 			{% endif %}
@@ -71,15 +82,36 @@ function clc(){
 			<label class="btn btn-secondary">
 				<input type="radio" name="pwgen" onChange="clc();" value="manual" id="option2" autocomplete="off"> Manual
 			</label>
+      </div>
     </div>
 	</div>
-	<div id="pwCollapse" class="collapse form-row">
-		<div class="form-group col-lg-6">
-			{{ input('newpw1',"New Password",type="password") }}
-		</div>
-		<div class="form-group col-lg-6">
-			{{ input('newpw2',"Reenter Password",type="password") }}
-		</div>
+  <div id="pwCollapse" class="collapse form-row">
+    <div class="form-group col-lg-4">
+      {{ input('newpw1',"New Password",type="password") }}
+    </div>
+    <div class="form-group col-lg-4">
+      {{ input('newpw2',"Reenter Password",type="password") }}
+    </div>
   </div>
+  <div class="form-row">
+    <div class="form-group col-md-8">
+      {{ input('acl',"Access Control List",rows=6,type="textarea",small="Access Rules") }}
+    <a class="btn btn-primary" data-toggle="collapse" href="#collapseExample" role="button" aria-expanded="false" aria-controls="collapseExample">
+      ? 
+    </a>
+    </div>
+    <div class="collapse" id="collapseExample">
+      <div class="card card-body">
+        <p>Example:</p>
+        <code><pre>
+allow api/v1/ONLY/.*/set
+allow api/v1/setaccess
+allow api/v1/getaccess
+deny
+        <p>If no rules match, access will be granted, unless there is a "deny" line at the bottom</p>
+        </pre></code>
+      </div>
+     </div>
+   </div>
 </div>  
 

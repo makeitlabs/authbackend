@@ -1,0 +1,78 @@
+{#    This is meant to be INCLUDED by another page.
+			Wrap this inside another div class-content block, 
+			and inside a form (if desiered)
+
+			This template is used for THREE different thins:
+			Create, Edit, or Display a record
+	
+			{% include 'template.html' %}
+
+			Or to include checkbox columns:
+
+			{% with add_checkboxes='1' %}
+			{% include 'userlist.html' %}
+			{% endwith %}
+
+#}
+
+<!-- Import any "with" parameters -->
+{% if member_url %}
+<script type="text/javascript">var MEMBER_URL="{{ url_for("members.member_show",id="") }}";</script>
+{% else %}
+<script type="text/javascript">var MEMBER_URL=null;</script>
+{% endif %}
+
+{% if readonly is defined and readonly  %}
+{% set ro="readonly" %}
+{% endif %}
+
+{% if rec is not defined %}
+{% set rec={} %}
+{% endif %}
+
+{% macro input(name, label, placeholder='', small='', type='text') -%}
+			{% if readonly is not defined %}
+			{% set ph = placeholder %}
+			{% endif %}
+      <label for="input_{{ name }}">{{ label }}</label>
+      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ bin[name] }}">
+			{% if small != '' %}
+			<small>{{ small }}</small>
+			{% endif %}
+{%- endmacro %}
+
+<div class="container">
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('name',"Bin ID",'',small="Optional Unique ID or name of bin") }}
+    </div>
+	</div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+      <label for="input_resource_id">Bin Location</label>
+			<select class="form-control" name="input_location">
+					<option name="unspecified" value="Unspecified">Unspecified</option>
+				{% for loc in locations %}
+					<option name="{{ loc.ProLocation.location }}" value="{{ loc.ProLocation.location }}"
+					{% if loc.usecount > 0  and loc.ProLocation.loctype == 0 %}disabled{% endif %}
+					>{{ loc.ProLocation.location }}</option>
+				{% endfor %}
+			</select>
+      <label for="input_status">Bin Status</label>
+			<select class="form-control" name="input_status">
+				{% for stat in statuses %}
+					<option name="{{ stat[0] }}" value="{{ stat[0] }}"
+					{% if bin.status == stat[0] %}selected{% endif %}
+					>
+					{{ stat[1] }}</option>
+				{% endfor %}
+			</select>
+    </div>
+  </div>
+  <div class="form-row">
+		<h3>Assign to Member</h3>
+			{% with add_radiobuttons=1,no_filters=1 %}
+			{% include 'userlist.html' %}
+			{% endwith %}
+	</div>
+</div>

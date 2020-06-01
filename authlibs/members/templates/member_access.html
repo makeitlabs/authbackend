@@ -37,23 +37,34 @@ vim:tabstop=2:expandtab:shiftwidth=2
 			{% if a.myPerms >= 2 %}
 			<td>
 			<select id="privs_{{ a.resource.name }}" style="display:{% if a.active == 1 %}inline{% else %}none{% endif %}" name="privs_{{ a.resource.name }}">
+
+          {# Options are disabled IF: 
+            ( 
+              Target user has higher privs on this resource than the Current (GUI) user a.level >= a.myLevel
+              OR
+              Current (GUI) user doesn't have privs to grant this level to target user i.e. a.myPerms <= LEVEL
+            )
+            AND 
+              it's not already the CURRENT access level i.e. a.level != LEVEL 
+          #}
 				<option name="User" value="0" 
 				{{ 'selected' if (a.level == 0) else '' }}
+			  	{{ 'disabled' if (((a.level >= a.myPerms) or (a.myPerms <= 0)) and (a.level != 0))  else '' }}
 				/>User</option>
 
 				<option name="Trainer" value="1" 
 				{{ 'selected' if (a.level == 1) else '' }}
-			  	{{ 'disabled' if ((a.myPerms <= 1) and (a.level != 1))  else '' }}
+			  	{{ 'disabled' if (((a.level >= a.myPerms) or (a.myPerms <= 1)) and (a.level != 1))  else '' }}
 				/>Trainer</option>
 
 				<option name="ARM" value="2" 
 				{{ 'selected' if (a.level == 2) else '' }}
-			  	{{ 'disabled' if ((a.myPerms <= 2) and (a.level != 2))  else '' }}
+			  	{{ 'disabled' if (((a.level >= a.myPerms) or (a.myPerms <= 2)) and (a.level != 2))  else '' }}
 				/>Ass't RM</option>
 
 				<option name="RM" value="3" 
 				{{ 'selected' if (a.level == 3) else '' }}
-			  	{{ 'disabled' if ((a.myPerms <= 3) and (a.level != 3))  else '' }}
+			  	{{ 'disabled' if (((a.level >= a.myPerms) or (a.myPerms <= 3)) and (a.level != 3))  else '' }}
 				/>RM</option>
 			</select>
 			</td>

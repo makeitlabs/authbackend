@@ -66,6 +66,30 @@ class RATTBE_LOGEVENT_MEMBER_RESOURCE_UNLOCKED:
     id=1014
     desc='Member Resource suspension removed'
 
+class RATTBE_LOGEVENT_MEMBER_RECORD_DELETED:
+    id=1015
+    desc='Member record deleted'
+
+class RATTBE_LOGEVENT_MEMBER_WAIVER_LINKED:
+    id=1016
+    desc='Member waiver linked'
+
+class RATTBE_LOGEVENT_MEMBER_WAIVER_UNLINKED:
+    id=1017
+    desc='Member waiver unlinked'
+
+class RATTBE_LOGEVENT_MEMBER_PAYMENT_LINKED:
+    id=1018
+    desc='Member payment manually linked'
+
+class RATTBE_LOGEVENT_MEMBER_PAYMENT_UNLINKED:
+    id=1019
+    desc='Member payment manually unlinked'
+
+class RATTBE_LOGEVENT_MEMBER_NOTICE_SENT:
+    id=1020
+    desc='Notice Sent'
+
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000
     desc='Other System Event'
@@ -174,6 +198,11 @@ class RATTBE_LOGEVENT_TOOL_LOGOUT:
     desc="Logged-out"
 		slack_icon=":arrow_left:"
 
+class RATTBE_LOGEVENT_TOOL_MAINTENANCE_DONE:
+    id=3016
+    desc="Maintenance Done"
+		slack_icon=":wrench:"
+
 class RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED:
     id=4000
     desc='Resource access granted'
@@ -193,8 +222,29 @@ class RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE:
     desc='Resource privilege change'
 		slack_icon=":level_slider:"
 
+class RATTBE_LOGEVENT_PROSTORE_OTHER:
+    id=5000
+    desc='Pro-Storage Bin Misc Event'
 
+class RATTBE_LOGEVENT_PROSTORE_ASSIGNED:
+    id=5001
+    desc='Pro-Storage Bin Assigned'
 
+class RATTBE_LOGEVENT_PROSTORE_UNASSIGNED:
+    id=5002
+    desc='Pro-Storage Bin Unassigned'
+
+class RATTBE_LOGEVENT_PROSTORE_CHANGED:
+    id=5003
+    desc='Pro-Storage Bin Changed'
+
+class RATTBE_LOGEVENT_PROSTORE_NOTICE_SENT:
+    id=5004
+    desc='Pro-Storage Notice Sent'
+
+class RATTBE_LOGEVENT_PROSTORE_MAX:
+    id=5099
+    desc='Pro-Storage Max'
 
 def get_event_slack_icons():
 		icons={}

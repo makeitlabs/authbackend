@@ -50,6 +50,8 @@ def payments_missing(assign=None):
     """Find subscriptions with no members"""
     if 'Undo' in request.form:
         s = Subscription.query.filter(Subscription.membership == request.form['membership']).one()
+        if s.member_id:
+          authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_PAYMENT_UNLINKED.id,message="Undo",member_id=s.member_id,doneby=current_user.id,commit=0)
         s.member_id = None
         authutil.kick_backend()
         db.session.commit()
@@ -64,6 +66,7 @@ def payments_missing(assign=None):
             m.membership=request.form['membership']
             s = Subscription.query.filter(Subscription.membership == request.form['membership']).one()
             s.member_id = db.session.query(Member.id).filter(Member.member == request.form['member'])
+            authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_PAYMENT_LINKED.id,member_id=m.id,doneby=current_user.id,commit=0)
             db.session.commit()
             btn = '<form method="POST"><input type="hidden" name="membership" value="%s" /><input type="submit" value="Undo" name="Undo" /></form>' % request.form['membership']
             authutil.kick_backend()
@@ -153,6 +156,7 @@ def update_payments():
       isTest=True
       logger.error("Non-Production environment - NOT creating google/slack accounts")
     membership.syncWithSubscriptions(isTest)
+    authutil.kick_backend()
     flash("Payment and Member data adjusted")
     return redirect(url_for('payments.payments'))
 
@@ -241,9 +245,13 @@ def payments_fees_charge():
 @login_required
 @roles_required(['Admin','Finance'])
 def relate():
+  mem=None
+  if 'member_id' in request.values:
+    mid = int(request.values['member_id'])
+    mem = Member.query.filter(Member.id==mid).one_or_none()
   subscriptions = Subscription.query.filter(Subscription.member_id == None).filter(Subscription.active == "true").all()
 
-  return render_template('relate.html',subscriptions=subscriptions)
+  return render_template('relate.html',subscriptions=subscriptions,linkmember=mem)
 
 # Post handler for "relate" above
 @blueprint.route('/relate_assign', methods = ['POST'])
@@ -307,6 +315,7 @@ def relate_assign():
       db.session.flush()
       s = Subscription.query.filter(Subscription.membership == newm['membership']).one()
       s.member_id = member.id
+      authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_PAYMENT_LINKED.id,member_id=member.id,doneby=current_user.id,commit=0)
       if not newm['no_email']:
         ts = time.time()
         password = "%s-%d" % (newm['last'],ts - (len(newm['email']) * 314))
@@ -331,9 +340,15 @@ def relate_assign():
         return redirect(url_for('members.member_show',id=newm['email']))
 
   if 'Assign' in request.form:
+    linkmemberid = None
+    if 'link_specific_member' in request.form:
+      linkmemberid = request.form['link_specific_member']
     if 'do_sub' not in request.form:
-      flash ("Designate a subscription as \"New Member\" or \"Assign To\" an existing account","warning")
-      return redirect(url_for('payments.relate'))
+      if linkmemberid:
+        flash ("Choose a subscription to \"Assign To\" this member","warning")
+      else:
+        flash ("Designate a subscription as \"New Member\" or \"Assign To\" an existing account","warning")
+      return redirect(url_for('payments.relate',member_id=linkmemberid))
     (action,membership) = request.form['do_sub'].split(":",1)
     if action == "assign"  and 'member_radio' not in request.form:
       flash ("You must (search for and select) a Member to Assign a subscription to","warning")
@@ -347,6 +362,7 @@ def relate_assign():
       else:
         mem.membership=membership
         s = Subscription.query.filter(Subscription.membership == mem.membership).one()
+        authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_PAYMENT_LINKED.id,member_id=mem.id,doneby=current_user.id,commit=0)
         s.member_id = mem.id
         db.session.commit()
         flash ("Assigning subscription to existing member","success")
@@ -379,6 +395,8 @@ def relate_assign():
     else:
       flash("No action specified","warning")
         
+  if linkmemberid:
+    return redirect(url_for('members.member_show',id=mem.member))
   return redirect(url_for('payments.relate'))
 
 @blueprint.route('/google_acct_avail/<string:name>', methods = ['GET'])

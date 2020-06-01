@@ -10,27 +10,39 @@
 <hr />
 <div class="container"> {# Outer container #}
 <h3>Waivers</h3>
-<div class="compact form-row row">
-	<div class="col-sm-4">
-			Last updated:
-	</div>
-	<div class="col-sm-6">
-			{{ rec.time_updated }}
-	</div>
+<div class="form">
+			{% if waivers|length == 0 %}
+			<p>No waivers on file</p>
+			{% else %}
+				<div class="compact form-row row">
+								<div class="col-sm-4"><b>Waiver Type</b></div>
+								<div class="col-sm-4"><b>Date Executed</b></div>
+				</div>
+								{% for w in waivers %}
+				<div class="compact form-row row">
+												<div class="col-sm-4">
+													{{ w.waivertype }}
+												</div>
+												<div class="col-sm-4">
+													{{ w.Waiver.created_date }}
+													{% if w.Waiver.waivertype == 1 %}
+														<span class="glyphicon glyphicon-ok"></span>
+													{% endif %}
+												</div>
+				</div>
+								{% endfor %}
+			{% endif %}
 </div>
+		{% if rec.has_privs() %}
+							<a href="{{ url_for("members.link_waiver",id=rec.id) }}" class="btn btn-primary">Find Waiver</a>
+		{% endif %}
 		 
 		
 <div class="compact form-row row">
-	<div class="col-sm-4">
-			Waiver Completed
-	</div>
 			{% if meta.waiver %}
-			{{ meta.waiver }}
-			{{ rec.waiver_date }}
 			{% else %}
 			<div class="alert-warning">
-							No Waiver
-							<a href="{{ url_for("members.link_waiver",id=rec.id) }}" class="btn btn-primary">Find Waiver</a>
+							No Member Waiver on File
 			</div>
 			{% endif %}
 </div>
@@ -70,17 +82,26 @@
 	<div class="col-sm-2">
 			Affined to membership
 	</div>
-	<div class="col-sm-4">
+	<div class="col-sm-9">
 			{{ rec.membership }}
 	</div>
-	<div class="col-sm-5">
+	<div class="col-sm-2">
+			Subscription:
+	</div>
+	<div class="col-sm-9">
 			<a href="{{ url_for("payments.payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a>
 	</div>
 	{% if current_user.privs("Finance") %}
 	<div class="col-sm-1">
+				{% if subscription %}
 				<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#unassociateModal">
 					Unlink Subscription
 				</button>
+				{% else %}
+				<a href="{{ url_for("payments.relate",member_id=rec.id) }}"  class="btn btn-info" >
+					Find/link Subscription
+				</a>
+				{% endif %}
 	</div>
 	{% endif %}
 </div>
@@ -125,8 +146,8 @@
 	<div class="col-sm-2">
 			Updated
 	</div>
-	<div class="col-sm-6">
-			{{ subscription.updated_date }}
+	<div class="col-sm-8">
+			{# subscription.updated_date #} {{ meta.sub_updated_local }}
 	</div>
 </div>
 		 
@@ -135,8 +156,8 @@
 	<div class="col-sm-2">
 			Created
 	</div>
-	<div class="col-sm-6">
-			{{ subscription.created_date }}
+	<div class="col-sm-8">
+			{# subscription.created_date #} {{ meta.sub_created_local }}
 	</div>
 </div>
 	   
@@ -144,12 +165,12 @@
 	<div class="col-sm-2">
 			Expires
 	</div>
-	<div class="col-sm-2">
+	<div class="col-sm-8">
 			<div 
 			{% if meta.is_expired %}
 				class="alert-warning"
 			{% endif %}
-			> {{ subscription.expires_date }}
+			> {# subscription.expires_date #} {{ meta.sub_expires_local }}
 			</div>
 	</div>
 </div>

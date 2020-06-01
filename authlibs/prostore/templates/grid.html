@@ -1,0 +1,55 @@
+{# vim:tabstop=2:shiftwidth=2:expandtab
+#}
+{% extends "layout_bootstrap.html" %}
+{% block widebody %}
+{% with page="grid" %}
+{% include 'header.html' %}
+{% endwith %}
+
+{% macro grid(cols, rows, name) %}
+  <h3>{{ name }} Bins</h3>
+  <table style="table-layout: fixed; width: 100%;" class="table">
+    <tr>
+     <td></td>
+    {% for x in cols %}
+    <div class="col-sm-1">
+      <th>{{ x }}</th>
+    {% endfor %}
+    </tr>
+
+  {% for y in rows %} 
+  <tr>
+      <th>{{ y }}</th>
+    {% for x in cols %}
+    <td
+        style="
+        {% if bins[name+'-'+x+"-"+y] %}
+        {{ bins[name+'-'+x+"-"+y]['style'] }}
+        {% endif %}
+        "
+     >
+        {% if bins[name+'-'+x+"-"+y] %}
+        {% if current_user.privs("ProStore") %}
+          <a href="{{ url_for('prostore.bin_edit',id= bins[name+'-'+x+'-'+y]['binid']) }}">
+        {% endif %}
+        {{ bins[name+'-'+x+"-"+y]['lastname'] }}<br />
+        {{ bins[name+'-'+x+"-"+y]['firstname'] }}<br />
+        {{ bins[name+'-'+x+"-"+y]['binname'] }}<br />
+        {% if current_user.privs("ProStore") %}
+          </a>
+        {% endif %}
+        {% endif %}
+    </td>
+    {% endfor %}
+  </tr>
+  {% endfor %}
+  </table>
+{% endmacro %}
+
+{{ grid(['A','B','C','D','E','F','G','H'],['6','5','4','3','2','1'],"Garage") }}
+
+{{ grid(['A','B'],['4','3','2','1'],"Cleanspace") }}
+
+
+
+{% endblock %}

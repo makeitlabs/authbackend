@@ -148,22 +148,22 @@ def addMissingMembers(missing):
     for p in missing:
 				logger.debug("Check add new for %s active %s expires %s" % (p.email,p.active,p.expires_date))
         if p.subid in ignorelist:
-            logger.info("Explicitly ignoring subscription id %s" % p.subid)
+            logger.debug("Explicitly ignoring subscription id %s" % p.subid)
             continue
         elif p.email in ignorelist:
-            logger.info("Explicitly ignoring email %s" % p.email)
+            logger.debug("Explicitly ignoring email %s" % p.email)
             continue
         elif p.customerid in ignorelist:
-            logger.info("Explicitly ignoring customer id %s" % p.customerid)
+            logger.debug("Explicitly ignoring customer id %s" % p.customerid)
             continue
         elif p.active.lower() != "true":
-            logger.info("Skipping create for inactive sub %s id \"%s\"" % (p.customerid,p.active.lower()))
+            logger.debug("Skipping create for inactive sub %s id \"%s\"" % (p.customerid,p.active.lower()))
             continue
         elif p.expires_date < datetime.now():
-            logger.info("Skipping create for expired sub %s" % p.customerid)
+            logger.debug("Skipping create for expired sub %s" % p.customerid)
             continue
         else:
-            logger.info("Missing member: %s (%s) (%s)" % (p.name,p.email,p.created_date))
+            logger.debug("Missing member: %s (%s) (%s)" % (p.name,p.email,p.created_date))
             members.append({'name':p.name,'email':p.email,'plan':p.plan,'active':p.active,'created':p.created_date})
 
             # TODO - BKG BUG FIX this is where we need to know if this was an existing member or not - Refuse
@@ -190,6 +190,7 @@ def addMissingMembers(missing):
             mm.stripe_name = p.name # TODO BKG FIX - Depricate - use first and last names only
             mm.time_created = p.created_date
             mm.time_updated = p.created_date
+            mm.email_confirmed_at = datetime.now()
             db.session.add(mm)
             db.session.flush()
             s = Subscription.query.filter(Subscription.email==p.email).filter(Subscription.name==p.name).one()

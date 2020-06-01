@@ -1,16 +1,17 @@
 # Database models
-#im:expandtab:tabstop=4
+# vim:expandtab:tabstop=2:shiftwidth=2
 # Single file containing all required DB models, for now
 from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager, UserMixin
 import hashlib,zlib
 from flask_login.mixins import AnonymousUserMixin
 import random, string
+import sqlalchemy
 from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
 
 
 
-defined_roles=['Admin','RATT','Finance','Useredit','HeadRM']
+defined_roles=['Admin','RATT','Finance','Useredit','HeadRM','ProStore']
 
 db = SQLAlchemy()
 
@@ -34,6 +35,9 @@ class AnonymousMember(AnonymousUserMixin):
 		def is_arm(self):
 				return False
 
+    def has_privs(self):
+      return False
+
 # Members and their data
 class Member(db.Model,UserMixin):
     __tablename__ = 'members'
@@ -46,6 +50,7 @@ class Member(db.Model,UserMixin):
     slack = db.Column(db.String(50))
     lastname = db.Column(db.String(50))
     phone = db.Column(db.String(50))
+    dob = db.Column(db.DateTime())
     plan = db.Column(db.String(50))	 # "Pro", "Hobbiest" - "ProDuo" - from stripe??
     access_enabled = db.Column(db.Integer(),default=0) # Defaults to "0" for new member - Waiver will make this non-zero - means no access
     access_reason = db.Column(db.String(50)) # If access_enabled is nonzero - access_reason will be a MANUAL reason for no access (empty means waiver-block)
@@ -92,6 +97,11 @@ class Member(db.Model,UserMixin):
     def resource_roles(self):
         return [x[0] for x in db.session.query(Resource.name).join(AccessByMember,AccessByMember.resource_id == Resource.id).filter(AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).all()]
 
+    def has_privs(self):
+      if not self.is_arm() and (len(self.effective_roles()) == 0):
+        return False
+      else:
+        return True
 
 class ApiKey(db.Model):
     __tablename__ = 'apikeys'
@@ -101,6 +111,7 @@ class ApiKey(db.Model):
     name = db.Column(db.String(50),nullable=False)
     username = db.Column(db.String(50),nullable=False)
     password = db.Column(db.String(50),nullable=True)
+    acl = db.Column(db.String(255),nullable=True)
     tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'),nullable=True)
 
 class Tool(db.Model):
@@ -108,6 +119,7 @@ class Tool(db.Model):
     __bind_key__ = 'main'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
+    displayname = db.Column(db.String(50))
     lockout = db.Column(db.String(100), nullable=True)
     short = db.Column(db.String(20), unique=True, nullable=True)
     node_id = db.Column(db.Integer(), db.ForeignKey('nodes.id', ondelete='CASCADE'))
@@ -139,9 +151,11 @@ class AccessByMember(db.Model):
     LEVEL_ADMIN=4 
     LEVEL_HEADRM=4 # Equiv of Admin
     LEVEL_NOACCESS=-1
+    LEVEL_PENDING=-2
 
 def accessLevelToString(x,blanks=[]):
 	if x in blanks: return ""
+	if x==AccessByMember.LEVEL_PENDING: return "Pending"
 	if x==AccessByMember.LEVEL_NOACCESS: return "NoAccess"
 	try:
 		return AccessByMember.ACCESS_LEVEL[x]
@@ -177,6 +191,13 @@ class Resource(db.Model):
     info_url = db.Column(db.String(150))
     info_text = db.Column(db.String(150))
     slack_info_text = db.Column(db.String())
+    age_restrict = db.Column(db.Integer())  # Years old
+    # Resource that you must already be authorized on for self-auth
+    sa_hours = db.Column(db.Integer())  # Machine hours required for self-auth
+    sa_permit = db.Column(db.Integer())  # 0=Grant Permission 1=Set Pending
+    sa_days = db.Column(db.Integer())  # Authorization days required for self-auth
+    sa_url = db.Column(db.String(150))  # URL to training info for Self-Auth - If empty - no self-auth
+    sa_required = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE')) 
 
 class ResourceAlias(db.Model):
     __tablename__ = 'resourcealiases'
@@ -185,7 +206,14 @@ class ResourceAlias(db.Model):
     alias = db.Column(db.String(50), unique=True)
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
-
+class ResourceQuiz(db.Model):
+    __tablename__ = 'resourcequiz'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    question = db.Column(db.String())
+    answer = db.Column(db.String())
+    idx = db.Column(db.Integer())
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
 class Subscription(db.Model):
     __tablename__ = 'subscriptions'
@@ -207,6 +235,76 @@ class Subscription(db.Model):
     membership = db.Column(db.String(50),nullable=False,unique=True)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id'))
 
+# Pro Storage Bin
+class ProBin(db.Model):
+    __tablename__ = 'prostorebins'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(15), nullable=True,unique=True)
+    status = db.Column(db.Integer,nullable=False)
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    location_id = db.Column(db.Integer(), db.ForeignKey('prostorelocations.id', ondelete='CASCADE'))
+
+    BINSTATUS_NOT_IN_USE=0
+    BINSTATUS_GONE=1
+    BINSTATUS_IN_USE=2
+    BINSTATUS_GRACE_PERIOD=3
+    BINSTATUS_FORFEITED=4
+    BINSTATUS_MOVED=5
+    BINSTATUS_DONATED=6
+
+    BinShortCodes = [
+            "notinUse",
+            "discarded",
+            "inUse",
+            "gracePeriod",
+            "forfeited",
+            "moved",
+            "donated"
+        ]
+    BinStatuses = [
+            "Not in Use",
+            "Discarded/Missing/Destroyed",
+            "In Use",
+            "In Grace Period",
+            "Location Forfeited, not moved",
+            "Moved, not donated",
+            "Donated contents"
+        ]
+
+    @staticmethod
+    def addBinStatusStr(query):
+        return query.add_column(sqlalchemy.case([
+        ((ProBin.status == 0), ProBin.BinStatuses[0]),
+        ((ProBin.status == 1), ProBin.BinStatuses[1]),
+        ((ProBin.status == 2), ProBin.BinStatuses[2]),
+        ((ProBin.status == 3), ProBin.BinStatuses[3]),
+        ((ProBin.status == 4), ProBin.BinStatuses[4]),
+        ((ProBin.status == 5), ProBin.BinStatuses[5]),
+        ((ProBin.status == 6), ProBin.BinStatuses[6]),
+        ], 
+        else_ = 'Unknown').label('binstatusstr'))
+
+# Pro Storage Location
+class ProLocation(db.Model):
+  __tablename__ = 'prostorelocations'
+  __bind_key__ = 'main'
+  location = db.Column(db.String(50), nullable=False, unique=True)
+  loctype = db.Column(db.Integer())
+  id = db.Column(db.Integer(), primary_key=True)
+
+  LOCATION_TYPE_SINGLE=0
+  LOCATION_TYPE_MULTIPLE=1
+  loctypes=['Single','Multiple']
+
+  @staticmethod
+  def addLocTypeCol(query,blankSingle=False):
+        return query.add_column(sqlalchemy.case([
+        ((ProLocation.loctype == 0), '' if blankSingle else 'Single'),
+        ((ProLocation.loctype == 1), 'Multiple')
+        ], 
+        else_ = 'Unknown').label('loctypestr'))
+
 # membership is a unique identifier for each member. Each member SHOULD have one.
 # (If they don't, they have a problem or inactive membership)
 # It might look something like:
@@ -214,15 +312,61 @@ class Subscription(db.Model):
 
 # Waiver Data
 class Waiver(db.Model):
-    __tablename__ = 'waivers'
-    __bind_key__ = 'main'
-    id = db.Column(db.Integer(), primary_key=True)
-    waiver_id = db.Column(db.String(50))
-    firstname = db.Column(db.String(50))
-    lastname = db.Column(db.String(50))
-    email = db.Column(db.String(50))
-    member_id = db.Column(db.Integer(), db.ForeignKey('members.id'))
-    created_date = db.Column(db.DateTime())
+  __tablename__ = 'waivers'
+  __bind_key__ = 'main'
+  id = db.Column(db.Integer(), primary_key=True)
+  waiver_id = db.Column(db.String(50))
+  firstname = db.Column(db.String(50))
+  lastname = db.Column(db.String(50))
+  email = db.Column(db.String(50))
+  waivertype = db.Column(db.Integer)
+  member_id = db.Column(db.Integer(), db.ForeignKey('members.id'))
+  created_date = db.Column(db.DateTime())
+
+  waiverTypes= [
+    {'title':'Other','code':0,'short':'Other'},
+    {'title':'MakeIt Labs Waiver','code':1,'short':'Member'},
+    {'title':'MakeIt Labs Non-Member Waiver','code':2,'short':'Non-Member'},
+    {'title':'Pro Member Storage Bin Agreement','code':3,'short':'Pro-Storage'},
+    {'title':'<Reserved for Workspace waiver>','code':4,'short':'Workspace'}
+  ]
+
+  WAIVER_TYPE_MEMBER=1
+  WAIVER_TYPE_NONMEMBER=2
+  WAIVER_TYPE_PROSTORE=3
+  WAIVER_TYPE_WORKSPACE=4
+
+  @staticmethod
+  def addWaiverTypeCol(query):
+		return query.add_column(sqlalchemy.case([
+				((Waiver.waivertype == 0), 'Other'),
+				((Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER), 'Member'),
+				((Waiver.waivertype == Waiver.WAIVER_TYPE_NONMEMBER), 'Non-Member'),
+				((Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE), 'Pro-Storage'),
+				((Waiver.waivertype == Waiver.WAIVER_TYPE_WORKSPACE), 'Workspace'),
+				], 
+				else_ = 'Unknown').label('waivertype'))
+
+  @staticmethod
+  def codeFromWaiverTitle(title):
+    for x in Waiver.waiverTypes:
+      if title == x['title']: return x['code']
+    return 0
+
+  @staticmethod
+  def shortFromCode(code):
+    if code is None: return "Unknown"
+    if code < len(Waiver.waiverTypes):
+      return Waiver.waiverTypes[code]['short']
+    return "Unknown"
+
+  @staticmethod
+  def titlefromCode(code):
+    if code is None: return "Unknown"
+    if code < len(Waiver.waiverTypes):
+      return Waiver.waiverTypes[code]['title']
+    return "Unknown"
+
 
 # RFID data
 class MemberTag(db.Model):
@@ -273,6 +417,7 @@ class Node(db.Model):
     __tablename__ = 'nodes'
     __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
+    last_ping = db.Column(db.DateTime(timezone=True))
     name = db.Column(db.String(20))
     mac = db.Column(db.String(20))
 
@@ -299,6 +444,20 @@ class KVopt(db.Model):
     displayOrder = db.Column(db.Integer, default=100)
 
     valid_kinds=['string','integer','boolean']
+
+class MaintSched(db.Model):
+    __tablename__ = 'maintsched'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(50))
+    desc = db.Column(db.String(100))
+    realtime_span = db.Column(db.Integer())
+    realtime_unit = db.Column(db.String(12))
+    machinetime_span = db.Column(db.Integer())
+    machinetime_unit = db.Column(db.String(12))
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+
+
 ##
 ## LOGS
 ##

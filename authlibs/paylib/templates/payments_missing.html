@@ -6,13 +6,15 @@
     <a href="{{ url_for('logs.logs') }}">View All</a>
     <p></p>
 	<h3>Subscription/Payment Records with no Members</h3>
-	<table class="table table-sm bkg">
-      <tr>
+	<table class="table table-compact supercompact greenbar-table">
+		<thead>
+			<tr>
         <th>Name</th>
         <th>Email</th>
         <th>Membership ID</th>
         <th>Active</th>
-      </tr>
+			</tr>
+		</thead>
       {% for s in subscriptions %}
 	  <tr>
 		<td>{{ s.name }}</td>
@@ -30,14 +32,17 @@
 	<div>
 		<input type="text" name="memberfilter" label="Member" value=""><input type="submit" name="applymemberfilter" value="Search" />
 	</div>
-	<table class="table table-sm bkg">
-      <tr>
+	<table class="table table-compact supercompact greenbar-table">
+		<thead>
+			<tr>
         <th>Member ID</th>
         <th>Stripe Name</th>
         <th>Alternate Email</th>
         <th>First</th>
         <th>Last</th>
-      </tr>
+        <th></th>
+			</tr>
+		<thead>
       {% for m in members %}
 	  <tr>
 		  <td><a href="{# url_for('members.member_show',id=m.member) #}">{{ m.member }}</a></td>

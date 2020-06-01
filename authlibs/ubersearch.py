@@ -9,7 +9,7 @@ def ubersearch(searchstr,only=None,membertypes=None):
   if searchstr == "": return []
 
   if not only or 'members' in only:
-          mq = 	Member.query.filter((Member.member.ilike('%'+searchstr+'%') | Member.alt_email.ilike('%'+searchstr+'%') | Member.firstname.ilike('%'+searchstr+'%') | Member.lastname.ilike('%'+searchstr+'%')))
+          mq = 	Member.query.filter((Member.member.ilike('%'+searchstr+'%') | Member.alt_email.ilike('%'+searchstr+'%') | Member.slack.ilike('%'+searchstr+'%') | Member.firstname.ilike('%'+searchstr+'%') | Member.lastname.ilike('%'+searchstr+'%')))
           mq = addQuickAccessQuery(mq)
 
           mq = mq.outerjoin(Subscription,Subscription.member_id == Member.id)

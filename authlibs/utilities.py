@@ -42,7 +42,7 @@ def rfid_validate(ntag):
 
 def _utcTimestampToDatetime(ts):
     """Convert a UTC timestamp to my local time"""
-    return datetime.fromtimestamp(ts).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.utcfromtimestamp(ts).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 def _safeemail(unsafe_str):
     """Sanitize email addresses strings used in some oeprations"""
@@ -101,6 +101,8 @@ def accessLevelString(level,noaccess=None,user=None):
 
     if (level==AccessByMember.LEVEL_USER) and user is not None:
         return user
+    elif level == AccessByMember.LEVEL_PENDING:
+	return "Pending"
     elif level == AccessByMember.LEVEL_NOACCESS:
         if noaccess is not None:
             return noaccess
@@ -128,7 +130,7 @@ def getResourcePrivs(resource=None,resourceid=None,member=None,resourcename=None
     if (member and member.privs('HeadRM')):
         level=AccessByMember.LEVEL_ADMIN
     if member and (not member.active or member.active.lower() != "true"): 
-        level=0
+        level=-1
     else:
         try:
             level=int(level)
@@ -143,7 +145,7 @@ def getResourcePrivs(resource=None,resourceid=None,member=None,resourcename=None
 # (Default)  "commit=1" to log and commit immediatley. THis will use a separate DB context as to
 # not interfere with anything else.
 # Use  "commit=0" will NOT commit. User MUST commit the default db.session to commit.
-def log(eventtype=0,message=None,member=None,tool_id=None,member_id=None,resource_id=None,text=None,doneby=None,commit=1):
+def log(eventtype=0,message=None,member=None,tool_id=None,member_id=None,resource_id=None,text=None,doneby=None,commit=1,when=None):
     logsess = db.session
     if commit:
         logsess = db.create_scoped_session(
@@ -151,7 +153,10 @@ def log(eventtype=0,message=None,member=None,tool_id=None,member_id=None,resourc
                      binds={}))
     if not member_id and member:
       member_id = member.id
-    logsess.add(Logs(member_id=member_id,resource_id=resource_id,tool_id=tool_id,event_type=eventtype,doneby=doneby,message=message))
+    l = Logs(member_id=member_id,resource_id=resource_id,tool_id=tool_id,event_type=eventtype,doneby=doneby,message=message)
+    if when:
+      l.time_reported = when
+    logsess.add(l)
     if commit:
         logsess.commit()
 
@@ -201,3 +206,16 @@ def send_tool_remove_lockout(toolname,node):
       mqtt_pub.single(topic, json.dumps(data), hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
     except BaseException as e:
         logging.warning("MQTT acl/update failed to send tool open message: "+str(e))
+
+
+# Auth wrapper - this means the user 
+# Must be an ARM or have some sort of
+# Global privileges to use this page
+def privileged_user(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+				if not current_user.is_arm() and (len(current_user.effective_roles()) == 0):
+					flash("Not authorized for this page","warning")
+					return redirect_url_for("index")
+				return f(*args, **kwargs)
+    return decorated

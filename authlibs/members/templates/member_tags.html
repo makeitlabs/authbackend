@@ -24,7 +24,14 @@
 		</td>
 
 		  {% if current_user.privs("Useredit","Finance") %}
-		<td><a href="{{ url_for('members.member_tagdelete',tag_ident=tag.id) }}"><span class="glyphicon glyphicon-trash"/></td>
+		<td>
+			<a href="{{ url_for('members.member_tagdelete',tag_ident=tag.id) }}"><span class="glyphicon glyphicon-trash"/></a>
+			{% if tag.tag_type.startswith("inactive-") %}
+				<a class="btn btn-primary" href="{{ url_for('members.member_tagenable',tag_ident=tag.id) }}">Enable</a>
+			{% else %}
+				<a class="btn btn-primary" href="{{ url_for('members.member_tagdisable',tag_ident=tag.id) }}">Disable</a>
+			{% endif %}
+		</td>
 		{% endif %}
     </tr>
     <!-- This row pops-up when the "i" button is clicked -->
@@ -50,7 +57,12 @@
 	 <input  class="form-control mb-2 mr-sm-2" id="newtagname" name="newtagname" type="Text" value="keyfob" /></td>
 
 	<label class="my-1 mr-1" for="newtagtype">Tag Type</label>	
-	 <select class="custom-select my-1 my-sm-1" id="newtagtype" name="newtagtype"><option value="rfid">RFID</option><option value="nfc">NFC</option></select>
+	 <select class="custom-select my-1 my-sm-1" id="newtagtype" name="newtagtype">
+			<option value="rfid">RFID</option>
+			<option value="nfc">NFC</option>
+			<option value="inactive-rfid">RFID (Inactive)</option>
+			<option value="inactive-nfc">NFC (Inactive)</option>
+	</select>
 
 	<label class="my-1 mr-1" for="newtag">Tag ID</label>	
 	 <input  class="form-control mb-2 mr-sm-2" id="newtag" name="newtag" type="Text" value="" />

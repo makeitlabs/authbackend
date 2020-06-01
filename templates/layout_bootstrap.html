@@ -23,7 +23,11 @@
 		<meta name="msapplication-config" content="{{ url_for("static",filename="favicons/browserconfig.xml") }}">
 		<meta name="theme-color" content="#ffffff">
 
-    <title>AuthIt</title>
+    <title>AuthIt
+		{% if DEPLOYTYPE %}
+			 {{ DEPLOYTYPE }}
+		{% endif %}
+    </title>
 
     <!-- Bootstrap core CSS -->
     <!-- link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet" -->
@@ -57,16 +61,24 @@
   </head>
 
   <body
-		{% if DEPLOYTYPE %}
+		{% if BACKGROUND_COLOR %}
+    style="background-color:{{ BACKGROUND_COLOR }}"
+		{% elif DEPLOYTYPE %}
     style="background-color:#ffffd0"
     {% endif %}
->
+  >
 
 
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-sm navbar-light bannerGradient">
   <a class="navbar-brand" href="{{ url_for('index') }}">
-    <img class="hvr-grow-shadow" src="{{ url_for('static',filename='MakeIt.svg') }}"  alt="">
+    <img 
+{% if DEPLOYTYPE  or TESTDB %}
+    class="hvr-grow-shadow-flipped" 
+{% else %}
+    class="hvr-grow-shadow" 
+{% endif %}
+    src="{{ url_for('static',filename='MakeIt.svg') }}"  alt="">
   </a>
 {% if current_user.is_authenticated %}
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -76,7 +88,7 @@
   <div class="collapse navbar-collapse" id="navbarSupportedContent">
     <ul class="navbar-nav mr-auto" >
       <li class="nav-item">
-        <a class="nav-item nav-link" href="#">v0.7.4</a>
+        <a class="nav-item nav-link" href="#">v1.0</a>
       </li>
       <li class="nav-item active">
 	      <a class="nav-link" href="{{ url_for("index") }}">Home <span class="sr-only">(current)</span></a>

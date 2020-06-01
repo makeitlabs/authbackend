@@ -8,6 +8,8 @@ from authlibs.ubersearch import ubersearch
 from authlibs import membership
 from authlibs import payments
 from authlibs.waivers.waivers import cli_waivers,connect_waivers
+from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel
+from authlibs.members.notices import send_all_notices
 import slackapi
 import random,string
 
@@ -22,6 +24,17 @@ def authenticate():
     'You have to login with proper credentials', 401,
     {'WWW-Authenticate': 'Basic realm="Login Required"'})
 
+def bad_acl():
+    """Sends a 403 response """
+    return Response(
+    'Forbiden - ACL restruction\n',403)
+
+def malformed_acl():
+    """Sends a 403 response """
+    return Response(
+    'Forbiden - Malformed ACL\n',403)
+
+
 # This is to allow non "member" accounts in via API
 # NOTE we are decorating the one we are importing from flask-user
 def api_only(f):
@@ -30,8 +43,36 @@ def api_only(f):
         auth = request.authorization
         if not auth:
             return error_401()
-        if not check_api_access(auth.username, auth.password):
+        a = check_api_access(auth.username, auth.password)
+        if not a:
             return authenticate() # Send a "Login required" Error
+        #print "CHECK",request.url,request.url_root
+        check = request.url.replace(request.url_root,"")
+        #print check
+        if a.acl:
+          for x in a.acl.split("\n"):
+            #print "LINE",x
+            x = x.strip().lower()
+            if x == "deny": 
+              logger.warning("ACL denied {0} for {1} url {2}".format(str(x),a.name,str(check)))
+              return bad_acl()
+            if x == "allow": break
+            try:
+              (k,v) = x.split(" ",2)
+              if k not in ("allow","deny"):
+                logger.error("Not allow or deny acl line {0} for {1} url {2}".format(str(x),a.name,str(check)))
+                return malformed_acl()
+              r = re.match(v,check)
+              #print "A",a,"C",c,"G",r
+              if r:
+                if k == "allow": break
+                if k == "deny": 
+                  logger.warning("ACL denied {0} for {1} url {2}".format(str(x),a.name,str(check)))
+                  return bad_acl()
+            except b as BaseException:
+              logger.error("Malformed acl line {0} for {1} url {2}".format(str(x),a.name,str(request.url)))
+              return malformed_acl()
+        
         g.apikey=auth.username
         return f(*args, **kwargs)
     return decorated
@@ -58,9 +99,9 @@ def check_api_access(username,password):
     if not a.password:
         return False
     if current_app.user_manager.verify_password( password,a.password):
-        return True
+        return a
     else:
-        return False
+        return None
 
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
@@ -529,8 +570,78 @@ def api_cron_nightly():
     return json_dump({'status':'error','reason':'Member sync failed'}, 200, {'Content-type': 'text/plain'})
   cli_waivers([])
   connect_waivers()
+  try:
+    automatch_missing_slack_ids()
+  except:
+    logger.info("Error in nightly slack sync")
+  authutil.kick_backend()
   logger.info("Nightly CRON finished")
   return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
+
+@blueprint.route('/cron/weekly_notices', methods=['GET'])
+@api_only
+def api_cron_weekly_notices():
+  err = send_all_notices()
+  if err:
+    logger.warning("Weekly notice CRON ERROR")
+    return json_dump({'status':'error'}, 401, {'Content-type': 'text/plain'})
+  else:
+    logger.info("Weekly notice CRON finished")
+    return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
+
+@blueprint.route('/v1/last_tool_event', methods=['GET'])
+@api_only
+def api_toollog():
+  evts = eventtypes.get_events()
+  findevents = (
+    eventtypes.RATTBE_LOGEVENT_TOOL_ACTIVE.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_INACTIVE.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_POWERON.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_POWEROFF.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_LOGIN_COMBO.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_LOGIN.id,
+    eventtypes.RATTBE_LOGEVENT_TOOL_LOGOUT.id)
+  result={}
+  t = Logs.query.filter(Logs.tool_id is not None)
+  t = Logs.query.filter(Logs.event_type .in_(findevents))
+  t = t.order_by(Logs.time_reported.desc())
+  t = t.group_by(Logs.tool_id)
+  tools = t.all()
+
+  users = []
+  for x in tools:
+    users.append(x.member_id)
+
+  names={}
+  nicknames={}
+  for tn in Tool.query.all():
+    names[tn.id] = tn.name
+    if tn.displayname:
+      nicknames[tn.id] = tn.displayname
+
+  members={}
+  for m in Member.query.filter(Member.id.in_(users)).all():
+    if m.nickname:
+      members[m.id] = m.nickname+" "+m.lastname
+    else:
+      members[m.id] = m.firstname+" "+m.lastname
+
+  for t in tools:
+    result[t.tool_id] = {
+       'tool_id':t.tool_id,
+       'time_reported':t.time_reported.strftime("%Y-%m-%d %H:%M:%S"), 
+       'event_code':t.event_type, 
+       'event_text':evts[t.event_type] if t.event_type in evts else '', 
+       'tool_name': names[t.tool_id] if t.tool_id in names else '', 
+       'member_name':members[t.member_id] if t.member_id in members else ''
+     }
+    if t.tool_id in nicknames:
+       result[t.tool_id]['tool_nickname'] = nicknames[t.tool_id]
+    else:
+       result[t.tool_id]['tool_name']
+  return json_dump(result,200, {'Content-type': 'text/plain'},indent=2)
 
 #####
 ##
@@ -570,15 +681,17 @@ def cli_listapikeys(cmd,**kwargs):
 
 # Placeholder to test stuff
 def cli_querytest(cmd,**kwargs):
-	doorid = Resource.query.filter(Resource.name=="frontdoor").one().id
+	door = Resource.query.filter(Resource.name=="frontdoor").one()
+	doorid = door.id
 	memberquery = Member.query
 	if len(cmd) >= 2:
 		memberquery = Member.query.filter(Member.member.ilike("%"+cmd[1]+"%"))
 	for member in memberquery.all():
-		acc= accesslib.access_query(doorid,member_id=member.id,tags=False).one_or_none()
+		#acc= accesslib.access_query(doorid,member_id=member.id,tags=False).one_or_none()
+		acc= accesslib.access_query(doorid,member_id=member.id,tags=False).first()
 		if acc: 
 			acc=accesslib.accessQueryToDict(acc)
-			(warning,allowed)=accesslib.determineAccess(acc,"DENIED")
+			(warning,allowed)=accesslib.determineAccess(acc,"DENIED",door)
 			print member.member,allowed,warning
 		else:
 			print member.member,"NODOORACCESS"
@@ -590,3 +703,60 @@ def cli_cron(cmd,**kwargs):
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
+
+# Like: curl 'http://test:test@127.0.0.1:5000/api/v1/setaccess/user@makeitlabs.com?resource=fake-resource-users&slack=CID1234'
+@blueprint.route('/v1/setaccess/<string:email>', methods = ['GET'])
+@api_only
+def member_api_setaccess(email):
+	resource = request.args.get('resource','')
+	slack = request.args.get('slack','')
+	result = {'status':'success'}
+
+	m = Member.query.filter(Member.email.ilike(email))
+	m = m.join(Resource,(AccessByMember.resource_id == Resource.id) & (Resource.name == resource))
+	m = m.join(AccessByMember,AccessByMember.member_id == Member.id)
+	m = m.add_column(AccessByMember.level)
+	m = m.one_or_none()
+
+  if m:
+    # Record already exists
+    if m.level < 0:
+      result = {'status':'error',"description":"User already prohibited from using resource"}
+    else:
+      result = {'status':'success',"description":"User was already authorized"}
+  else:
+    m = Member.query.filter(Member.email.ilike(email)).one_or_none()
+    r = Resource.query.filter(Resource.name == resource).one_or_none()
+    if not m:
+      result = {'status':'error',"description":"Email not found"}
+    elif not r:
+      result = {'status':'error',"description":"Resource not found"}
+    else:
+      ac = AccessByMember(member_id = m.id,resource_id = r.id,level=0)
+      db.session.add(ac)
+      authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=r.id,message="Self-Auth",member_id=m.id,commit=0)
+        
+      db.session.commit()
+      authutil.kick_backend()
+      if m.slack and slack != "":
+        add_user_to_channel(slack,m.slack)
+  
+	return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+# Query like: http://test:test@127.0.0.1:5000/api/v1/getaccess/myemail@makeitlabs.com?resource=resource-users
+@blueprint.route("/v1/getaccess/<string:email>", methods = ['GET'])
+@api_only
+def member_api_getaccess(email):
+	resource = request.args.get('resource','')
+  #print "FIND ",email,resource
+	m = Member.query.filter(Member.email.ilike(email))
+	m = m.join(Resource,(AccessByMember.resource_id == Resource.id) & (Resource.name == resource))
+	m = m.join(AccessByMember,AccessByMember.member_id == Member.id)
+	m = m.add_column(AccessByMember.level)
+	m = m.one_or_none()
+  if not m:
+    result = {'status':'error','description':'Not Found'}
+  else:
+    #print m
+    result = {'status':'success','level':m[1]}
+	return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)

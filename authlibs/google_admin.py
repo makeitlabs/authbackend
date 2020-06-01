@@ -125,6 +125,11 @@ NH's First and Largest Makerspace, a 501c3 non-profit organization
     service = _buildEmailService()
     msg = _CreateMessage('info@makeitlabs.com',email,'Welcome to MakeIt Labs, new member!',letter)
     _SendMessage(service,'me',msg)
+
+def genericEmailSender(from_email,to_email,subject,contents):
+    service = _buildEmailService()
+    msg = _CreateMessage(from_email,to_email,subject,contents)
+    _SendMessage(service,'me',msg)
     
 def testMessage():
     service = _buildEmailService()

@@ -1,0 +1,153 @@
+{# vim:tabstop=2:shiftwidth=2:expandtab
+#}
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+{% include 'header.html' %}
+<h2>Bin</h2>
+{% macro input(name, label, placeholder='', small='', type='text') -%}
+			{% if readonly is not defined %}
+			{% set ph = placeholder %}
+			{% endif %}
+      <label for="input_{{ name }}">{{ label }}</label>
+      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" 
+        value="{% if bin[name] %}{{ bin[name] }}{% endif %}">
+			{% if small != '' %}
+			<small>{{ small }}</small>
+			{% endif %}
+{%- endmacro %}
+
+  <div class="container">
+
+    <form action="{{ url_for('prostore.bin_edit',id=bin.ProBin.id) }}" method="post">
+    <div class="form-row">
+      <div class="form-group col-md-6">
+        {{ input('name',"Bin ID",'',small="Optional Unique ID or name of bin") }}
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-md-6">
+        <label for="input_resource_id">Bin Location</label>
+        <select class="form-control" name="input_location">
+            <option name="unspecified" value="Unspecified">Unspecified</option>
+          {% for loc in locations %}
+            <option  value="{{ loc.ProLocation.id }}"
+            {% if (loc.usecount > 0  and loc.ProLocation.loctype == 0) and (bin.location != loc.ProLocation.location) %}disabled{% endif %}
+            {% if bin.location == loc.ProLocation.location %}selected{% endif %}
+            >{{ loc.ProLocation.location }}</option>
+          {% endfor %}
+        </select>
+        <input type="hidden" name="input_id" value="{{ bin.ProBin.id }}" />
+        <input type="hidden" id="unassign_member_hidden" name="unassign_member_hidden"  value="no" />
+        <input type="hidden" name="input_orig_member" value="{{ bin.ProBin.member_id }}" />
+        <label for="input_status">Bin Status</label>
+        <select class="form-control" name="input_status">
+          {% for stat in statuses %}
+            <option name="{{ stat[0] }}" value="{{ stat[0] }}"
+            {% if bin.status == stat[0] %}selected{% endif %}>
+            {{ stat[1] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-md-2">
+        Assigned to:
+      </div>
+      <div id="assign_to_member" class="form-group col-md-2">
+        {% if bin.member %}
+        <a href="{{ url_for("members.member_show",id=bin.member) }}">
+        {{ bin.member }}
+       </a>
+        {% endif %}
+      </div>
+      <div id="assign_to_member" class="form-group col-md-4">
+        {% if bin.member %}
+          {% if bin.active != "Active" and bin.active != "Grace Period" %}
+            <span style="background-color:#ffff80">
+            Subscription {{ bin.active }}
+            </span>
+          {% endif %}
+          {% if not bin.waiverDate %}
+            <span style="background-color:#ffff80">No waiver</span>
+          {% endif %}
+        {% endif %}
+      </div>
+      <div class="form-group col-md-4">
+        <a id="unassign_button" class="btn btn-outline-secondary" data-toggle="button" onclick="unassign();">Unassign</a>
+        <a id="change_member_button" class="btn btn-outline-secondary" data-toggle="button" onclick="change_member();">Change Member</a>
+      </div>
+    </div>
+
+    <div class="collapse" id="member_select_div">
+			{% with add_radiobuttons=1,no_filters=1 %}
+			{% include 'userlist.html' %}
+			{% endwith %}
+    </div>
+    <input type="submit" class="btn btn-primary" name="save_bin" value="Save" />
+    <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
+      Unassigned & Delete
+    </button>
+    <!-- Modal for Delete resource confirmation -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            Unassigned and delete bin location {{ bin.location }}
+            {% if bin.member %}
+            {{ bin.member }}
+            {% endif %}?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+            <input type="submit" class="btn btn-danger" name="delete_bin" value="Delete" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Modal for Delete resource confirmation -->
+    </form>
+  </div>
+
+<script type="text/javascript">
+function unassign() {
+  var x = $("#unassign_button")[0];
+  var m = $("#assign_to_member");
+  var cmb = $("#change_member_button");
+  if (cmb[0].classList.contains("active")) {
+    cmb.button('toggle');
+    $("#unassign_member_hidden")[0].value="no";
+    $("#member_select_div").collapse('hide');
+  }
+  if (x.classList.contains("active")) {
+    m[0].innerHTML="{{ bin.member }}";
+    $("#unassign_member_hidden")[0].value="no";
+  } else {
+    $("#unassign_member_hidden")[0].value="yes";
+    m[0].innerHTML="<strike>{{ bin.member }}</strike>";
+  }
+}
+function change_member() {
+  var m = $("#assign_to_member");
+  var cmb = $("#change_member_button");
+  var x = $("#unassign_button")[0];
+  if (cmb[0].classList.contains("active")) {
+    m[0].innerHTML="{{ bin.member }}";
+    $("#member_select_div").collapse('hide');
+  } else {
+    $("#member_select_div").collapse('show');
+    m[0].innerHTML="<strike>{{ bin.member }}</strike>";
+    if (x.classList.contains("active")) {
+      $("#unassign_button").button('toggle');
+      $("#unassign_member_hidden")[0].value="no";
+    } 
+  }
+  
+}
+</script>
+{% endblock %}

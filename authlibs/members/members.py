@@ -7,6 +7,10 @@ import datetime
 import binascii, zlib
 from ..api import api 
 from .. import accesslib 
+from .. import ago 
+from authlibs.members.notices import get_notices,sendnotices
+from authlibs.slackutils import add_user_to_channel
+import stripe    
 
 ## TODO make sure member's w/o Useredit can't see other users' data or search for them
 ## TODO make sure users can't see cleartext RFID fobs
@@ -47,7 +51,7 @@ def member_add():
                         
 		member = {}
 		mandatory_fields = ['firstname','lastname','memberid','plan','payment']
-		optional_fields = ['alt_email','phone','nickname']
+		optional_fields = ['alt_email','phone','dob','nickname']
 		for f in mandatory_fields:
 				member[f] = ''
 				if f in request.form:
@@ -80,6 +84,8 @@ def member_edit(id):
 
 		if request.method=="POST" and 'Unlink' in  request.form:
 				s = Subscription.query.filter(Subscription.membership==request.form['membership']).one()
+				if s.member_id:
+					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_PAYMENT_UNLINKED.id,member_id=s.member_id,doneby=current_user.id,commit=0)
 				s.member_id = None
 				db.session.commit()
 				btn = '''<form method="POST">
@@ -97,6 +103,7 @@ def member_edit(id):
 		elif request.method=="POST" and 'DeleteMember' in  request.form:
 				if current_user.privs("Finance"):
 					flash (Markup("WARNING: Slack and GMail accounts have <b>not</b> been deleted"),"danger")
+					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_RECORD_DELETED.id,member_id=mid,doneby=current_user.id,commit=0)
 					m=Member.query.filter(Member.id==mid).one()
 					for s in Subscription.query.filter(Subscription.member_id == m.id).all():
 						s.member_id=None
@@ -106,7 +113,7 @@ def member_edit(id):
 				else:
 					flash ("You do not have authority to delete users","warning")
 		elif request.method=="POST" and 'SaveChanges' in  request.form:
-				flash ("Changes Saved (Please Review!)")
+				nocommit=False
 				m=Member.query.filter(Member.id==mid).one()
 				f=request.form
 				m.member= f['input_member']
@@ -120,6 +127,18 @@ def member_edit(id):
 						m.phone=None
 				else:
 					m.phone= f['input_phone']
+				if f['input_dob'] == "None" or f['input_dob'].strip() == "":
+						m.dob=None
+				else:
+					if re.match('^\d\d\/\d\d/\d\d\d\d$',f['input_dob']):
+						dt = datetime.datetime.strptime(f['input_dob'],"%m/%d/%Y")
+						m.dob= dt
+					elif re.match('^\d\d\d\d-\d\d-\d\d\s+\d+:\d+:\d+',f['input_dob']):
+						dt = datetime.datetime.strptime(f['input_dob'],"%Y-%m-%d %H:%M:%S")
+						m.dob= dt
+					else:
+						flash("Invalid Date of Birth Format - must be \"MM/DD/YYYY\"","danger")
+						nocommit=True
 				m.slack= f['input_slack']
 				m.alt_email= f['input_alt_email']
 				m.email= f['input_email']
@@ -133,8 +152,10 @@ def member_edit(id):
 						authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,member_id=m.id,doneby=current_user.id,commit=0)
 					m.access_enabled=0
 					m.access_reason= f['input_access_reason']
-				db.session.commit()
-				authutil.kick_backend()
+				if not nocommit:
+					flash("Changes Saved (Please Review/Verify)","success")
+					db.session.commit()
+					authutil.kick_backend()
 				
 		#(member,subscription)=Member.query.outerjoin(Subscription).filter(Member.member==mid).first()
 		member=db.session.query(Member,Subscription)
@@ -185,19 +206,14 @@ def member_show(id):
  
 	 if res:
 		 (member,subscription) = res
-		 """
-		 print "Created",subscription.created_date,type(subscription.created_date)
-		 print "Expires",subscription.expires_date,type(subscription.expires_date)
-		 print "Updated",subscription.updated_date,type(subscription.updated_date)
+
 		 utc = dateutil.tz.gettz('UTC')
 		 eastern = dateutil.tz.gettz('US/Eastern')
-		 sub_updated_date=subscription.updated_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
-		 sub_created_date=subscription.created_date.replace(tzinfo=eastern).astimezone(utc).replace(tzinfo=None)
-		 sub_expires_date=subscription.expires_date.replace(tzinfo=eastern).astimezone(utc).replace(tzinfo=None)
-		 print "Sub Updated",sub_updated_date
-		 print "Sub Created",sub_created_date
-		 print "Sub Created",sub_expires_date
-		 """
+		 if subscription:
+			 meta['sub_updated_local']=subscription.updated_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None).strftime("%a, %b %d, %Y %I:%M %p (Local)")
+			 meta['sub_created_local']=subscription.created_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None).strftime("%a, %b %d, %Y %I:%M %p (Local)")
+			 meta['sub_expires_local']=subscription.expires_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None).strftime("%a, %b %d, %Y %I:%M %p (Local)")
+
 		 (warning,allowed,dooraccess)=getDoorAccess(member.id)
 		 access=db.session.query(Resource).outerjoin(AccessByMember).outerjoin(Member)
 		 access = access.filter(Member.id == member.id)
@@ -208,10 +224,15 @@ def member_show(id):
                      cc=comments.get_comments(member_id=member.id)
                  else:
                      cc={}
-		 waiver = Waiver.query.filter(Waiver.member_id == member.id).first()
 
-		 if waiver:
-			 meta['waiver']=waiver.created_date
+		 waivers = Waiver.query.filter(Waiver.member_id == member.id)
+		 waivers = Waiver.addWaiverTypeCol(waivers)
+		 waivers = waivers.all()
+
+		 for waiver in waivers:
+			 if (waiver.Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER):
+				 meta['waiver']=waiver.Waiver.created_date
+
 		 if subscription:
 			 if subscription.expires_date < datetime.datetime.now():
 				 meta['is_expired'] = True
@@ -230,7 +251,7 @@ def member_show(id):
 
 
 		 tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
-		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta,page="view",tags=tags,groupmembers=groupmembers)
+		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta,page="view",tags=tags,groupmembers=groupmembers,waivers=waivers)
 	 else:
 		flash("Member not found",'warning')
 		return redirect(url_for("members.members"))
@@ -241,6 +262,7 @@ def getAccessLevel(user,resource):
 		pass
 
 @blueprint.route('/<string:id>/waiver', methods = ['GET','POST'])
+@roles_required(['Admin','Finance','Useredit'])
 @login_required
 def link_waiver(id):
 	mid = safestr(id)
@@ -251,7 +273,7 @@ def link_waiver(id):
 	if 'LinkWaiver' in request.form:
 		w = Waiver.query.filter(Waiver.id == request.form['waiverid']).one()
 		w.member_id = member.id
-		authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,doneby=current_user.id,member_id=member.id,commit=0)
+		authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_LINKED.id,doneby=current_user.id,member_id=member.id,commit=0)
 		if member.access_enabled == 0:
 			if ((member.access_reason is None) or (member.access_reason == "")):
 				member.access_enabled=1
@@ -263,14 +285,13 @@ def link_waiver(id):
 		return redirect(url_for('members.member_show',id=member.member))
 	else:
 		waivers=Waiver.query.order_by(Waiver.id.desc())
+		waivers = Waiver.addWaiverTypeCol(waivers)
 		waivers = waivers.outerjoin(Member).add_column(Member.member.label("memb"))
 		"""
 		if 'showall' not in request.values:
 			waivers = waivers.limit(50)
 		"""
 		waivers = waivers.all()
-		for w in waivers:
-			if w.Waiver.member_id and not w.memb : print w.Waiver.id,w.memb,"Member ID",w.Waiver.member_id
 		return render_template('link_waiver.html',rec=member,waivers=waivers)
 
 @blueprint.route('/<string:id>/access', methods = ['GET'])
@@ -311,6 +332,7 @@ def member_editaccess(id):
 		if (current_user.privs('Useredit')): allowsave=True
 		elif (accesslib.user_is_authorizor(current_user)): allowsave=True
 		return render_template('member_access.html',rec=member,access=access,tags=tags,roles=roles,page="access",allowsave=allowsave)
+
 
 @blueprint.route('/<string:id>/access', methods = ['POST'])
 @login_required
@@ -424,6 +446,8 @@ def member_setaccess(id):
 										db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,doneby=current_user.id))
 										acc = AccessByMember(member_id=member.id,resource_id=resource.id)
 										db.session.add(acc)
+										if (resource.slack_chan):
+										  add_user_to_channel(resource.slack_chan,member)
 								elif acc and newcheck == False and p>=myPerms:
 										flash("You aren't authorized to disable %s privs on %s" % (alstr,r),'warning')
 
@@ -467,7 +491,7 @@ def member_tags(id):
 @login_required
 def update_backends():
 		authutil.kick_backend()
-		flash("Backend Update Request Send")
+		flash("Backend Update Request Sent")
 		return redirect(url_for('index'))
 
 def add_member_tag(mid,ntag,tag_type,tag_name):
@@ -491,6 +515,7 @@ def unassociate():
 		mem=Member.query.filter(Member.id==mid).one()
 		mem.membership=None
 		sub=Subscription.query.filter(Subscription.member_id==mid).one()
+		authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_PAYMENT_UNLINKED.id,member_id=mid,doneby=current_user.id,commit=0)
 		sub.member_id=None
 		db.session.commit()
 		flash ("Subscription unassociated","success")
@@ -529,11 +554,49 @@ def member_tagdelete(tag_ident):
                 db.session.add(Logs(member_id=mid,event_type=eventtypes.RATTBE_LOGEVENT_MEMBER_TAG_UNASSIGN.id,doneby=current_user.id,message=t.longhash))
                 db.session.delete(t)
                 db.session.commit()
+                authutil.kick_backend()
                 flash("Tag deleted","success")
                 return redirect(url_for("members.member_tagadd",id=mid))
 
+@blueprint.route('/tags/enable/<string:tag_ident>', methods = ['GET'])
+@login_required
+@roles_required(['Admin','Finance','Useredit'])
+def member_tagenable(tag_ident):
+		"""(Controller) Enable a Tag from a Member (HTTP GET, for use from a href link)"""
+                t = MemberTag.query.filter(MemberTag.id == tag_ident).join(Member,Member.id == MemberTag.member_id).one_or_none()
+                if not t:
+                    flash("Tag not found",'warning')
+                    return redirect(url_for('index'))
+                mid = t.member_id
+                if not t.tag_type.startswith("inactive-"):
+                  flash("Tag was already enabled","warning")
+                else:
+                  t.tag_type = t.tag_type.replace("inactive-","")
+                  db.session.commit()
+                  authutil.kick_backend()
+                  flash("Tag Enabled","success")
+                return redirect(url_for("members.member_tagadd",id=mid))
+
+@blueprint.route('/tags/disable/<string:tag_ident>', methods = ['GET'])
+@login_required
+@roles_required(['Admin','Finance','Useredit'])
+def member_tagdisable(tag_ident):
+                t = MemberTag.query.filter(MemberTag.id == tag_ident).join(Member,Member.id == MemberTag.member_id).one_or_none()
+                if not t:
+                  flash("Tag not found",'warning')
+                  return redirect(url_for('index'))
+                mid = t.member_id
+                if t.tag_type.startswith("inactive-"):
+                  flash("Tag was already disabled","warning")
+                else:
+                  t.tag_type = "inactive-"+t.tag_type
+                  db.session.commit()
+                  authutil.kick_backend()
+                  flash("Tag Disabled","success")
+                return redirect(url_for("members.member_tagadd",id=mid))
+
 def generate_member_report(members):
-	fields=[ 'member', "email", "alt_email", "firstname", "lastname", "phone",
+	fields=[ 'member', "email", "alt_email", "firstname", "lastname", "phone","dob",
 					"plan", "slack_id","access_enabled", "access_reason", "active", "rate_plan", "sub_active",'Waiver']
 	s=""
 	for f in fields:
@@ -543,7 +606,7 @@ def generate_member_report(members):
 	for m in members:
 		s = ""
 		values = (m.Member.member,m.Member.email, m.Member.alt_email, m.Member.firstname, m.Member.lastname,
-			m.Member.phone, m.Member.plan, m.Member.slack, m.Member.access_enabled, m.Member.access_reason,
+			m.Member.phone, m.Member.dob, m.Member.plan, m.Member.slack, m.Member.access_enabled, m.Member.access_reason,
 			m.Member.active)
 		if m.Subscription:
 			values += (m.Subscription.rate_plan, m.Subscription.active)
@@ -569,6 +632,17 @@ def member_report():
 			return resp
 		else:
 			return render_template('member_report.html',members=members,meta=meta)
+
+@blueprint.route('/member_report_api')
+@api.api_only
+def member_report_api():
+		members=db.session.query(Member,Subscription,Waiver)
+		members = members.join(Subscription,isouter=True).join(Waiver,isouter=True).all()
+		meta={}
+
+		resp=Response(generate_member_report(members),mimetype='text/csv')
+		resp.headers['Content-Disposition']='attachment; filename=members.csv'
+		return resp
 
 @blueprint.route('/tags/lookup', methods = ['GET','POST'])
 @login_required
@@ -645,6 +719,33 @@ def grantadmin():
 				db.session.commit()
     return redirect(url_for('index'))
 
+@blueprint.route('/<string:id>/payment', methods=['GET','POST'])
+@roles_required(['Admin','Finance'])
+def payment_update(id):
+	x = Member.query.filter(Member.id==id).one()
+	s = Subscription.query.filter(Subscription.member_id == x.id).one_or_none()
+	print "FORM DATA IS",request.form
+	stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
+	customer=[]
+	if s:
+		output=None
+		try:
+			customer = stripe.Customer.retrieve(s.customerid)
+		except:
+			pass
+		print output
+	if 'stripeToken' in request.form:
+		# This was a callback from Stripe CC update form - update CC
+		cc = request.form['stripeToken']
+		try:
+			## stripe.Customer.update(card=cc) ## BE CAREFULL!!!
+			pass
+			flash("Stripe Card Updated","success")
+		except BaseException as e:
+			flash("Stripe Card Update failed: "+str(e),"warning")
+		return (redirect(url_for("members.payment_update",id=id)))
+	return (render_template("update_payment.html",rec=x,customer=customer))
+
 @blueprint.route('/test', methods=['GET'])
 def bkgtest():
     names=['frontdoor','woodshop','laser']
@@ -653,6 +754,45 @@ def bkgtest():
         #result[n]=getResourcePrivs(Resource.query.filter(Resource.name==n).one())
         result[n]=getResourcePrivs(resourcename=n)
     return json_dump(result,indent=2), 200, {'Content-type': 'application/json'}
+
+@blueprint.route('/member_notices', methods=['GET','POST'])
+@login_required
+@roles_required(['Admin',"Useredit"])
+def notices():
+	errs=0
+	if 'send_notices' in request.form:
+		print "REQUET FORM"
+		for x in request.form:
+			if x.startswith("notify_send_"):
+				member_id = x.replace("notify_send_","")
+				member = Member.query.filter(Member.id == member_id).one()
+				notice = {
+					'id':member.id,
+					'member':member.member,
+					'firstname':member.firstname,
+					'lastname':member.lastname,
+					'alt_email':member.alt_email,
+					'email':member.email,
+					'notices':request.form[x].split("|")
+				}
+				print x,notice['member'],notice['notices']
+				#authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_NOTICE_SENT.id,member_id=member_id,message=request.form[x].replace("|"," "),doneby=current_user.id,commit=0)
+				errs+=sendnotices(notice)
+
+		if errs:
+			flash("%s errors sending notices" % errs,"warning")
+				
+		db.session.commit()
+		return redirect(url_for("members.notices"))
+	memberNotices = get_notices()
+	eastern = dateutil.tz.gettz('US/Eastern')
+	utc = dateutil.tz.gettz('UTC')
+	now=datetime.datetime.now()
+	for m in memberNotices:
+		if memberNotices[m]['lastNoticeWhen']:
+			dt=memberNotices[m]['lastNoticeWhen'].replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
+			(memberNotices[m]['when'],memberNotices[m]['ago'],other)=ago.ago(dt,now)
+	return (render_template("member_notices.html",notices=memberNotices))
 
 @blueprint.route('/admin_roles', methods=['GET'])
 @login_required
@@ -682,9 +822,9 @@ def _createMember(m):
     if members:
         return {'status': 'error','message':'That User ID already exists'}
     else:
-        sqlstr = """insert into members (member,firstname,lastname,phone,plan,nickname,access_enabled,active)
+        sqlstr = """insert into members (member,firstname,lastname,phone,dob,plan,nickname,access_enabled,active)
                     VALUES ('%s','%s','%s','%s','','%s',0,0)
-                 """ % (m['memberid'],m['firstname'],m['lastname'],m['phone'],m['nickname'])
+                 """ % (m['memberid'],m['firstname'],m['lastname'],m['phone'],m['dob'],m['nickname'])
         execute_db(sqlstr)
         get_db().commit()
     return {'status':'success','message':'Member %s was created' % m['memberid']}

@@ -1,0 +1,76 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+{% with page="bins" %}
+{% include 'header.html' %}
+{% endwith %}
+	<h2>Pro Storage Bins:  {{ bins |length }}</h2>
+<div class="nodeslist">
+	<table class="table table-sm">
+        <tr>
+            <th>Name/ID</th>
+            <th>Location</th>
+            <th>Used By</th>
+            <th>Status</th>
+            <th>Waiver</th>
+            <th>Membership</th>
+        </tr>
+	{% for bin in bins %}
+	  <tr>
+			<td>
+				{% if bin.ProBin.name %}
+				{{ bin.ProBin.name }}
+				{% endif %}
+			</td>
+			<td>
+				{% if bin.location %}
+				{{ bin.location }}
+				{% endif %}
+			</td>
+			<td>
+				{% if bin.member %}
+				<a href="{{ url_for("members.member_show",id=bin.member) }}">
+				{{ bin.member }}
+				</a>
+				{% endif %}
+			</td>
+			<td>{{ bin.binstatusstr }}</td>
+			<td>
+				{% if bin.waiverCount > 0 %}
+					<span class="glyphicon glyphicon-check" />
+				{# bin.waiverCount #}
+				{% endif %}
+			</td>
+			<td>
+				{% if bin.active == "Active" %}
+				{% else %}
+				{{ bin.active }}
+				{% endif %}
+			</td>
+			<td>
+				<a href="{{ url_for("prostore.bin_edit",id=bin.ProBin.id) }}">
+				<span class="glyphicon glyphicon-pencil"></span>
+				</a>
+			</td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+
+<!-- Add New Bin -->
+
+
+	{% if current_user.privs("RATT") %}
+  <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#nodes-add-collapse" aria-expanded="false" aria-controls="nodes-add-collapse">
+    Add New Bin
+  </button>
+  <div class="collapse" id="nodes-add-collapse">
+	<hr />
+  <h3> Add New Bin </h3>
+<form action="{{ url_for('prostore.bins') }}" method="post">
+	{% include 'bin_form.html' %}
+<input type="submit" name="create_bin" value="Create Bin" />
+</form>
+</div>
+{% endif %} <!-- Add New Node -->
+{% endblock %}

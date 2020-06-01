@@ -71,6 +71,8 @@ from authlibs.kvopts import kvopts
 from authlibs.comments import comments 
 from authlibs.apikeys import apikeys 
 from authlibs.belog import belog
+from authlibs.training import training
+from authlibs.prostore import prostore
 
     
 
@@ -344,8 +346,10 @@ def create_routes():
         m = Member.query.filter(Member.member==user).one_or_none()
         if m:
                 flash("User changed","success")
+                logger.error("{1} loginas User {0} ".format(user,current_user.member))
                 login_user(m, remember=True)
         else:
+                logger.error("loginas User {0} not found".format(user))
                 flash("User not found","warning")
         return redirect(url_for('index'))
 
@@ -363,6 +367,8 @@ def create_routes():
     # Flask login uses /user/sign-in
     @app.route('/login')
     def login():
+       logger.debug("login")
+       session['next_url'] = request.args.get('next')
        if current_app.config['globalConfig'].DefaultLogin.lower() == "oauth":
          return redirect(url_for("google.login"))
        else:
@@ -370,14 +376,17 @@ def create_routes():
 
     @app.route('/locallogin')
     def locallogin():
+       logger.debug("Locallogin")
        return render_template('login.html')
 
     # BKG LOGIN CHECK - when do we use thigs?
     # This is from old flask-login module??
     @app.route('/login/check', methods=['post'])
     def login_check():
+        logger.debug("logincheck")
         """Validate username and password from form against static credentials"""
         user = Member.query.filter(Member.member.ilike(request.form['username'])).one_or_none()
+        session['next_url'] = request.args.get('next')
         if not user or not  user.password:
             # User has no password - make the use oauth
             return redirect(url_for('google.login'))
@@ -396,9 +405,9 @@ def create_routes():
         response.delete_cookie("remeber_token")
       return response
 
-    @app.route('/logout')
+    @app.route('/logout_soft')
     @login_required
-    def logout():
+    def logout_soft():
        """Seriously? What do you think logout() does?"""
        #print session
        #print dir(session)
@@ -414,6 +423,37 @@ def create_routes():
        """
 
        # HARD logout (log out of google oauth)
+       #resp = make_response(redirect("https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue="+rd))
+       # SOFT logout (log out of us)
+       resp = make_response(redirect(url_for("login")))
+       resp.set_cookie(app.session_cookie_name, '')
+       resp.set_cookie("remember_token", '')
+       return resp
+
+    @app.route('/logout')
+    @login_required
+    def logout():
+       logout_user()
+       session.clear()
+       return render_template("logout.html")
+
+    @app.route('/logout_hard')
+    def logout_hard():
+       """Seriously? What do you think logout() does?"""
+       #print session
+       #print dir(session)
+       logout_user()
+       session.clear()
+       session["__invalidate__"] = True
+       if current_app.config['globalConfig'].DefaultLogin.lower() == "local":
+         flash("You've been logged out.")
+       rd = request.base_url.replace('logout_hard','login')
+       """
+       request.set_cookie(app.session_cookie_name,"")
+       return redirect("https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue="+rd)
+       """
+
+       # HARD logout (log out of google oauth)
        resp = make_response(redirect("https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue="+rd))
        # SOFT logout (log out of us)
        #resp = make_response(redirect(url_for("login")))
@@ -421,6 +461,21 @@ def create_routes():
        resp.set_cookie("remember_token", '')
        return resp
        #return redirect(url_for('login'))
+
+    @app.route("/training_login")
+    def training_login():
+        logger.debug("Not google authorized")
+        return redirect(url_for("google.login"))
+        resp = google.get(SCOPE)
+        assert resp.ok, resp.text
+        return resp.text
+
+    @app.route("/empty")
+    def empty():
+       print  dir(request)
+       print  request.headers
+       print  request.referrer
+       return render_template('empty.html')
 
     @app.route("/index")
     @app.route('/')
@@ -504,13 +559,14 @@ with app.app_context():
 
     if app.config['globalConfig'].DeployType.lower() != "production":
         app.jinja_env.globals['DEPLOYTYPE'] = app.config['globalConfig'].DeployType
+    if app.config['globalConfig'].backgroundColor:
+        app.jinja_env.globals['BACKGROUND_COLOR'] = app.config['globalConfig'].backgroundColor
     if  args.command:
         cli.cli_command(extras,app=app,um=app.user_manager)
         sys.exit(0)
 
     # Register Pages
     
-    authutil.kick_backend()
     create_routes()
     auth.register_pages(app)
     members.register_pages(app)
@@ -525,6 +581,8 @@ with app.app_context():
     kvopts.register_pages(app)
     comments.register_pages(app)
     apikeys.register_pages(app)
+    prostore.register_pages(app)
+    training.register_pages(app)
     belog.register_pages(app)
     slackutils.create_routes(app)
     g.main_menu = main_menu
@@ -534,6 +592,7 @@ with app.app_context():
     #app.login_manager.login_view="test"
     #print app.login_manager.login_view
     logger.info("STARTING")
+    authutil.kick_backend()
     
 # Start development web server
 if __name__ == '__main__':
