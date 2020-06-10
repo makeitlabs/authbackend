@@ -490,6 +490,18 @@ def api_v1_get_resources():
     result.append({'id':x.id,'name':x.name,'short':x.short,'slack_admin_chan':x.slack_admin_chan,'slack_chan':x.slack_chan})
   return json_dump(result), 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
+@blueprint.route('/v1/resources/<string:id>/fob/<int:fob>', methods=['GET'])
+@api_only
+def api_v1_show_resource_fob(id,fob):
+		"""(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
+		rid = safestr(id)
+		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+		output = accesslib.getAccessControlList(rid)
+    for x in json.loads(output):
+      if int(x['raw_tag_id']) == fob:
+        return json.dumps(x), 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+		return "{\"status\":\"Fob not found\"}", 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
 @blueprint.route('/v1/resources/<string:id>/acl', methods=['GET'])
 @api_only
 def api_v1_show_resource_acl(id):
