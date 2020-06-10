@@ -22,7 +22,7 @@ def log_bin_event(bin,event,commit=0):
 	authutil.log(eventtypes.RATTBE_LOGEVENT_PROSTORE_NOTICE_SENT.id,member_id=member_id,message=message,doneby=current_user.id,commit=commit)
 
 notice_text = {
-	"NoWaiver" : """We do not have your \"Pro-Storage Waiver\" on file. (This is different/seperate from standard membership waiver). Please execute this waiver immediatley at http://smartwaiver.com/blah. To avoid further delay, please make sure to enter the following EXACTLY as shown:
+	"NoWaiver" : """We do not have your \"Pro-Storage Waiver\" on file. (This is different/seperate from standard membership waiver). Please execute this waiver immediatley at http://smartwaiver.com/v/prostoragebin  - To avoid further delay, please make sure to enter the following EXACTLY as shown:
 
   email: {email}
   First Name: {firstname}
