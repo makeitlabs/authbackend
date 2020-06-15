@@ -148,9 +148,6 @@ def quiz(resource):
   if not r:
     flash("No resrouce","warning")
     return redirect(url_for('empty'))
-  if accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
-    flash("You are not authorized to edit this quiz","warning")
-    return redirect(url_for('training.training'))
   qz = ResourceQuiz.query.filter(ResourceQuiz.resource_id == r.id).all()
   if len(qz) == 0:
     flash("Quiz is missing - contact Resource Manager","warning")
