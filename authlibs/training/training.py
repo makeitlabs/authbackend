@@ -29,7 +29,7 @@ def training():
           ar['desc'] = 'Authorization was revoked'
           ar['status'] = 'cannot'
         elif ma.level >0: 
-          ar['desc'] = 'Your are a Resource Manager'
+          ar['desc'] = 'You\'r are a Resource Manager'
           ar['status'] = 'already'
       else:
         #User has no access - can they train?
