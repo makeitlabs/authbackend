@@ -316,6 +316,38 @@ def api_member_search_handler(searchstr):
   output  = json_dump(ubersearch(searchstr,only=['members'],membertypes=['Active']),indent=2)
   return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
+@blueprint.route('/v1/kiosklog', methods=['POST'])
+@api_only
+@localhost_only
+def api_v1_kiosklog():
+  data=request.get_json()
+  print "REQUEST",request
+  print "DATA",data
+  if not data:
+		return json_dump({'result':'failure','reason':'Not JSON request'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+  
+  if 'user' not in data or 'event' not in data:
+		return json_dump({'result':'failure','reason':'Field missing'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+
+  
+  m = Member.query.filter(Member.member==data['user']).one_or_none()
+  if not m:
+		return json_dump({'result':'failure','reason':'Member not found'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+
+  e=None
+  if data['event'] == 'ACCEPTED':
+    e = eventtypes.RATTBE_LOGEVENT_MEMBER_KIOSK_ACCEPTED.id
+  elif data['event'] == 'DENIED':
+    e = eventtypes.RATTBE_LOGEVENT_MEMBER_KIOSK_DENIED.id
+  elif data['event'] == 'FAILED':
+    e = eventtypes.RATTBE_LOGEVENT_MEMBER_KIOSK_FAILED.id
+  else:
+		return json_dump({'result':'failure','reason':'Bad event type'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+
+  authutil.log(e,member_id=m.id,commit=0)
+  db.session.commit()
+  return json_dump({'result':'success'}), 200, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+
 # REQUIRE json payload with proper JSON content-type as such:
 # curl http://testkey:testkey@127.0.0.1:5000/api/v1/authorize -H "Content-Type:application/json" -d '{"slack_id":"brad.goodman","resources":[4],"members":[11,22,32],"level":2}'
 # This is a hyper-prorected API call, because it cal assume the identity of anyone it specifies
@@ -499,7 +531,7 @@ def api_v1_show_resource_fob(id,fob):
 		output = accesslib.getAccessControlList(rid)
     for x in json.loads(output):
       if int(x['raw_tag_id']) == fob:
-        return json.dumps(x), 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+        return json.dumps(x), 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
 		return "{\"status\":\"Fob not found\"}", 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
 @blueprint.route('/v1/resources/<string:id>/acl', methods=['GET'])
@@ -509,7 +541,7 @@ def api_v1_show_resource_acl(id):
 		rid = safestr(id)
 		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
 		output = accesslib.getAccessControlList(rid)
-		return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+		return output, 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
 
 @blueprint.route('/ubersearch/<string:ss>',methods=['GET'])
 @login_required

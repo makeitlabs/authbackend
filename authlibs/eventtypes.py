@@ -90,6 +90,18 @@ class RATTBE_LOGEVENT_MEMBER_NOTICE_SENT:
     id=1020
     desc='Notice Sent'
 
+class RATTBE_LOGEVENT_MEMBER_KIOSK_ACCEPTED:
+    id=1021
+    desc='Entry Kiosk Accepted'
+
+class RATTBE_LOGEVENT_MEMBER_KIOSK_DENIED:
+    id=1022
+    desc='Entry Kiosk Denied'
+
+class RATTBE_LOGEVENT_MEMBER_KIOSK_FAILED:
+    id=1024
+    desc='Entry Kiosk Failed'
+
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000
     desc='Other System Event'
