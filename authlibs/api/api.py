@@ -318,7 +318,6 @@ def api_member_search_handler(searchstr):
 
 @blueprint.route('/v1/kiosklog', methods=['POST'])
 @api_only
-@localhost_only
 def api_v1_kiosklog():
   data=request.get_json()
   print "REQUEST",request
