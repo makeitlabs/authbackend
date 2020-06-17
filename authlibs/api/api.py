@@ -316,6 +316,16 @@ def api_member_search_handler(searchstr):
   output  = json_dump(ubersearch(searchstr,only=['members'],membertypes=['Active']),indent=2)
   return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
+@blueprint.route('/v1/kiosklog', methods=['OPTIONS'])
+#@api_only
+def api_v1_kiosklog_options():
+		return "", 200, {
+                        'Access-Control-Allow-Origin':'https://plachenko.github.io',
+                        'Access-Control-Allow-Headers':'Content-Type,Authorization',
+                        'Access-Control-Allow-Credentials':'true',
+                        'Access-Control-Allow-Methods':'OPTIONS,GET',
+                        'Content-Type': 'application/json', 'Content-Language': 'en'}
+
 @blueprint.route('/v1/kiosklog', methods=['POST'])
 @api_only
 def api_v1_kiosklog():
@@ -521,6 +531,16 @@ def api_v1_get_resources():
     result.append({'id':x.id,'name':x.name,'short':x.short,'slack_admin_chan':x.slack_admin_chan,'slack_chan':x.slack_chan})
   return json_dump(result), 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
+@blueprint.route('/v1/resources/<string:id>/fob/<int:fob>', methods=['OPTIONS'])
+#@api_only
+def api_v1_show_resource_fob_options(id,fob):
+		return "", 200, {
+                        'Access-Control-Allow-Origin':'https://plachenko.github.io',
+                        'Access-Control-Allow-Headers':'Content-Type,Authorization',
+                        'Access-Control-Allow-Credentials':'true',
+                        'Access-Control-Allow-Methods':'OPTIONS,GET',
+                        'Content-Type': 'application/json', 'Content-Language': 'en'}
+
 @blueprint.route('/v1/resources/<string:id>/fob/<int:fob>', methods=['GET'])
 @api_only
 def api_v1_show_resource_fob(id,fob):
@@ -532,6 +552,16 @@ def api_v1_show_resource_fob(id,fob):
       if int(x['raw_tag_id']) == fob:
         return json.dumps(x), 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
 		return "{\"status\":\"Fob not found\"}", 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+@blueprint.route('/v1/resources/<string:id>/acl', methods=['OPTIONS'])
+#@api_only
+def api_v1_show_resource_acl_options(id):
+		return "", 200, {
+                        'Access-Control-Allow-Origin':'https://plachenko.github.io',
+                        'Access-Control-Allow-Headers':'Content-Type,Authorization',
+                        'Access-Control-Allow-Credentials':'true',
+                        'Access-Control-Allow-Methods':'OPTIONS,GET',
+                        'Content-Type': 'application/json', 'Content-Language': 'en'}
 
 @blueprint.route('/v1/resources/<string:id>/acl', methods=['GET'])
 @api_only
