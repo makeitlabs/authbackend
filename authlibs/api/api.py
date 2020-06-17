@@ -11,7 +11,9 @@ from authlibs.waivers.waivers import cli_waivers,connect_waivers
 from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel
 from authlibs.members.notices import send_all_notices
 import slackapi
+import base64
 import random,string
+import tempfile
 
 # You must call this modules "register_pages" with main app's "create_rotues"
 blueprint = Blueprint("api", __name__, template_folder='templates', static_folder="static",url_prefix="/api")
@@ -339,6 +341,21 @@ def api_v1_kiosklog():
 		return json_dump({'result':'failure','reason':'Field missing'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
   
+  imagename=""
+  if 'visibleimage' in data:
+    try:
+      img = base64.b64decode(data['visibleimage'])
+      tf = tempfile.NamedTemporaryFile(dir="authlibs/logs/static/kioskimages",suffix='.jpg',delete=False)
+      tf.write(img)
+      imagename=tf.name
+      nf = imagename.replace(".jpg","_ir.jpg")
+      ff = open(nf,"w")
+      img_ir = base64.b64decode(data['irimage'])
+      ff.write(img_ir)
+      imagename = "kioskimages:"+imagename.split("/")[-1].replace(".jpg","")
+    except BaseException as e:
+      print e
+      pass
   m = Member.query.filter(Member.member==data['user']).one_or_none()
   if not m:
 		return json_dump({'result':'failure','reason':'Member not found'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
@@ -353,7 +370,7 @@ def api_v1_kiosklog():
   else:
 		return json_dump({'result':'failure','reason':'Bad event type'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
-  authutil.log(e,member_id=m.id,commit=0)
+  authutil.log(e,member_id=m.id,message=imagename,commit=0)
   db.session.commit()
   return json_dump({'result':'success'}), 200, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
