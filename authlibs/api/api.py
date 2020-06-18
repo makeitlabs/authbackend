@@ -11,7 +11,9 @@ from authlibs.waivers.waivers import cli_waivers,connect_waivers
 from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel
 from authlibs.members.notices import send_all_notices
 import slackapi
+import base64
 import random,string
+import tempfile
 
 # You must call this modules "register_pages" with main app's "create_rotues"
 blueprint = Blueprint("api", __name__, template_folder='templates', static_folder="static",url_prefix="/api")
@@ -316,6 +318,62 @@ def api_member_search_handler(searchstr):
   output  = json_dump(ubersearch(searchstr,only=['members'],membertypes=['Active']),indent=2)
   return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
+@blueprint.route('/v1/kiosklog', methods=['OPTIONS'])
+#@api_only
+def api_v1_kiosklog_options():
+		return "", 200, {
+                        'Access-Control-Allow-Origin':'https://plachenko.github.io',
+                        'Access-Control-Allow-Headers':'Content-Type,Authorization',
+                        'Access-Control-Allow-Credentials':'true',
+                        'Access-Control-Allow-Methods':'OPTIONS,GET',
+                        'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+@blueprint.route('/v1/kiosklog', methods=['POST'])
+@api_only
+def api_v1_kiosklog():
+  data=request.get_json()
+  print "REQUEST",request
+  print "DATA",data
+  if not data:
+		return json_dump({'result':'failure','reason':'Not JSON request'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+  
+  if 'user' not in data or 'event' not in data:
+		return json_dump({'result':'failure','reason':'Field missing'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+
+  
+  imagename=""
+  if 'visibleimage' in data:
+    try:
+      img = base64.b64decode(data['visibleimage'])
+      tf = tempfile.NamedTemporaryFile(dir="authlibs/logs/static/kioskimages",suffix='.jpg',delete=False)
+      tf.write(img)
+      imagename=tf.name
+      nf = imagename.replace(".jpg","_ir.jpg")
+      ff = open(nf,"w")
+      img_ir = base64.b64decode(data['irimage'])
+      ff.write(img_ir)
+      imagename = "kioskimages:"+imagename.split("/")[-1].replace(".jpg","")
+    except BaseException as e:
+      print e
+      pass
+  m = Member.query.filter(Member.member==data['user']).one_or_none()
+  if not m:
+		return json_dump({'result':'failure','reason':'Member not found'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+
+  e=None
+  if data['event'] == 'ACCEPTED':
+    e = eventtypes.RATTBE_LOGEVENT_MEMBER_KIOSK_ACCEPTED.id
+  elif data['event'] == 'DENIED':
+    e = eventtypes.RATTBE_LOGEVENT_MEMBER_KIOSK_DENIED.id
+  elif data['event'] == 'FAILED':
+    e = eventtypes.RATTBE_LOGEVENT_MEMBER_KIOSK_FAILED.id
+  else:
+		return json_dump({'result':'failure','reason':'Bad event type'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+
+  authutil.log(e,member_id=m.id,message=imagename,commit=0)
+  db.session.commit()
+  return json_dump({'result':'success'}), 200, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+
 # REQUIRE json payload with proper JSON content-type as such:
 # curl http://testkey:testkey@127.0.0.1:5000/api/v1/authorize -H "Content-Type:application/json" -d '{"slack_id":"brad.goodman","resources":[4],"members":[11,22,32],"level":2}'
 # This is a hyper-prorected API call, because it cal assume the identity of anyone it specifies
@@ -490,6 +548,16 @@ def api_v1_get_resources():
     result.append({'id':x.id,'name':x.name,'short':x.short,'slack_admin_chan':x.slack_admin_chan,'slack_chan':x.slack_chan})
   return json_dump(result), 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
+@blueprint.route('/v1/resources/<string:id>/fob/<int:fob>', methods=['OPTIONS'])
+#@api_only
+def api_v1_show_resource_fob_options(id,fob):
+		return "", 200, {
+                        'Access-Control-Allow-Origin':'https://plachenko.github.io',
+                        'Access-Control-Allow-Headers':'Content-Type,Authorization',
+                        'Access-Control-Allow-Credentials':'true',
+                        'Access-Control-Allow-Methods':'OPTIONS,GET',
+                        'Content-Type': 'application/json', 'Content-Language': 'en'}
+
 @blueprint.route('/v1/resources/<string:id>/fob/<int:fob>', methods=['GET'])
 @api_only
 def api_v1_show_resource_fob(id,fob):
@@ -499,8 +567,18 @@ def api_v1_show_resource_fob(id,fob):
 		output = accesslib.getAccessControlList(rid)
     for x in json.loads(output):
       if int(x['raw_tag_id']) == fob:
-        return json.dumps(x), 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+        return json.dumps(x), 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
 		return "{\"status\":\"Fob not found\"}", 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+@blueprint.route('/v1/resources/<string:id>/acl', methods=['OPTIONS'])
+#@api_only
+def api_v1_show_resource_acl_options(id):
+		return "", 200, {
+                        'Access-Control-Allow-Origin':'https://plachenko.github.io',
+                        'Access-Control-Allow-Headers':'Content-Type,Authorization',
+                        'Access-Control-Allow-Credentials':'true',
+                        'Access-Control-Allow-Methods':'OPTIONS,GET',
+                        'Content-Type': 'application/json', 'Content-Language': 'en'}
 
 @blueprint.route('/v1/resources/<string:id>/acl', methods=['GET'])
 @api_only
@@ -509,7 +587,7 @@ def api_v1_show_resource_acl(id):
 		rid = safestr(id)
 		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
 		output = accesslib.getAccessControlList(rid)
-		return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+		return output, 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
 
 @blueprint.route('/ubersearch/<string:ss>',methods=['GET'])
 @login_required

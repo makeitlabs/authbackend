@@ -29,7 +29,7 @@ def training():
           ar['desc'] = 'Authorization was revoked'
           ar['status'] = 'cannot'
         elif ma.level >0: 
-          ar['desc'] = 'Your are a Resource Manager'
+          ar['desc'] = 'You\'r are a Resource Manager'
           ar['status'] = 'already'
       else:
         #User has no access - can they train?
@@ -148,9 +148,6 @@ def quiz(resource):
   if not r:
     flash("No resrouce","warning")
     return redirect(url_for('empty'))
-  if accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
-    flash("You are not authorized to edit this quiz","warning")
-    return redirect(url_for('training.training'))
   qz = ResourceQuiz.query.filter(ResourceQuiz.resource_id == r.id).all()
   if len(qz) == 0:
     flash("Quiz is missing - contact Resource Manager","warning")

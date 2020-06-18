@@ -2,11 +2,11 @@
 
 <div class="container">
 	<div class="btn-group my-2" role="group" aria-label="Member Pages">
-		{% if rec.has_privs() %}
+		{% if current_user.has_privs() %}
 			<button onclick='location.href="{{ url_for("members.members") }}";'  type="button" class="btn btn-{% if page!="all" %}outline-{% endif %}info">All</button>
 		{% endif %}
 		<button onclick='location.href="{{ url_for("members.member_show",id=rec.member) }}";'  type="button" class="btn btn-{% if page!="view" %}outline-{% endif %}info">View</button>
-		{% if rec.has_privs() %}
+		{% if current_user.has_privs() %}
 			<button onclick='location.href="{{ url_for("members.member_edit",id=rec.id) }}";'  type="button" class="btn btn-{% if page!="edit" %}outline-{% endif %}info">Edit</button>
 			<button onclick='location.href="{{ url_for("members.member_tags",id=rec.id) }}";'  type="button" class="btn btn-{% if page!="tags" %}outline-{% endif %}info">Tags</button>
 		{% endif %}
