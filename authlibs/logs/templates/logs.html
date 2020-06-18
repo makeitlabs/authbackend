@@ -158,7 +158,13 @@
 				{{ l.doneby }}
 			</a>
 		</td>
-		<td>{{ l.message }}</td>
+		<td>
+      {% if l.extern_link %}
+        <a href='{{ l.extern_link }}'>{{ l.message }}</a>
+      {% else %}
+        {{ l.message }}
+      {% endif %}
+    </td>
 	  </tr>
       {% endfor %}
 	</table>

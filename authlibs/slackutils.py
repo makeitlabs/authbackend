@@ -27,7 +27,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from templateCommon import *
 
 Config = init.get_config()
-slack_token = Config.get('Slack','ADMIN_API_TOKEN')
+slack_token = Config.get('Slack','BOT_API_TOKEN')
 slack_disabled =  Config.has_option('Slack','Disabled')
 
 

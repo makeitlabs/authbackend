@@ -269,7 +269,11 @@ def logs():
 						r['event']=l.event_type
 
 				if l.message:
-						r['message']=l.message
+						if (l.message.startswith("kioskimages:")):
+						  r['message']="See Images"
+						  r['extern_link']=url_for("logs.kioskentry",ke=l.message.replace("kioskimages:",""))
+						else:
+						  r['message']=l.message
 				else:
 						r['message']=""
 
@@ -385,7 +389,14 @@ def logs():
 		return render_template('logs.html',logs=logs,resources=fil_resources,tools=fil_tools,nodes=fil_nodes,meta=meta)
 
 
-@blueprint.route('/large.csv')
+@blueprint.route('/kiosk/<string:ke>')
+def kioskentry(ke):
+  ke = ke.replace("/","")
+  ke = ke.replace(".","")
+  ke = ke.replace("kioskimages:","")
+  return render_template('kiosk_entry.html',entry=ke)
+  
+blueprint.route('/large.csv')
 def generate_large_csv():
     def generate():
         for row in iter_all_rows():
