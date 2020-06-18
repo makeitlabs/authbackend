@@ -344,6 +344,14 @@ if __name__ == '__main__':
               )
               if res['ok'] == False:
                 logger.error("Slack MQTT test message failed: %s"%res['error'])
+
+              res = sc.api_call(
+                "chat.postMessage",
+                channel="#monitoring-security",
+                text="This is a test :tada:"
+              )
+              if res['ok'] == False:
+                logger.error("Slack MQTT test message failed: %s"%res['error'])
       except:
         pass
       while True:
