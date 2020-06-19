@@ -102,6 +102,14 @@ class RATTBE_LOGEVENT_MEMBER_KIOSK_FAILED:
     id=1024
     desc='Entry Kiosk Failed'
 
+class RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED:
+    id=1025
+    desc='Entry allowed'
+
+class RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED:
+    id=1026
+    desc='Entry denied'
+
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000
     desc='Other System Event'
@@ -203,7 +211,7 @@ class RATTBE_LOGEVENT_TOOL_LOGIN:
 class RATTBE_LOGEVENT_TOOL_COMBO_FAILED:
     id=3014
     desc="Incorrect Passcode attempt"
-		slack_icon=":no_entry:"
+    slack_icon=":no_entry:"
 
 class RATTBE_LOGEVENT_TOOL_LOGOUT:
     id=3015
@@ -214,6 +222,10 @@ class RATTBE_LOGEVENT_TOOL_MAINTENANCE_DONE:
     id=3016
     desc="Maintenance Done"
 		slack_icon=":wrench:"
+
+class RATTBE_LOGEVENT_TOOL_ACL_UPDATED:
+    id=3017
+    desc="ACL Updated"
 
 class RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED:
     id=4000
