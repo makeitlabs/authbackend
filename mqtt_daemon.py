@@ -191,13 +191,12 @@ def on_message(client,userdata,msg):
                     # TODO throttle these!
                     #log_event_type = RATTBE_LOGEVENT_SYSTEM_WIFI.id
                     pass
-            elif subt=="acl":
-                if sst=="update":
-                    if 'activeRecords' in message and 'totalRecords' in message:
-                        log_text = "{0}/{1} active records - {2}".format(message['activeRecords'],message['totalRecords'],message['status'])
-                    else:
-                        log_text = message['status']
-                    log_event_type = RATTBE_LOGEVENT_TOOL_ACL_UPDATED.id
+            elif topic[0]=="ratt" and topic[1]=="status" and subt=="acl" and sst=="update":
+                if 'activeRecords' in message and 'totalRecords' in message:
+                    log_text = "{0}/{1} active records - {2}".format(message['activeRecords'],message['totalRecords'],message['status'])
+                else:
+                    log_text = message['status']
+                log_event_type = RATTBE_LOGEVENT_TOOL_ACL_UPDATED.id
             elif subt=="system":
                 if sst=="power":
                     state = message['state']  # lost | restored | shutdown
