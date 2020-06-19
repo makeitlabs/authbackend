@@ -191,6 +191,13 @@ def on_message(client,userdata,msg):
                     # TODO throttle these!
                     #log_event_type = RATTBE_LOGEVENT_SYSTEM_WIFI.id
                     pass
+            elif subt=="acl":
+                if sst=="update":
+                    if 'activeRecords' in message and 'totalRecords' in message:
+                        log_text = "{0}/{1} active records - {2}".format(message['activeRecords'],message['totalRecords'],message['status'])
+                    else:
+                        log_text = message['status']
+                    log_event_type = RATTBE_LOGEVENT_TOOL_ACL_UPDATED.id
             elif subt=="system":
                 if sst=="power":
                     state = message['state']  # lost | restored | shutdown
@@ -211,6 +218,14 @@ def on_message(client,userdata,msg):
                     reason = message['reason'] # Failure reason text
                     log_event_type = RATTBE_LOGEVENT_TOOL_SAFETY.id
                     log_text = reason
+                elif sst=="access":
+                    if 'error' in message and message['error'] == True:
+                        log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
+                        log_text = message['errorExt']
+                    elif message['allowed']:
+                        log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id
+                    else:
+                        log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED.id
                 elif sst=="activity":
                     # member
                     active = message['active'] # Bool

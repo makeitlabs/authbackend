@@ -227,6 +227,10 @@ class RATTBE_LOGEVENT_TOOL_ACL_UPDATED:
     id=3017
     desc="ACL Updated"
 
+class RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB:
+    id=3018
+    desc="Unregognized key fob"
+
 class RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED:
     id=4000
     desc='Resource access granted'
