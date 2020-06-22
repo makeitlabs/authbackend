@@ -583,6 +583,14 @@ def api_v1_show_resource_fob(id,fob):
 		output = accesslib.getAccessControlList(rid)
     for x in json.loads(output):
       if int(x['raw_tag_id']) == fob:
+        #w = Logs.query.order_by(Logs.time_reported.desc()).limit(1).one_or_none()
+        m = Member.query.filter(Member.member == x['member']).one_or_none()
+        if m:
+            t = Logs.query.filter((Logs.member_id == m.id) & (Logs.event_type  == eventtypes.RATTBE_LOGEVENT_MEMBER_KIOSK_ACCEPTED.id))
+            t = t.order_by(Logs.time_reported.desc()).limit(1)
+            t = t.one_or_none()
+            if t: 
+                x['lastkiosk']=str(t.time_reported)
         return json.dumps(x), 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
 		return "{\"status\":\"Fob not found\"}", 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
