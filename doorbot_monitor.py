@@ -94,13 +94,13 @@ if __name__ == '__main__':
           x =m.mac
           ip=None
           mac = x[0:2]+":"+ x[2:4]+":"+ x[4:6]+":"+ x[6:8]+":"+ x[8:10]+":"+x[10:12]
-          for xx in [v.strip() for v in subprocess.Popen(["arp","-n"],stdout=subprocess.PIPE).stdout.readlines()]:
+          for xx in [v.strip() for v in subprocess.Popen(["/usr/sbin/arp","-n"],stdout=subprocess.PIPE).stdout.readlines()]:
               sp = xx.split()
               if sp[2] == mac:
                   ip = sp[0]
           print m.name,mac,ip
           if ip:
-            p=subprocess.call(["echo","ping","-c1",ip])
+            p=subprocess.call(["/bin/ping","-c1",ip])
             if p==0:
 		eastern = dateutil.tz.gettz('US/Eastern')
 		utc = dateutil.tz.gettz('UTC')
