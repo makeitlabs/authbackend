@@ -133,6 +133,9 @@ def on_message(client,userdata,msg):
                       toolname="Node #"+str(topic[3])
                     else:
                       toolname=t.name
+                if n:
+                    n.last_ping=datetime.utcnow()
+                    db.session.commit()
                 elif topic[2]=="tool":
                     toolname=topic[3]
 
