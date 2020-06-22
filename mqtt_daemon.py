@@ -128,9 +128,6 @@ def on_message(client,userdata,msg):
                 if topic[2]=="node":
                     print topic
                     n=Node.query.filter(Node.mac == topic[3]).one_or_none()
-                    if n:
-                      n.last_ping=datetime.utcnow()
-                      db.session.commit()
                     t=Tool.query.join(Node,((Node.id == Tool.node_id) & (Node.mac == topic[3]))).one_or_none()
                     if t is None:
                       toolname="Node #"+str(topic[3])
