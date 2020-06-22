@@ -18,9 +18,17 @@ def nodes():
 	nodes = []
 	for x in Node.query.all():
 		a = [None,None]
+		acl = [None,None]
+		utc = dateutil.tz.gettz('UTC')
+		eastern = dateutil.tz.gettz('US/Eastern')
 		if x.last_ping:
-			a = ago.ago(now,x.last_ping)
-		nodes.append({'id':x.id,'name':x.name,'mac':x.mac,'when':a[0],'ago':a[1]})
+			axx=x.last_ping.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
+			a=ago.ago(axx,datetime.now())
+		if x.last_update:
+			acl = ago.ago(now,x.last_update)
+			axx=x.last_update.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
+			acl=ago.ago(axx,datetime.now())
+		nodes.append({'id':x.id,'name':x.name,'mac':x.mac,'when':a[0],'ago':a[1],'strength':x.strength,'when_acl':acl[0],'ago_acl':acl[1]})
 	access = {}
 	resources=Resource.query.all()
 	return render_template('nodes.html',nodes=nodes,editable=True,node={},resources=resources)

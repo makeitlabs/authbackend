@@ -8,7 +8,7 @@ from authlibs.ubersearch import ubersearch
 from authlibs import membership
 from authlibs import payments
 from authlibs.waivers.waivers import cli_waivers,connect_waivers
-from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel
+from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel,send_slack_message
 from authlibs.members.notices import send_all_notices
 import slackapi
 import base64
@@ -342,6 +342,7 @@ def api_v1_kiosklog():
 
   
   imagename=""
+  imagecode=None
   if 'visibleimage' in data:
     try:
       img = base64.b64decode(data['visibleimage'])
@@ -352,6 +353,7 @@ def api_v1_kiosklog():
       ff = open(nf,"w")
       img_ir = base64.b64decode(data['irimage'])
       ff.write(img_ir)
+      imagecode = imagename.split("/")[-1].replace(".jpg","")
       imagename = "kioskimages:"+imagename.split("/")[-1].replace(".jpg","")
     except BaseException as e:
       print e
@@ -361,17 +363,31 @@ def api_v1_kiosklog():
 		return json_dump({'result':'failure','reason':'Member not found'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
   e=None
+  icon=""
   if data['event'] == 'ACCEPTED':
     e = eventtypes.RATTBE_LOGEVENT_MEMBER_KIOSK_ACCEPTED.id
+    icon = ":white_check_mark:"
   elif data['event'] == 'DENIED':
     e = eventtypes.RATTBE_LOGEVENT_MEMBER_KIOSK_DENIED.id
+    icon = ":x:"
   elif data['event'] == 'FAILED':
     e = eventtypes.RATTBE_LOGEVENT_MEMBER_KIOSK_FAILED.id
+    icon = ":bangbang:"
   else:
 		return json_dump({'result':'failure','reason':'Bad event type'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
   authutil.log(e,member_id=m.id,message=imagename,commit=0)
   db.session.commit()
+  try:
+        url=""
+        if imagecode:
+            url="https://auth.makeitlabs.com"+url_for("logs.kioskentry",ke=imagecode)
+        send_slack_message(
+          "#monitoring-security",
+          "{2} {0} at entry kiosk {1} {3}".format(m.member,data['event'],icon,url)
+          )
+  except BaseException as e:
+    logger.error("Error slack log {0}".format(e))
   return json_dump({'result':'success'}), 200, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
 # REQUIRE json payload with proper JSON content-type as such:
@@ -567,6 +583,14 @@ def api_v1_show_resource_fob(id,fob):
 		output = accesslib.getAccessControlList(rid)
     for x in json.loads(output):
       if int(x['raw_tag_id']) == fob:
+        #w = Logs.query.order_by(Logs.time_reported.desc()).limit(1).one_or_none()
+        m = Member.query.filter(Member.member == x['member']).one_or_none()
+        if m:
+            t = Logs.query.filter((Logs.member_id == m.id) & (Logs.event_type  == eventtypes.RATTBE_LOGEVENT_MEMBER_KIOSK_ACCEPTED.id))
+            t = t.order_by(Logs.time_reported.desc()).limit(1)
+            t = t.one_or_none()
+            if t: 
+                x['lastkiosk']=str(t.time_reported)
         return json.dumps(x), 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
 		return "{\"status\":\"Fob not found\"}", 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 

@@ -98,6 +98,7 @@ def on_message(client,userdata,msg):
     tool_cache={}
     resource_cache={}
     member_cache={}
+    allow_slack_log=True
     sc = userdata['slack_context']
     try:
         with app.app_context():
@@ -127,9 +128,6 @@ def on_message(client,userdata,msg):
                 if topic[2]=="node":
                     print topic
                     n=Node.query.filter(Node.mac == topic[3]).one_or_none()
-                    if n:
-                      n.last_ping=datetime.utcnow()
-                      db.session.commit()
                     t=Tool.query.join(Node,((Node.id == Tool.node_id) & (Node.mac == topic[3]))).one_or_none()
                     if t is None:
                       toolname="Node #"+str(topic[3])
@@ -190,7 +188,22 @@ def on_message(client,userdata,msg):
             if subt=="wifi":
                     # TODO throttle these!
                     #log_event_type = RATTBE_LOGEVENT_SYSTEM_WIFI.id
+                    allow_slack_log=False
+                    if n:
+                      n.last_ping=datetime.utcnow()
+                      n.strength=message['level'];
+                      db.session.commit()
                     pass
+            elif topic[0]=="ratt" and topic[1]=="status" and subt=="acl" and sst=="update":
+                allow_slack_log=False
+                if 'activeRecords' in message and 'totalRecords' in message:
+                    log_text = "{0}/{1} active records - {2}".format(message['activeRecords'],message['totalRecords'],message['status'])
+                else:
+                    log_text = message['status']
+                #log_event_type = RATTBE_LOGEVENT_TOOL_ACL_UPDATED.id
+                if n:
+                  n.last_update=datetime.utcnow()
+                  db.session.commit()
             elif subt=="system":
                 if sst=="power":
                     state = message['state']  # lost | restored | shutdown
@@ -211,6 +224,14 @@ def on_message(client,userdata,msg):
                     reason = message['reason'] # Failure reason text
                     log_event_type = RATTBE_LOGEVENT_TOOL_SAFETY.id
                     log_text = reason
+                elif sst=="access":
+                    if 'error' in message and message['error'] == True:
+                        log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
+                        log_text = message['errorExt']
+                    elif message['allowed']:
+                        log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id
+                    else:
+                        log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED.id
                 elif sst=="activity":
                     # member
                     active = message['active'] # Bool
@@ -300,7 +321,7 @@ def on_message(client,userdata,msg):
                 logevent.message = log_text
 
                 # Do slack notification
-                if log_event_type and toolname and associated_resource and associated_resource['slack_admin_chan']:
+                if log_event_type and toolname and associated_resource and associated_resource['slack_admin_chan'] and allow_slack_log:
                   try:
                     slacktext="" 
                     if log_event_type in userdata['icons']: 
@@ -344,6 +365,14 @@ if __name__ == '__main__':
               )
               if res['ok'] == False:
                 logger.error("Slack MQTT test message failed: %s"%res['error'])
+
+              #res = sc.api_call(
+              #  "chat.postMessage",
+              #  channel="#monitoring-security",
+              #  text="This is a test :tada:"
+              #)
+              #if res['ok'] == False:
+              #  logger.error("Slack MQTT test message failed: %s"%res['error'])
       except:
         pass
       while True:
