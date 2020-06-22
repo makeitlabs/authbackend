@@ -200,7 +200,7 @@ def on_message(client,userdata,msg):
                     log_text = "{0}/{1} active records - {2}".format(message['activeRecords'],message['totalRecords'],message['status'])
                 else:
                     log_text = message['status']
-                log_event_type = RATTBE_LOGEVENT_TOOL_ACL_UPDATED.id
+                #log_event_type = RATTBE_LOGEVENT_TOOL_ACL_UPDATED.id
                 if n:
                   n.last_update=datetime.utcnow()
                   db.session.commit()
