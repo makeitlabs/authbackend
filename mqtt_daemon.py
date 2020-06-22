@@ -192,6 +192,10 @@ def on_message(client,userdata,msg):
                     # TODO throttle these!
                     #log_event_type = RATTBE_LOGEVENT_SYSTEM_WIFI.id
                     allow_slack_log=False
+                    if n:
+                      n.last_ping=datetime.utcnow()
+                      n.strength=message['level'];
+                      db.session.commit()
                     pass
             elif topic[0]=="ratt" and topic[1]=="status" and subt=="acl" and sst=="update":
                 allow_slack_log=False
@@ -200,6 +204,9 @@ def on_message(client,userdata,msg):
                 else:
                     log_text = message['status']
                 log_event_type = RATTBE_LOGEVENT_TOOL_ACL_UPDATED.id
+                if n:
+                  n.last_update=datetime.utcnow()
+                  db.session.commit()
             elif subt=="system":
                 if sst=="power":
                     state = message['state']  # lost | restored | shutdown
