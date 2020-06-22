@@ -155,6 +155,8 @@ You will want to run `nightly.py` on some nightly cron job. It will:
 
 To help restore backups - you can use the `restore.py` helper script
 
+For an example crontab - see `crontab.txt`
+
 
 # Update/Deploy
 
@@ -162,14 +164,6 @@ To help restore backups - you can use the `restore.py` helper script
 
 Verify that `authserver.wsgi` is set for your appopriate deploy! (See `authserver.wsgi.EXAMPLE` for example)
 
-### v1.0.5 Schema Update
-
-```
-begin transaction;
-ALTER TABLE nodes ADD strength INTEGER;
-ALTER TABLE nodes ADD last_update DATETIME;
-commit;
-```
 
 ### If you care about getting Slack training invites working:
 
