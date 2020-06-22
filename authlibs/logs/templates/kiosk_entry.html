@@ -1,11 +1,28 @@
 {% extends "layout_bootstrap.html" %}
-{% block body %}
+{% block head %}
+<style>
+
+@media (min-width: 513px) {
+.kioskimg {
+	height:36vw;
+	width:48vw;
+}
+}
+@media (max-width: 512px) {
+.kioskimg {
+	height:72vw;
+	width:96vw;
+}
+}
+</style>
+{% endblock %}
+{% block widebody %}
    <h2>Kiosk Entry</h2>
    
 <div class="containter"> <!-- Base -->
 	<div class="containter"> 
-    <img src="{{ url_for("logs.static",filename="kioskimages/"+entry+".jpg") }}" />
-    <img src="{{ url_for("logs.static",filename="kioskimages/"+entry+"_ir.jpg") }}" />
+    <img class="kioskimg" src="{{ url_for("logs.static",filename="kioskimages/"+entry+".jpg") }}" />
+    <img class="kioskimg" src="{{ url_for("logs.static",filename="kioskimages/"+entry+"_ir.jpg") }}" />
   </div> <! -- Member Add Collapse -->
 </div> <!-- Base -->
 {% endblock %}

@@ -8,6 +8,8 @@
             <th>Name</th>
             <th>MAC</th>
             <th colspan=2>Last Ping</th>
+            <th colspan=>Strength</th>
+            <th colspan=2>Last ACL Update</th>
         </tr>
 	{% for nodes in nodes %}
 	  <tr>
@@ -20,7 +22,22 @@
 		</td>
 		<td>
 			{% if nodes.ago %}
-			{{ nodes.ago }}
+			{{ nodes.ago }} Ago
+			{% endif %}
+		</td>
+		<td>
+			{% if nodes.strength %}
+			{{ nodes.strength }}
+			{% endif %}
+		</td>
+		<td>
+			{% if nodes.when_acl %}
+			{{ nodes.when_acl }}
+			{% endif %}
+		</td>
+		<td>
+			{% if nodes.ago_acl %}
+			{{ nodes.ago_acl }} Ago
 			{% endif %}
 		</td>
 	  </tr>

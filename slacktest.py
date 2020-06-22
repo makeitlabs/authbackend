@@ -38,11 +38,11 @@ if __name__ == '__main__':
 
         print "ADMIN API TOKEN",admin_api_token
         sc1 = SlackClient(slack_api_token)
-        if sc1.rtm_connect():
-          print "RTM connected on BOT"
-        else:
-          print "RTM Connection Failed"
-          sys.exit(1)
+        #if sc1.rtm_connect():
+        #  print "RTM connected on BOT"
+        #else:
+        #  print "RTM Connection Failed"
+        #  sys.exit(1)
 
         print "API TOKEN",slack_api_token
         sc = SlackClient(admin_api_token)

@@ -162,6 +162,15 @@ To help restore backups - you can use the `restore.py` helper script
 
 Verify that `authserver.wsgi` is set for your appopriate deploy! (See `authserver.wsgi.EXAMPLE` for example)
 
+### v1.0.5 Schema Update
+
+```
+begin transaction;
+ALTER TABLE nodes ADD strength INTEGER;
+ALTER TABLE nodes ADD last_update DATETIME;
+commit;
+```
+
 ### If you care about getting Slack training invites working:
 
 Slack permissions changed - so you might want to go into slack API and regenerate permissions for the API user. You need to have bunch of new permisions to allow training bot to add people to channels, including:
