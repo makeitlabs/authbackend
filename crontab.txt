@@ -1,5 +1,6 @@
 14 5 * * * date &>> cron.log
 15 5 * * * cd /var/www/authbackend-ng && python nightly.py &>> cron.log
 30 5 * * * cd /var/www/authbackend-ng && python slack_acct_reconcile.py &>> cron.log
+0 9 * * * cd /var/www/authbackend-ng && python covosk_compliance.py &>> cron.log
 0,10,20,30,40,50 * * * * cd /var/www/authbackend-ng && python doorbot_monitor.py >> /dev/null
 0 8 * * 5 python /var/www/authbackend-ng/tools/new_members_report.py --ini /var/www/authbackend-ng/makeit.ini --days 7
