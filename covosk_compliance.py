@@ -28,6 +28,9 @@ from  authlibs import eventtypes
 import subprocess
 import dateutil
 import dateutil.tz
+import tempfile
+import urllib
+import io
 
 
 ## SETUP LOGGING
@@ -52,6 +55,11 @@ logger.addHandler(handler)
 Config = ConfigParser.ConfigParser({})
 Config.read('makeit.ini')
 slack_token = Config.get('Slack','BOT_API_TOKEN')
+cam_username = Config.get('cameras','api_username')
+cam_password = Config.get('cameras','api_password')
+cam_id = Config.get('cameras','camera_id')
+cam_addr = Config.get('cameras','camera_addr')
+cam_slackchan = Config.get('cameras','slackchan')
 
 
 if __name__ == '__main__':
@@ -66,9 +74,16 @@ if __name__ == '__main__':
       sc = SlackClient(slack_token)
 
       members={}
+      index=0
+
+      eastern = dateutil.tz.gettz('US/Eastern')
+      utc = dateutil.tz.gettz('UTC')
       fmtime = datetime.now() - timedelta(days=1)
-      for m in Logs.query.filter(Logs.event_type == RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id,Logs.time_reported > fmtime).all():
-        members[m.member_id]=True
+      grace = datetime.now() - timedelta(minutes=3)
+      for m in Logs.query.filter(Logs.event_type == RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id,Logs.time_reported > fmtime,Logs.time_reported < grace).all():
+        if m.member_id not in members: 
+            members[m.member_id]=[]
+        members[m.member_id].append(m.time_reported)
       for m in members.keys():
         member = Member.query.filter(Member.id==m).one_or_none()
         mn = "Member id {0}".format(m)
@@ -79,9 +94,27 @@ if __name__ == '__main__':
             c =  Logs.query.filter(Logs.event_type == RATTBE_LOGEVENT_MEMBER_KIOSK_ACCEPTED.id,Logs.member_id == member.id,Logs.time_reported > fmtime).count()
         print m,mn,c
         if c == 0:
+            for t in members[m]:
+                t=t.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
+                print ":alert: {0} has violated kiosk protocol at {1}".format(mn,t)
+                tc= t.strftime("%Y-%m-%dT%H:%M:%S.000")
+		fn = "tmpvideo_{0}_{1}".format(os.getpid(),index)
+		index +=1
+                url = "http://{username}:{password}@{addr}/hls/{camid}.ts?pos={tc}&duration=20&lo".format(tc=tc,username=cam_username,password=cam_password,
+			addr=cam_addr,camid=cam_id)
+                tt = open(fn+".ts","w")
+                tt.write(urllib.urlopen(url).read())
+                tt.close()
+                subprocess.call(['ffmpeg','-i',fn+".ts",'-f','mp4',"authlibs/logs/static/kioskimages/"+fn+".mp4"])
+                subprocess.call(['chmod','644',"authlibs/logs/static/kioskimages/"+fn+".mp4"])
+                subprocess.call(['rm',fn+".ts"])
+                print "DONE"
+
+
+                #ffmpeg -i riley.ts -f mp4 riley.mp4
             res = sc.api_call(
               "chat.postMessage",
-              channel="C014U9VPH16",
-              text=":alert: {0} has violated kiosk protocol".format(mn)
+              channel=cam_slackchan,
+              text=":alert: {0} has violated kiosk protocol {1}".format(mn,"https://auth.makeitlabs.com/authit/logs/static/kioskimages/"+fn+".mp4")
               )
             
