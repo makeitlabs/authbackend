@@ -22,6 +22,9 @@ Some rough documentation as of December 2018.
 `pip install google-oauth`
 `sudo pip install sqlalchemy_utils`
 
+For Covid-19 video kiosk compliance reporting script
+`sudo apt install ffmpeg`
+
 ## Creating stub database
 
 `sqlite3 makeit.db < schema.sql`
