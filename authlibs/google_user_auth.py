@@ -94,7 +94,7 @@ def authinit(app):
             member=email.split("@")[0]
             logger.debug("Google auth RESP for {0} {1}".format(email,member))
             if not email.endswith("@makeitlabs.com"):
-                flash("Not a MakeIt Labs account",'warning')
+                flash("Not a MakeIt Labs account - You must log in with your @makeitlabs.com email address",'warning')
                 logger.error("Not a MakeIt Labs account "+str(email))
                 return redirect(url_for('empty'))
             #query = Member.query.filter_by(Member.member.ilike(member))
