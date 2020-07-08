@@ -1,0 +1,40 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+			<p>To assign a waiver to a member - select to appropriate radio boxes for each, then click "assign"</p>
+  <form action="relate_assign" method="POST">
+		<div class=body>
+			<h3>Unassigned Waivers</h3>
+			<table class="table table-sm bkg">
+					<tr>
+						<th>Name</th>
+						<th>Email</th>
+						<th>Created</th>
+						<th>Waiver ID</th>
+						<th>Waiver Type</th>
+					</tr>
+					{% for s in waivers %}
+				<tr>
+				<td>{{ s.lastname }}, {{s.firstname}}</td>
+				<td>{{ s.email }}</td>
+				<td>{{ s.created_date }}</td>
+				<td>{{ s.waiver_id }}</td>
+				{% if s.waivertype in waiverTypes %}
+				<td>{{ waiverTypes[s.waivertype] }}</td>
+				{% else %}
+				<td>???</td>
+				{% endif %}
+				<td><input type="radio" name="do_sub" value="assign:{{ s.waiver_id }}">&nbsp;Assign to...</input></td>
+				</tr>
+					{% endfor %}
+			</table>
+			<input type="submit" value="Assign" name="Assign" />
+		</div>
+	<hr />
+	<h3>Attach to Member:</h4>
+		<div class="container">
+			{% with add_radiobuttons=1 %}
+			{% include 'userlist.html' %}
+			{% endwith %}
+		</div>
+  </form>
+{% endblock %}
