@@ -188,7 +188,7 @@ def relate_assign():
       return redirect(url_for('waivers.relate',member_id=linkmemberid))
     (action,waiverid) = request.form['do_waiver'].split(":",1)
     if action == "assign"  and 'member_radio' not in request.form:
-      flash ("You must (search for and select) a Member to Assign a subscription to","warning")
+      flash ("You must (search for and select) a Member to Assign a waiver to","warning")
       return redirect(url_for('waivers.relate'))
 
     if action == "assign":
@@ -209,7 +209,7 @@ def relate_assign():
               mem.access_enabled=1;
               authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id,member_id=mem.id,commit=0)
         db.session.commit()
-        flash ("Assigning subscription to existing member","success")
+        flash ("Assigning waiver to existing member","success")
     else:
       flash("No action specified","warning")
         
