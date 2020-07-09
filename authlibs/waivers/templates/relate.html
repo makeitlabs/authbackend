@@ -4,7 +4,14 @@
   <form action="relate_assign" method="POST">
 		<div class=body>
 			<h3>Unassigned Waivers</h3>
-			<table class="table table-sm bkg">
+      <div class="form-row">
+        <div class="form-group col-md-8">
+          <label for="waiversearch">Search for Waiver:</label>
+          <input class="form-control" id="waiversearch" type="text" oninput="changedwaiversearch();" />
+        </div>
+      </div>
+      <h2 class="alert alert-info" id="messagebox">Enter a phrase in the search box</h2>
+			<table id="waiver_table" class="table table-sm bkg">
 					<tr>
 						<th>Name</th>
 						<th>Email</th>
@@ -13,7 +20,7 @@
 						<th>Waiver Type</th>
 					</tr>
 					{% for s in waivers %}
-				<tr>
+				<tr style="visibility:collapse">
 				<td>{{ s.lastname }}, {{s.firstname}}</td>
 				<td>{{ s.email }}</td>
 				<td>{{ s.created_date }}</td>
@@ -23,11 +30,11 @@
 				{% else %}
 				<td>???</td>
 				{% endif %}
-				<td><input type="radio" name="do_sub" value="assign:{{ s.waiver_id }}">&nbsp;Assign to...</input></td>
+				<td><input type="radio" name="do_waiver" value="assign:{{ s.waiver_id }}">&nbsp;Assign to...</input></td>
 				</tr>
 					{% endfor %}
 			</table>
-			<input type="submit" value="Assign" name="Assign" />
+			<input type="submit" class="btn btn-primary" value="Assign" name="Assign" />
 		</div>
 	<hr />
 	<h3>Attach to Member:</h4>
@@ -37,4 +44,32 @@
 			{% endwith %}
 		</div>
   </form>
+<script type="text/javascript">
+function changedwaiversearch() {
+  r = document.getElementById("waiversearch").value.toLowerCase();
+  console.log(r);
+  table = document.getElementById("waiver_table");
+  table.visibility="";
+  msg = document.getElementById("messagebox");
+  if (r.length >= 3) {
+    table.visibility="";
+    msg.style.display="none";
+    for (var i = 0, row; row = table.rows[i]; i++) {
+       row.style.visibility="collapse";
+       if (row.cells[0].innerHTML.toLowerCase().includes(r))
+         row.style.visibility="";
+       if (row.cells[1].innerHTML.toLowerCase().includes(r))
+         row.style.visibility="";
+       if (row.cells[3].innerHTML.toLowerCase().includes(r))
+         row.style.visibility="";
+       //iterate through rows
+       //rows would be accessed using the "row" variable assigned in the for loop
+      //console.log(row.cells[1].innerHTML);
+    }
+  } else {
+    msg.style.display="block";
+    table.visibility="collapse";
+  }
+}
+</script>
 {% endblock %}
