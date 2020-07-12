@@ -16,6 +16,7 @@ DefaultLogin: oauth
 ; "oauth" or "local"
 HelpURL: https://github.com/makeitlabs/authbackend/wiki/RATT-Tool-Authentication-Backend
 ; BackendLogfile: /tmp/authit.log  NOT USED YET
+; LockoutMessage: Covid-19 Training Required
 
 [Payments]
 Modules: stripe
