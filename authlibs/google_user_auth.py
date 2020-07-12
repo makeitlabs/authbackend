@@ -110,7 +110,7 @@ def authinit(app):
 
                 if len(user) ==0:
                         flash("Error - No account found - please seek assistance",'warning')
-                        logger.error("No account matchin %s for GUI login" % email)
+                        logger.error("No account matching %s for GUI login" % email)
                         return redirect(url_for('empty'))
 
                 user = user[0]
