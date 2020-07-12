@@ -174,6 +174,8 @@ For an example crontab - see `crontab.txt`
 
 Verify that `authserver.wsgi` is set for your appopriate deploy! (See `authserver.wsgi.EXAMPLE` for example)
 
+In `makeit.ini` set a defualt door lockout message with `LockoutMessage` in the `General` section. This should not be present for normal deployments, but might want to say `Covid-19 Training Required` if appropriate.
+
 
 ### If you care about getting Slack training invites working:
 
