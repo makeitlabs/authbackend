@@ -344,6 +344,13 @@ def resource_showusers(resource):
 					(lu1,lu2,lu3) = ago.ago(mid_to_lastuse[x[1]],now)
 					lu2 += " ago"
 					sorttime = mid_to_lastuse[x[1]]
+			else:
+				# Maybe it's a door?
+				d = Logs.query.filter((Logs.event_type == eventtypes.RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id) & (Logs.resource_id == res_id) & (Logs.member_id == x[1])).order_by(Logs.time_logged.desc()).limit(1).one_or_none()
+				if d:
+					(lu1,lu2,lu3) = ago.ago(d.time_logged,now)
+					lu2 += " ago"
+					sorttime = d.time_logged
 			accrec.append({'member_id':x[1],'member':x[2],'level':level,
 					'sortlevel':int(x[3]),
 					'sorttime':sorttime,

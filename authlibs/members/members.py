@@ -835,8 +835,11 @@ def getDoorAccess(id):
   if r:
     acc = accesslib.access_query(r.id,member_id=id,tags=False)
     acc = acc.first()
-    if not acc:
-	    return ("No Access Record (Needs orientation?)",False,None)
+    if  not acc:
+       msg = "No Access Record (Needs orientation?)"
+       if current_app.config['globalConfig'].Config.has_option('General','LockoutMessage'):
+	       msg = current_app.config['globalConfig'].Config.get('General','LockoutMessage')
+       return (msg,False,None)
   acc=accesslib.accessQueryToDict(acc)
 
   (warning,allowed) = accesslib.determineAccess(acc,"Door access pending orientation")

@@ -147,15 +147,73 @@ def connect_waivers():
 		if len(m)==1:
 			w.member_id = m[0].id
 			s += " accept waiver for member %s" % m[0].member
+			try:
+				comment = Waiver.waiverTypes[w.waivertype]['short']
+			except:
+				comment="??"
+			authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,member_id=m[0].id,message=comment,commit=0)
 			if (w.waivertype == Waiver.WAIVER_TYPE_MEMBER):
 				if  (m[0].access_reason is None or m[0].access_reason == ""):
 					m[0].access_enabled=1;
-					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,member_id=m[0].id,commit=0)
+					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id,member_id=m[0].id,commit=0)
 				else:
 					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,message="Waiver found, but access otherwise denied",member_id=m[0].id,commit=0)
 		#else:
 		#	print s+" ?? len "+str(len(m))
 	db.session.commit()
+
+@blueprint.route('/relate', methods = ['GET'])
+@login_required
+@roles_required(['Admin','Finance','Useredit'])
+def relate():
+  mem=None
+  if 'member_id' in request.values:
+    mid = int(request.values['member_id'])
+    mem = Member.query.filter(Member.id==mid).one_or_none()
+  waivers = Waiver.query.filter(Subscription.member_id == None).all()
+
+  wt ={}
+  for w in Waiver.waiverTypes:
+    wt[w['code']]=w['short']
+  return render_template('relate.html',waivers=waivers,linkmember=mem,waiverTypes=wt)
+
+# Post handler for "relate" above
+@blueprint.route('/relate_assign', methods = ['POST'])
+@login_required
+@roles_required(['Admin','Finance','Useredit'])
+def relate_assign():
+  if 'Assign' in request.form:
+    if 'do_waiver' not in request.form:
+      flash ("Choose a waiver to \"Assign To\" this member","warning")
+      return redirect(url_for('waivers.relate',member_id=linkmemberid))
+    (action,waiverid) = request.form['do_waiver'].split(":",1)
+    if action == "assign"  and 'member_radio' not in request.form:
+      flash ("You must (search for and select) a Member to Assign a waiver to","warning")
+      return redirect(url_for('waivers.relate'))
+
+    if action == "assign":
+      mem = Member.query.filter(Member.member == request.form['member_radio']).one()
+      wall = Waiver.query.filter(Waiver.waiver_id == waiverid).all()
+      if len(wall) == 0:
+        flash ("Waiver {0} not found".format(waiverid))
+      else:
+        for w in wall:
+          w.member_id = mem.id
+          try:
+            comment = Waiver.waiverTypes[w.waivertype]['short']
+          except:
+            comment="??"
+          authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,member_id=mem.id,doneby=current_user.id,message=comment,commit=0)
+          if (w.waivertype == Waiver.WAIVER_TYPE_MEMBER):
+            if  (mem.access_reason is None or mem.access_reason == ""):
+              mem.access_enabled=1;
+              authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id,member_id=mem.id,commit=0)
+        db.session.commit()
+        flash ("Assigning waiver to existing member","success")
+    else:
+      flash("No action specified","warning")
+        
+  return redirect(url_for('waivers.relate'))
 
 def cli_waivers_connect(*cmd,**kvargs):
 	connect_waivers()

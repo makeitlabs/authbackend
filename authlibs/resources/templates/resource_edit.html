@@ -3,6 +3,7 @@
 <div>
 <div class="sectionhead"><h3>Edit Resource</h3></div>
 	<div class="btn-group my-2" role="group">
+		<a class="btn btn-outline-secondary" href="{{ url_for("resources.resource_showusers",resource=rec.name) }}" class="btn btn-link">Members</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.resource_usage",resource=rec.name) }}" class="btn btn-link">Usage Graphs</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.resource_usage_reports",resource=rec.name) }}" class="btn btn-link">Usage Reports</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.maintenance",resource=rec.name) }}" class="btn btn-link">Maintenance</a>

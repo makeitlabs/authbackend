@@ -11,3 +11,6 @@ newexampleschema
 *.swp
 run_auth.py
 *.sq3
+authlibs/logs/static/kioskimages/*
+*.acl
+backups/
