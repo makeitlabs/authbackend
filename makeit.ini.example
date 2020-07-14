@@ -16,6 +16,7 @@ DefaultLogin: oauth
 ; "oauth" or "local"
 HelpURL: https://github.com/makeitlabs/authbackend/wiki/RATT-Tool-Authentication-Backend
 ; BackendLogfile: /tmp/authit.log  NOT USED YET
+; LockoutMessage: Covid-19 Training Required
 
 [Payments]
 Modules: stripe
@@ -93,3 +94,10 @@ aws_secret_key=<AWS SECRET KEY>
 aws_bucket=<AWS BUCKET>
 BOT_API_TOKEN=<SLACK TOKEN - PROBABLY SAME AS IN SLACK SECTION>
 localurl=http://127.0.0.1:5000
+
+[cameras]
+api_username=camerausername
+api_password=camerasystempassword
+camera_id=cameraid
+camera_addr=10.0.0.3:7001
+slackchan=SlackCHallelIDtoReport

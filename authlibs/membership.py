@@ -229,6 +229,7 @@ def createMissingMemberAccounts(members,isTest=True,searchGoogle=False):
             password = "%s%d%d" % (nameparts['last'],random.randint(1,100000),len(nameparts['last']))
             try:
               google.createUser(nameparts['first'],nameparts['last'],m.member,m.alt_email,password)
+              m.email=m.member.lower()+"@makeitlabs.com"
               google.sendWelcomeEmail(m.member,password,m.alt_email)
               msg = "Created new Google account for %s %s" % (m.member,m.alt_email)
               logger.warn(msg)

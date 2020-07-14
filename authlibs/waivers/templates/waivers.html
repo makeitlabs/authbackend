@@ -6,7 +6,8 @@
   <div class=body>
 	<div class="sectionhead">Waiver Data</div>
 		{% if current_user.privs("Useredit") or current_user.privs("Finance") %}
-    <a href="{{ url_for('waivers.waivers_update') }}">Update Waiver Data (May take a while)</a>
+    <a class="btn btn-primary" href="{{ url_for('waivers.waivers_update') }}">Update Waiver Data (May take a while)</a>
+    <a class="btn btn btn-primary" href="{{ url_for('waivers.relate') }}">Assign Waivers</a>
 		{% endif %}
     <p></p>
 	Show Waivers: <select id="filterSelect" onChange="changeFilter();">

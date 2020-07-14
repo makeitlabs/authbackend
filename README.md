@@ -22,6 +22,9 @@ Some rough documentation as of December 2018.
 `pip install google-oauth`
 `sudo pip install sqlalchemy_utils`
 
+For Covid-19 video kiosk compliance reporting script
+`sudo apt install ffmpeg`
+
 ## Creating stub database
 
 `sqlite3 makeit.db < schema.sql`
@@ -106,7 +109,15 @@ In a non-production enviroment, allow non-SSL OAuth with:
 
 `python authserver.py`
 
-This should start a server on `0.0.0.0:5000` which you can get to via browser or use the API calls.  The default user/password is admin/admin (configured in .ini file).
+This should start a server on `0.0.0.0:5000` which you can get to via browser or use the API calls.  The default user/password is admin/admin (configured in .ini file) - but this won't be present if you're using a production database.
+
+There are a few things you generally want to do in a local debug environment:
+
+* In `makeit.ini` set `Deployment:` to something other than `Production` (This will make your GUI look different than production)
+* In `makeit.ini` set `Logins: all`
+* In `makeit.ini` set `DefaultLogin:` to `local`. THis will let you login with local credentials when `oauth` isn't working
+* Do `python authserver.py --command addadmin admin admin` to add an admin account w/ password Admin (if there isn't one - like from a live database)
+* Add `local.makeitlabs.com` to your `/etc/hosts` to resolve to localhost. Use that address (in we browser) to access the server. This name is whitelisted in the Oauth rules, so Oauth will be able to redirect to it (i.e. your local server)
 
 ## Fix for newer versions of Flask library
 
@@ -124,7 +135,6 @@ Change the import line in `authserver.py` to:
 ```python
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 ```
-
 
 ## Using the CLI: 
 
@@ -155,6 +165,8 @@ You will want to run `nightly.py` on some nightly cron job. It will:
 
 To help restore backups - you can use the `restore.py` helper script
 
+For an example crontab - see `crontab.txt`
+
 
 # Update/Deploy
 
@@ -162,14 +174,8 @@ To help restore backups - you can use the `restore.py` helper script
 
 Verify that `authserver.wsgi` is set for your appopriate deploy! (See `authserver.wsgi.EXAMPLE` for example)
 
-### v1.0.5 Schema Update
+In `makeit.ini` set a defualt door lockout message with `LockoutMessage` in the `General` section. This should not be present for normal deployments, but might want to say `Covid-19 Training Required` if appropriate.
 
-```
-begin transaction;
-ALTER TABLE nodes ADD strength INTEGER;
-ALTER TABLE nodes ADD last_update DATETIME;
-commit;
-```
 
 ### If you care about getting Slack training invites working:
 
