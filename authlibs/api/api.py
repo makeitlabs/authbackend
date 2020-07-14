@@ -14,6 +14,8 @@ import slackapi
 import base64
 import random,string
 import tempfile
+import subprocess
+
 
 # You must call this modules "register_pages" with main app's "create_rotues"
 blueprint = Blueprint("api", __name__, template_folder='templates', static_folder="static",url_prefix="/api")
@@ -378,6 +380,19 @@ def api_v1_kiosklog():
 
   authutil.log(e,member_id=m.id,message=imagename,commit=0)
   db.session.commit()
+  try:
+    cam_slackchan = current_app.config['globalConfig'].Config.get('cameras','slackchan')
+    s = subprocess.Popen(['/home/bkg/covid-mask-detector/covid-mask-detector/testone.py',imagecode],stdout=subprocess.PIPE)
+    txt = s.stdout.read().strip()
+    res = s.wait()
+    if (res != 0):
+       url="https://auth.makeitlabs.com"+url_for("logs.kioskentry",ke=imagecode)
+       res = send_slack_message(
+              "#project-covid-kiosk",
+              ":alert: {0} {1} at kiosk {2}".format(m.member,txt,url)
+              )
+  except BaseException as e:
+    logger.error("Kiosk mask check error {0}".format(e))
   try:
         url=""
         if imagecode:
