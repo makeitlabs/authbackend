@@ -45,7 +45,7 @@ from slackclient import SlackClient
 print "DONE"
 
 Config = init.get_config()
-slack_token = Config.get('Slack','BOT_API_TOKEN')
+slack_token = Config.get('Slack','ADMIN_API_TOKEN')
 print "API TOKEN",slack_token
 sc = SlackClient(slack_token)
 

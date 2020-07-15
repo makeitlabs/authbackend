@@ -5,6 +5,7 @@ from ..templateCommon import  *
 from datetime import datetime
 from .. import accesslib
 from .. import ago
+import subprocess
 
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
@@ -391,13 +392,27 @@ def logs():
 
 @blueprint.route('/kiosk/<string:ke>')
 def kioskentry(ke):
+  imagecode=ke
   ke = ke.replace("/","")
   ke = ke.replace(".","")
   ke = ke.replace("kioskimages:","")
   if not current_user.is_arm() and (len(current_user.effective_roles()) == 0):
     flash("Not authorized for this page","warning")
     return redirect_url_for("index")
-  return render_template('kiosk_entry.html',entry=ke)
+  txt=""
+  res=0
+  try:
+    cam_slackchan = current_app.config['globalConfig'].Config.get('cameras','slackchan')
+    s = subprocess.Popen(['/var/www/covosk-cv/covid-mask-detector/testone.py',imagecode],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    txt = s.stdout.read().strip()
+    stderr = s.stderr.read().strip()
+    if stderr and stderr != "":
+        txt += "\nSTDERR: "+stderr
+    res = s.wait()
+  except BaseException as e:
+    logger.error("Kiosk mask check error {0}".format(e))
+    txt="BaseException:"+str(e)
+  return render_template('kiosk_entry.html',entry=ke,txt=txt,res=res)
   
 blueprint.route('/large.csv')
 def generate_large_csv():

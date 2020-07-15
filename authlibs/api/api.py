@@ -382,7 +382,7 @@ def api_v1_kiosklog():
   db.session.commit()
   try:
     cam_slackchan = current_app.config['globalConfig'].Config.get('cameras','slackchan')
-    s = subprocess.Popen(['/home/bkg/covid-mask-detector/covid-mask-detector/testone.py',imagecode],stdout=subprocess.PIPE)
+    s = subprocess.Popen(['/var/www/covosk-cv/covid-mask-detector/testone.py',imagecode],stdout=subprocess.PIPE)
     txt = s.stdout.read().strip()
     res = s.wait()
     if (res != 0):
