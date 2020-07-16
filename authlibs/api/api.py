@@ -385,6 +385,7 @@ def api_v1_kiosklog():
     s = subprocess.Popen(['/var/www/covosk-cv/covid-mask-detector/testone.py',imagecode],stdout=subprocess.PIPE)
     txt = s.stdout.read().strip()
     res = s.wait()
+    json.dump({'txt':txt,'res':res},open("authlibs/logs/static/kioskimages/"+imagecode+".json","w"))
     if (res != 0):
        url="https://auth.makeitlabs.com"+url_for("logs.kioskentry",ke=imagecode)
        res = send_slack_message(
