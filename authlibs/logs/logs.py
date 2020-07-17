@@ -398,7 +398,7 @@ def kioskentry(ke):
   ke = ke.replace("kioskimages:","")
   if not current_user.is_arm() and (len(current_user.effective_roles()) == 0):
     flash("Not authorized for this page","warning")
-    return redirect_url_for("index")
+    return redirect_url("index")
   try:
     obj=json.load(open("authlibs/logs/static/kioskimages/"+imagecode+".json"))
     txt=obj['txt']
