@@ -351,10 +351,13 @@ def api_v1_kiosklog():
       tf = tempfile.NamedTemporaryFile(dir="authlibs/logs/static/kioskimages",suffix='.jpg',delete=False)
       tf.write(img)
       imagename=tf.name
+      tf.flush()
+      tf.close()
       nf = imagename.replace(".jpg","_ir.jpg")
       ff = open(nf,"w")
       img_ir = base64.b64decode(data['irimage'])
       ff.write(img_ir)
+      ff.close()
       imagecode = imagename.split("/")[-1].replace(".jpg","")
       imagename = "kioskimages:"+imagename.split("/")[-1].replace(".jpg","")
     except BaseException as e:
