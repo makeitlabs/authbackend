@@ -306,7 +306,7 @@ def member_editaccess(id):
 		tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
 
 		q = db.session.query(Resource).outerjoin(AccessByMember,((AccessByMember.resource_id == Resource.id) & (AccessByMember.member_id == member.id)))
-		q = q.add_columns(AccessByMember.active,AccessByMember.level,AccessByMember.lockout_reason)
+		q = q.add_columns(AccessByMember.active,AccessByMember.level,AccessByMember.lockout_reason,AccessByMember.permissions)
 
 		roles=[]
 		for r in db.session.query(Role.name).outerjoin(UserRoles,((UserRoles.role_id==Role.id) & (UserRoles.member_id == member.id))).add_column(UserRoles.id).all():
@@ -315,7 +315,7 @@ def member_editaccess(id):
 
 		# Put all the records together for renderer
 		access = []
-		for (r,active,level,lockout_reason) in q.all():
+		for (r,active,level,lockout_reason,permissions) in q.all():
 				(myPerms,levelTxt)=authutil.getResourcePrivs(resource=r)
 				if not active: 
 						level=0
@@ -327,7 +327,13 @@ def member_editaccess(id):
 				levelText=AccessByMember.ACCESS_LEVEL[level]
 				if level ==0:
 						levelText=""
-				access.append({'resource':r,'active':active,'level':level,'myPerms':myPerms,'levelText':levelText,'lockout_reason':lockout_reason})
+				permflags=[]
+				if r.permissions:
+					for p in r.permissions.strip().split():
+						haspriv = False
+						if permissions and p.lower() in permissions.strip().lower().split(): haspriv=True
+						permflags.append({p:haspriv})
+				access.append({'resource':r,'active':active,'level':level,'myPerms':myPerms,'levelText':levelText,'lockout_reason':lockout_reason,'permflags':permflags})
 		allowsave=False
 		if (current_user.privs('Useredit')): allowsave=True
 		elif (accesslib.user_is_authorizor(current_user)): allowsave=True
@@ -438,6 +444,7 @@ def member_setaccess(id):
 								acc = acc.filter(resource.id == AccessByMember.resource_id)
 								acc = acc.one_or_none()
 
+								# This sections creates a record, if needed.
 								if acc is None and newcheck == False:
 										# Was off - and no change - Do nothing
 										continue
@@ -451,6 +458,7 @@ def member_setaccess(id):
 								elif acc and newcheck == False and p>=myPerms:
 										flash("You aren't authorized to disable %s privs on %s" % (alstr,r),'warning')
 
+								# This section deals with setting role permissions on the record
 								if acc.level == p:
 										pass # No change
 								elif (p>=myPerms):
@@ -460,6 +468,28 @@ def member_setaccess(id):
 								elif acc.level != p:
 										db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE.id,message=alstr,doneby=current_user.id))
 										acc.level=p
+
+								# This section sets permission flags to whatever's present
+								permission_flags=""
+								for pf in request.form:
+									if pf.startswith("permflag_"+r+"_"):
+										print "PFF",pf
+										pff = pf.replace("permflag_"+r+"_","")
+										permission_flags += " "+pff
+										if "origpermflag_"+r+"_"+pff not in request.form or request.form["origpermflag_"+r+"_"+pff] == "off":
+											aastr = "Added endorsement: "+pff
+											db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE.id,message=aastr,doneby=current_user.id))
+
+								# Log revoked permission flags
+								for pf in request.form:
+									if pf.startswith("origpermflag_"+r+"_"):
+										pff = pf.replace("origpermflag_"+r+"_","")
+										if "permflag_"+r+"_"+pff not in request.form:
+											if request.form[pf] == 'on':
+												aastr = "Removed endorsement: "+pff
+												db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE.id,message=aastr,doneby=current_user.id))
+
+								acc.permissions=permission_flags.strip()
 
 								if acc and newcheck == False and acc.level < myPerms:
 										#delete

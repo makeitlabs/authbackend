@@ -221,3 +221,7 @@ We generally use systemctl to create services to make sure these two are always 
                └─/usr/bin/python /var/www/authbackend-ng/mqtt_daemon.py
 ```
 
+
+# 1.0.7 Migration
+
+`ALTER TABLE resources ADD COLUMN permissions VARCHAR(255);`

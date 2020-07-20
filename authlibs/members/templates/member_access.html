@@ -15,6 +15,7 @@ vim:tabstop=2:expandtab:shiftwidth=2
 		  <th>Contact</th>
 		  <th>Allowed</th>
 		  <th>Permissions</th>
+		  <th>Endorsements</th>
 		</tr>
 		{% for a in access %}
 		  <tr>
@@ -71,6 +72,24 @@ vim:tabstop=2:expandtab:shiftwidth=2
 			{% else %}
 			<td>{{ a.levelText }}</td>
 			{% endif %}
+        <td>
+          {% for p in a.permflags %}
+             <input type="hidden" name="origpermflag_{{ a.resource.name }}_{{ p.keys()[0]}}" 
+                      value="{{ 'on' if (p.values()[0]) else 'off' }}" />
+            {% if a.myPerms >= 2 %}
+              <input type="checkbox" name="permflag_{{ a.resource.name }}_{{ p.keys()[0]}}" 
+                    {{ 'checked' if p.values()[0] }} />
+              <label for="permflag_{{ a.resource.name }}_{{ p.keys()[0]}}">
+              {{ p.keys()[0] }} 
+              </label>
+            {% else %}
+              {% if p.values()[0] %}
+                {{ p.keys()[0] }}
+               <input type="hidden" value="on" name="permflag_{{ a.resource.name }}_{{ p.keys()[0]}}" value="on"  />
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        <td>
         <td>
           {% if ((a.myPerms >= 2) and (a.active==1)) %}
             {% if  (a.lockout_reason) %}

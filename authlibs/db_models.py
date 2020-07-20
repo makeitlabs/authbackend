@@ -198,6 +198,7 @@ class Resource(db.Model):
     sa_days = db.Column(db.Integer())  # Authorization days required for self-auth
     sa_url = db.Column(db.String(150))  # URL to training info for Self-Auth - If empty - no self-auth
     sa_required = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE')) 
+    permissions = db.Column(db.String(255), nullable=True)
 
 class ResourceAlias(db.Model):
     __tablename__ = 'resourcealiases'
