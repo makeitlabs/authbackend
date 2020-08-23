@@ -170,6 +170,15 @@ For an example crontab - see `crontab.txt`
 
 # Update/Deploy
 
+# v1.0.7 Update
+```
+sqlite3 <<dbfile>>
+ALTER TABLE Waivers ADD emergencyName VARCHAR(50);
+ALTER TABLE Waivers ADD emergencyPhone VARCHAR(50);
+
+python ./authserver.py --command loadwaiverecontacts
+```
+
 ### Fix wsgl config
 
 Verify that `authserver.wsgi` is set for your appopriate deploy! (See `authserver.wsgi.EXAMPLE` for example)

@@ -319,6 +319,8 @@ class Waiver(db.Model):
   waiver_id = db.Column(db.String(50))
   firstname = db.Column(db.String(50))
   lastname = db.Column(db.String(50))
+  emergencyName = db.Column(db.String(50))
+  emergencyPhone = db.Column(db.String(50))
   email = db.Column(db.String(50))
   waivertype = db.Column(db.Integer)
   member_id = db.Column(db.Integer(), db.ForeignKey('members.id'))
