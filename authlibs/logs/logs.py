@@ -6,6 +6,7 @@ from datetime import datetime
 from .. import accesslib
 from .. import ago
 import subprocess
+import glob
 
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
@@ -310,7 +311,7 @@ def logs():
                     return resp
                 else:
                     flash ("Invalid format requested","danger")
-                    return redirect_url(request.url);
+                    return redirect(request.url);
 
 
                 nextoffset = offset+limit
@@ -428,6 +429,73 @@ def generate_large_csv():
         for row in iter_all_rows():
             yield ','.join(row) + '\n'
     return Response(generate(), mimetype='text/csv')
+
+@blueprint.route('/train/<string:ke>')
+def kiosktrain(ke):
+  ke = ke.replace("/","")
+  ke = ke.replace(".","")
+  imagecode=ke
+  data={}
+  try:
+    data = json.load(open("authlibs/logs/static/kioskimages/{0}.irtrain".format(ke)))
+  except:
+    pass
+  print "LOADED DATA",data
+  if 'save_good' in request.values:
+    data['goodStartX'] = int(request.values['startX'])
+    data['goodStartY'] = int(request.values['startY'])
+    data['goodEndX'] = int(request.values['endX'])
+    data['goodEndY'] = int(request.values['endY'])
+    json.dump(data,open("authlibs/logs/static/kioskimages/{0}.irtrain".format(ke),"w"))
+    return redirect(url_for("logs.kiosktrain",ke=ke))
+  if 'save_bad' in request.values:
+    data['badStartX'] = int(request.values['startX'])
+    data['badStartY'] = int(request.values['startY'])
+    data['badEndX'] = int(request.values['endX'])
+    data['badEndY'] = int(request.values['endY'])
+    json.dump(data,open("authlibs/logs/static/kioskimages/{0}.irtrain".format(ke),"w"))
+    return redirect(url_for("logs.kiosktrain",ke=ke))
+  if 'mark_invalid' in request.values:
+    json.dump({},open("authlibs/logs/static/kioskimages/{0}.irtrain".format(ke),"w"))
+    return redirect(url_for("logs.kiosktrain",ke=ke))
+  g = glob.glob("authlibs/logs/static/kioskimages/*_ir.jpg")
+  res=""
+  if ke == "0000":
+    ke = g[0].split("/")[-1].replace("_ir.jpg","")
+  n=""
+  p=""
+  found_index="??"
+  for (i,x) in enumerate(g):
+    #print "COMPARE",x,ke
+    if x == "authlibs/logs/static/kioskimages/{0}_ir.jpg".format(ke):
+      print "FOUND"
+      found_index=i
+      try:
+        p = g[i-1].split("/")[-1].replace("_ir.jpg","")
+      except:
+        pass
+      try:
+        n = g[i+1].split("/")[-1].replace("_ir.jpg","")
+      except:
+        pass
+  txt = "Index "+str(found_index)+"\r\n"
+  txt += ke
+  drawcode=""
+  if 'goodStartX' in data:
+    drawcode += "dorect({0},{1},{2},{3},\"#ffffff80\");".format(
+      data['goodStartX'],
+      data['goodStartY'],
+      data['goodEndX'],
+      data['goodEndY'])
+  if 'badStartX' in data:
+    drawcode += "dorect({0},{1},{2},{3},\"#00000080\");".format(
+      data['badStartX'],
+      data['badStartY'],
+      data['badEndX'],
+      data['badEndY'])
+  #txt +="\r\n"+str(g)
+  #txt +="\r\n"+str(g)
+  return render_template('kiosk_train.html',p=p,n=n,entry=ke,txt=txt,res=res,drawcode=drawcode)
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
