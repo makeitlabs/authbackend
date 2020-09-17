@@ -66,7 +66,8 @@ def logs():
 				members[m.id] = {
 								'member': m.member,
 								'first': m.firstname,
-								'last': m.lastname
+								'last': m.lastname,
+								'email': m.email
 								}
 
 		# Start Query
@@ -215,7 +216,7 @@ def logs():
 
 
                 def generate(fmt=None):
-                    fields=['datetime','user','tool','node','resource','event','doneby','message']
+                    fields=['datetime','user','member_id','email','tool','node','resource','event','doneby','message']
                     if fmt == "csv":
                         s = ""
                         for f in fields:
@@ -226,6 +227,7 @@ def logs():
 				r['datetime']=l.time_logged.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
 
 				(r['when'],r['ago'],r['othertime'])=ago.ago(r['datetime'],now)
+
 				if not l.member_id:
 					l.member_id=""
 				elif l.member_id in members:
@@ -236,6 +238,7 @@ def logs():
 							r['user'] +=", "+members[l.member_id]['first']
 						if r['user'] == "":
 							r['user'] = members[l.member_id]['member']
+						r['email']=members[l.member_id]['email']
 						r['member_id']=members[l.member_id]['member']
 				else:
 						r['user']="Member #"+str(l.member_id)
@@ -291,7 +294,7 @@ def logs():
 				else:
 						r['doneby']="Member #"+str(l.doneby)
                                 if fmt == "csv":
-                                    fields=['datetime','user','tool','node','resource','event','doneby','message']
+                                    fields=['datetime','user','member_id','email','tool','node','resource','event','doneby','message']
                                     s = ""
                                     for f in fields:
                                         if f in r:
