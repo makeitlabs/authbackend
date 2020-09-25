@@ -15,7 +15,7 @@ from init import GLOBAL_LOGGER_LEVEL
 from slackutils import cli_slack,cli_slack_add_all_to_channels
 import getpass
 from authlibs.prostore import prostore
-from waivers.waivers import cli_waivers_connect, cli_waivers, cli_fix_waiver_types
+from waivers.waivers import cli_waivers_connect, cli_waivers, cli_fix_waiver_types, cli_econtacts
 from members.notices import cli_member_notices
 
 import logging
@@ -168,6 +168,10 @@ commands = {
 	"updatewaivers":{
 		'usage':"updatewaivers -- Update waiver data from smartwaivers",
 		'cmd':cli_waivers
+	},
+	"loadwaiverecontacts":{
+		'usage':"loadwaiverecontacts -- Update waiver Emergency Contacts",
+		'cmd':cli_econtacts
 	},
 	"fixwaivers":{
 		'usage':"fixwaivers -- Migrate waivers from v0.7 to v0.8",

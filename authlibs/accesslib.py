@@ -57,6 +57,7 @@ def accessQueryToDict(y):
             'tag_type':x[14],
             'membership':x[15],
             'expires_date':x[16],
+            'endorsements':x[17],
             'last_accessed':"" # We may never want to report this for many reasons
             }
 
@@ -161,7 +162,9 @@ def getAccessControlList(resource):
     for u in users:
         (warning,allowed) = determineAccess(u,resource_text,resource_rec)
         hashed_tag_id = authutil.hash_rfid(u['tag_ident'])
-        jsonarr.append({'tagid':hashed_tag_id,'tag_ident':u['tag_ident'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level'],'raw_tag_id':u['tag_ident']})
+        e = {'tagid':hashed_tag_id,'tag_ident':u['tag_ident'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level'],'raw_tag_id':u['tag_ident']}
+        if u['endorsements']: e['endorsements'] = u['endorsements']
+        jsonarr.append(e)
     return json_dump(jsonarr,indent=2)
 
 """ This is probably NOT the function you are looking for.
@@ -266,6 +269,7 @@ def access_query(resource_id,member_id=None,tags=True):
     q = q.add_column(Subscription.membership)
     q = q.add_column(Subscription.expires_date)
     # BKG DEBUG ITEMS
+    q = q.add_column(AccessByMember.permissions)
 
     if (tags):
         q = q.outerjoin(Member,Member.id == MemberTag.member_id)

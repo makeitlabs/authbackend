@@ -49,7 +49,7 @@ def bins():
 			brec.member_id = mem.id
 
 		if b.strip() != "":
-			bin = ProBin.query.filter(ProBin.name == l).one_or_none()
+			bin = ProBin.query.filter(ProBin.name == b.strip()).one_or_none()
 			if bin:
 				flash("Bin name already exists","danger")
 				return redirect(url_for("prostore.bins"))

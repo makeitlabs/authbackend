@@ -351,10 +351,13 @@ def api_v1_kiosklog():
       tf = tempfile.NamedTemporaryFile(dir="authlibs/logs/static/kioskimages",suffix='.jpg',delete=False)
       tf.write(img)
       imagename=tf.name
+      tf.flush()
+      tf.close()
       nf = imagename.replace(".jpg","_ir.jpg")
       ff = open(nf,"w")
       img_ir = base64.b64decode(data['irimage'])
       ff.write(img_ir)
+      ff.close()
       imagecode = imagename.split("/")[-1].replace(".jpg","")
       imagename = "kioskimages:"+imagename.split("/")[-1].replace(".jpg","")
     except BaseException as e:
@@ -380,11 +383,16 @@ def api_v1_kiosklog():
 
   authutil.log(e,member_id=m.id,message=imagename,commit=0)
   db.session.commit()
+  cv_status=-1
+  cv_error="???"
   try:
     cam_slackchan = current_app.config['globalConfig'].Config.get('cameras','slackchan')
-    s = subprocess.Popen(['/home/bkg/covid-mask-detector/covid-mask-detector/testone.py',imagecode],stdout=subprocess.PIPE)
+    s = subprocess.Popen(['/var/www/covosk-cv/covid-mask-detector/testone.py',imagecode],stdout=subprocess.PIPE)
     txt = s.stdout.read().strip()
     res = s.wait()
+    cv_status = res
+    cv_error = txt
+    json.dump({'txt':txt,'res':res},open("authlibs/logs/static/kioskimages/"+imagecode+".json","w"))
     if (res != 0):
        url="https://auth.makeitlabs.com"+url_for("logs.kioskentry",ke=imagecode)
        res = send_slack_message(
@@ -393,6 +401,8 @@ def api_v1_kiosklog():
               )
   except BaseException as e:
     logger.error("Kiosk mask check error {0}".format(e))
+    cv_status=-1
+    cv_error="Image Processing Error"
   try:
         url=""
         if imagecode:
@@ -403,7 +413,7 @@ def api_v1_kiosklog():
           )
   except BaseException as e:
     logger.error("Error slack log {0}".format(e))
-  return json_dump({'result':'success'}), 200, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+  return json_dump({'result':'success','cv_status':cv_status,'cv_error':cv_error}), 200, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
 # REQUIRE json payload with proper JSON content-type as such:
 # curl http://testkey:testkey@127.0.0.1:5000/api/v1/authorize -H "Content-Type:application/json" -d '{"slack_id":"brad.goodman","resources":[4],"members":[11,22,32],"level":2}'

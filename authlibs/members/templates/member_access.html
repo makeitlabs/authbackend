@@ -15,6 +15,7 @@ vim:tabstop=2:expandtab:shiftwidth=2
 		  <th>Contact</th>
 		  <th>Allowed</th>
 		  <th>Permissions</th>
+		  <th>Endorsements</th>
 		</tr>
 		{% for a in access %}
 		  <tr>
@@ -71,6 +72,26 @@ vim:tabstop=2:expandtab:shiftwidth=2
 			{% else %}
 			<td>{{ a.levelText }}</td>
 			{% endif %}
+        <td>
+          <div id="endorsediv_{{ a.resource.name }}" style="display:{% if a.active == 1 %}inline{% else %}none{% endif %}" >
+            {% for p in a.permflags %}
+               <input type="hidden" name="origpermflag_{{ a.resource.name }}_{{ p.keys()[0]}}" 
+                        value="{{ 'on' if (p.values()[0]) else 'off' }}" />
+              {% if a.myPerms >= 2 %}
+                <input type="checkbox" name="permflag_{{ a.resource.name }}_{{ p.keys()[0]}}" 
+                      {{ 'checked' if p.values()[0] }} />
+                <label for="permflag_{{ a.resource.name }}_{{ p.keys()[0]}}">
+                {{ p.keys()[0] }} 
+                </label>
+              {% else %}
+                {% if p.values()[0] %}
+                  {{ p.keys()[0] }}
+                 <input type="hidden" value="on" name="permflag_{{ a.resource.name }}_{{ p.keys()[0]}}" value="on"  />
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          </div>
+        <td>
         <td>
           {% if ((a.myPerms >= 2) and (a.active==1)) %}
             {% if  (a.lockout_reason) %}
@@ -199,11 +220,14 @@ vim:tabstop=2:expandtab:shiftwidth=2
   function doAllowCheckbox(resource) {
     cb = $('#checkbox_'+resource)[0];
     privs = $('#privs_'+resource)[0];
+    ed = $('#endorsediv_'+resource)[0];
     if (cb) { 
-      if (cb.checked) 
+      if (cb.checked)  {
         privs.style.display="inline";
-      else {
+        ed.style.display="inline";
+      } else {
         privs.style.display="none";
+        ed.style.display="none";
       }
     }
       

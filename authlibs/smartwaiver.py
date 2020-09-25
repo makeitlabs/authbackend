@@ -70,11 +70,14 @@ def _getWaiversJSON(api_key,waiverid,last_date):
 			response = urllib2.urlopen(req)
 			j = json.load(response)
 			for r in j['search_results']:
+				#print "RESULT",r
 				x = {
 					'waiver_id':r['waiverId'],
 					'date_created_utc':r['createdOn'],
 					'primary_email':r['email'],
-					'waiver_title':r['title']
+					'waiver_title':r['title'],
+					'emergencyContactPhone':r['emergencyContactPhone'],
+					'emergencyContactName':r['emergencyContactName']
 				}
 				for p in r['participants']:
 					x['firstname']=p['firstName']
@@ -107,8 +110,10 @@ def getWaivers(waiver_dict):
 			title = j['waiver_title']
 			firstname = j['firstname']
 			lastname = j['lastname']
+			eContactName = j['emergencyContactName']
+			eContactPhone = j['emergencyContactPhone']
 			created_date = j['date_created_utc']
-			m = {'email': email, 'waiver_id': waiver_id, 'firstname': firstname,
+			m = {'email': email, 'waiver_id': waiver_id, 'firstname': firstname,'emergencyName':eContactName,'emergencyPhone':eContactPhone,
 					 'lastname': lastname, 'title': title, 'created_date': created_date}
 			members.append(m)
     return members

@@ -239,6 +239,7 @@ def add_maint(resource):
 			flash("Error: No \"name\" specified")
 			return redirect(url_for('resources.resources'))
 	m.name = m.name.replace(" ","-")
+	m.name = m.name.replace("_","-")
 	m.desc = request.form['input_maint_desc'].strip()
 	db.session.add(m)
 	flash("Added","success")
@@ -275,6 +276,7 @@ def resource_update(resource):
 		r.sa_url = (request.form['input_sa_url']).strip()
 		r.sa_permit = int("0"+request.form['input_sa_permit'])
 		r.sa_required = int(request.form['input_sa_required'])
+		r.permissions = (request.form['input_permissions']).replace("_","-").strip()
 		if (r.sa_required == -1): r.sa_required = None
 		if request.form['input_age_restrict']:
 			ar = 0
@@ -326,7 +328,7 @@ def resource_showusers(resource):
 		for u in  UsageLog.query.filter(UsageLog.resource_id == res_id).group_by(UsageLog.member_id).order_by(func.max(UsageLog.time_logged)).all():
 			mid_to_lastuse[u.member_id] = u.time_logged
 
-		authusers = db.session.query(AccessByMember.id,AccessByMember.member_id,Member.member,AccessByMember.level,AccessByMember.lockout_reason)
+		authusers = db.session.query(AccessByMember.id,AccessByMember.member_id,Member.member,AccessByMember.level,AccessByMember.lockout_reason,AccessByMember.permissions)
 		authusers = authusers.join(Member,AccessByMember.member_id == Member.id)
 		authusers = authusers.filter(AccessByMember.resource_id == db.session.query(Resource.id).filter(Resource.name == rid))
 		authusers = authusers.order_by(AccessByMember.level.desc())
@@ -351,7 +353,7 @@ def resource_showusers(resource):
 					(lu1,lu2,lu3) = ago.ago(d.time_logged,now)
 					lu2 += " ago"
 					sorttime = d.time_logged
-			accrec.append({'member_id':x[1],'member':x[2],'level':level,
+			accrec.append({'member_id':x[1],'member':x[2],'level':level,'permissions':x[5],
 					'sortlevel':int(x[3]),
 					'sorttime':sorttime,
 					'logurl':url_for("logs.logs")+"?input_member_%s=on&input_resource_%s=on" %(x[1],res_id),

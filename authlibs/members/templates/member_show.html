@@ -15,15 +15,20 @@
 			<p>No waivers on file</p>
 			{% else %}
 				<div class="compact form-row row">
-								<div class="col-sm-4"><b>Waiver Type</b></div>
-								<div class="col-sm-4"><b>Date Executed</b></div>
+								<div class="col-sm-2"><b>Waiver Type</b></div>
+								<div class="col-sm-6"><b>Emergency Contact</b></div>
+								<div class="col-sm-3"><b>Date Executed</b></div>
 				</div>
 								{% for w in waivers %}
 				<div class="compact form-row row">
-												<div class="col-sm-4">
+												<div class="col-sm-2">
 													{{ w.waivertype }}
 												</div>
-												<div class="col-sm-4">
+												<div class="col-sm-6">
+													{{ w.Waiver.emergencyName }}
+													{{ w.Waiver.emergencyPhone }}
+												</div>
+												<div class="col-sm-3">
 													{{ w.Waiver.created_date }}
 													{% if w.Waiver.waivertype == 1 %}
 														<span class="glyphicon glyphicon-ok"></span>

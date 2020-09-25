@@ -5,6 +5,8 @@ from ..templateCommon import  *
 from datetime import datetime
 from .. import accesslib
 from .. import ago
+import subprocess
+import glob
 
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
@@ -64,7 +66,8 @@ def logs():
 				members[m.id] = {
 								'member': m.member,
 								'first': m.firstname,
-								'last': m.lastname
+								'last': m.lastname,
+								'email': m.email
 								}
 
 		# Start Query
@@ -213,7 +216,7 @@ def logs():
 
 
                 def generate(fmt=None):
-                    fields=['datetime','user','tool','node','resource','event','doneby','message']
+                    fields=['datetime','user','member_id','email','tool','node','resource','event','doneby','message']
                     if fmt == "csv":
                         s = ""
                         for f in fields:
@@ -224,6 +227,7 @@ def logs():
 				r['datetime']=l.time_logged.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
 
 				(r['when'],r['ago'],r['othertime'])=ago.ago(r['datetime'],now)
+
 				if not l.member_id:
 					l.member_id=""
 				elif l.member_id in members:
@@ -234,6 +238,7 @@ def logs():
 							r['user'] +=", "+members[l.member_id]['first']
 						if r['user'] == "":
 							r['user'] = members[l.member_id]['member']
+						r['email']=members[l.member_id]['email']
 						r['member_id']=members[l.member_id]['member']
 				else:
 						r['user']="Member #"+str(l.member_id)
@@ -289,7 +294,7 @@ def logs():
 				else:
 						r['doneby']="Member #"+str(l.doneby)
                                 if fmt == "csv":
-                                    fields=['datetime','user','tool','node','resource','event','doneby','message']
+                                    fields=['datetime','user','member_id','email','tool','node','resource','event','doneby','message']
                                     s = ""
                                     for f in fields:
                                         if f in r:
@@ -309,7 +314,7 @@ def logs():
                     return resp
                 else:
                     flash ("Invalid format requested","danger")
-                    return redirect_url(request.url);
+                    return redirect(request.url);
 
 
                 nextoffset = offset+limit
@@ -393,11 +398,33 @@ def logs():
 def kioskentry(ke):
   ke = ke.replace("/","")
   ke = ke.replace(".","")
+  imagecode=ke
   ke = ke.replace("kioskimages:","")
   if not current_user.is_arm() and (len(current_user.effective_roles()) == 0):
     flash("Not authorized for this page","warning")
-    return redirect_url_for("index")
-  return render_template('kiosk_entry.html',entry=ke)
+    return redirect(url_for("index"))
+  try:
+    obj=json.load(open("authlibs/logs/static/kioskimages/"+imagecode+".json"))
+    txt=obj['txt']
+    res=obj['res']
+  except:
+    obj=None
+    txt=""
+    res=0
+  if obj is None:
+    try:
+      cam_slackchan = current_app.config['globalConfig'].Config.get('cameras','slackchan')
+      s = subprocess.Popen(['/var/www/covosk-cv/covid-mask-detector/testone.py',imagecode],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+      txt = s.stdout.read().strip()
+      stderr = s.stderr.read().strip()
+      if stderr and stderr != "":
+          txt += "\nSTDERR: "+stderr
+      res = s.wait()
+      json.dump({'txt':txt,'res':res},open("authlibs/logs/static/kioskimages/"+imagecode+".json","w"))
+    except BaseException as e:
+      logger.error("Kiosk mask check error {0}".format(e))
+      txt="BaseException:"+str(e)
+  return render_template('kiosk_entry.html',entry=ke,txt=txt,res=res)
   
 blueprint.route('/large.csv')
 def generate_large_csv():
@@ -405,6 +432,73 @@ def generate_large_csv():
         for row in iter_all_rows():
             yield ','.join(row) + '\n'
     return Response(generate(), mimetype='text/csv')
+
+@blueprint.route('/train/<string:ke>')
+def kiosktrain(ke):
+  ke = ke.replace("/","")
+  ke = ke.replace(".","")
+  imagecode=ke
+  data={}
+  try:
+    data = json.load(open("authlibs/logs/static/kioskimages/{0}.irtrain".format(ke)))
+  except:
+    pass
+  print "LOADED DATA",data
+  if 'save_good' in request.values:
+    data['goodStartX'] = int(request.values['startX'])
+    data['goodStartY'] = int(request.values['startY'])
+    data['goodEndX'] = int(request.values['endX'])
+    data['goodEndY'] = int(request.values['endY'])
+    json.dump(data,open("authlibs/logs/static/kioskimages/{0}.irtrain".format(ke),"w"))
+    return redirect(url_for("logs.kiosktrain",ke=ke))
+  if 'save_bad' in request.values:
+    data['badStartX'] = int(request.values['startX'])
+    data['badStartY'] = int(request.values['startY'])
+    data['badEndX'] = int(request.values['endX'])
+    data['badEndY'] = int(request.values['endY'])
+    json.dump(data,open("authlibs/logs/static/kioskimages/{0}.irtrain".format(ke),"w"))
+    return redirect(url_for("logs.kiosktrain",ke=ke))
+  if 'mark_invalid' in request.values:
+    json.dump({},open("authlibs/logs/static/kioskimages/{0}.irtrain".format(ke),"w"))
+    return redirect(url_for("logs.kiosktrain",ke=ke))
+  g = glob.glob("authlibs/logs/static/kioskimages/*_ir.jpg")
+  res=""
+  if ke == "0000":
+    ke = g[0].split("/")[-1].replace("_ir.jpg","")
+  n=""
+  p=""
+  found_index="??"
+  for (i,x) in enumerate(g):
+    #print "COMPARE",x,ke
+    if x == "authlibs/logs/static/kioskimages/{0}_ir.jpg".format(ke):
+      print "FOUND"
+      found_index=i
+      try:
+        p = g[i-1].split("/")[-1].replace("_ir.jpg","")
+      except:
+        pass
+      try:
+        n = g[i+1].split("/")[-1].replace("_ir.jpg","")
+      except:
+        pass
+  txt = "Index "+str(found_index)+"\r\n"
+  txt += ke
+  drawcode=""
+  if 'goodStartX' in data:
+    drawcode += "dorect({0},{1},{2},{3},\"#ffffff80\");".format(
+      data['goodStartX'],
+      data['goodStartY'],
+      data['goodEndX'],
+      data['goodEndY'])
+  if 'badStartX' in data:
+    drawcode += "dorect({0},{1},{2},{3},\"#00000080\");".format(
+      data['badStartX'],
+      data['badStartY'],
+      data['badEndX'],
+      data['badEndY'])
+  #txt +="\r\n"+str(g)
+  #txt +="\r\n"+str(g)
+  return render_template('kiosk_train.html',p=p,n=n,entry=ke,txt=txt,res=res,drawcode=drawcode)
 
 def register_pages(app):
 	app.register_blueprint(blueprint)

@@ -137,7 +137,7 @@ class AccessByMember(db.Model):
     comment = db.Column(db.String(255), nullable=True, server_default='')
     lockout_reason = db.Column(db.String(255), nullable=True) # If non-null, user locked-out of resource
     lockouts = db.Column(db.String(255), nullable=True, server_default='') # If non-null, user locked-out of resource (UNIMPLEMENTED)
-    permissions = db.Column(db.String(255), nullable=True, server_default='')
+    permissions = db.Column(db.String(255), nullable=True, server_default='') # "Endorsements"
     created_by = db.Column(db.String(25), nullable=False, server_default='admin')
     level = db.Column(db.Integer(),default=0)
     __table_args__ = (db.UniqueConstraint('member_id', 'resource_id', name='_member_resource_uc'),)
@@ -198,6 +198,7 @@ class Resource(db.Model):
     sa_days = db.Column(db.Integer())  # Authorization days required for self-auth
     sa_url = db.Column(db.String(150))  # URL to training info for Self-Auth - If empty - no self-auth
     sa_required = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE')) 
+    permissions = db.Column(db.String(255), nullable=True) # Endorsements
 
 class ResourceAlias(db.Model):
     __tablename__ = 'resourcealiases'
@@ -318,6 +319,8 @@ class Waiver(db.Model):
   waiver_id = db.Column(db.String(50))
   firstname = db.Column(db.String(50))
   lastname = db.Column(db.String(50))
+  emergencyName = db.Column(db.String(50))
+  emergencyPhone = db.Column(db.String(50))
   email = db.Column(db.String(50))
   waivertype = db.Column(db.Integer)
   member_id = db.Column(db.Integer(), db.ForeignKey('members.id'))
