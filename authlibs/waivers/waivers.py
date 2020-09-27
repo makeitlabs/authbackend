@@ -75,6 +75,8 @@ def _addWaivers(waiver_list):
       n.email=w['email']
       n.firstname=w['firstname']
       n.lastname=w['lastname']
+      n.emergencyName=w['emergencyName']
+      n.emergencyPhone=w['emergencyPhone']
       n.waivertype = Waiver.codeFromWaiverTitle(w['title'])
       n.created_date=authutil.parse_datetime(w['created_date'])
       cnt = db.session.query(Waiver).filter(Waiver.waiver_id == w['waiver_id']).count()
@@ -102,6 +104,33 @@ def addNewWaivers():
 
 def cli_waivers(cmd,**kwargs):
 	addNewWaivers()
+
+def cli_econtacts(cmd,**kwargs):
+	"""Check the DB to get the most recent waiver, add any new ones, return count added"""
+	logger.debug ("Updating waivers...")
+	waiversystem = {}
+	waiversystem['Apikey'] = current_app.config['globalConfig'].Config.get('Smartwaiver','Apikey')
+	#(last_waiverid,last_date) = smartwaiver.getLastWaiver()
+	(last_waiverid,last_date) = (None,None)
+	waiver_dict = {'api_key': waiversystem['Apikey'],'waiver_id': last_waiverid,'last_date':last_date}
+	waivers = smartwaiver.getWaivers(waiver_dict)
+
+        """
+        fd=open("waiverdata.dat","w")
+        fd.write(json.dumps(waivers,indent=2))
+        fd.close()
+        """
+        #waivers = json.load(open("waiverdata.dat"))
+	logger.debug("Checking {0} new waivers".format(len(waivers)))
+        for w in waivers:
+          print w
+          for ww in Waiver.query.filter(Waiver.waiver_id == w['waiver_id']).all():
+            print "GOT",ww
+            ww.emergencyName = w['emergencyName']
+            ww.emergencyPhone = w['emergencyPhone']
+	db.session.commit()
+	logger.debug ("Done.")
+
 
 # This should ONLY be required for v0.7->v0.8 Migrations
 def cli_fix_waiver_types(cmd,**kwargs):

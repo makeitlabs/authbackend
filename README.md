@@ -170,6 +170,15 @@ For an example crontab - see `crontab.txt`
 
 # Update/Deploy
 
+# v1.0.7 Update
+```
+sqlite3 <<dbfile>>
+ALTER TABLE Waivers ADD emergencyName VARCHAR(50);
+ALTER TABLE Waivers ADD emergencyPhone VARCHAR(50);
+
+python ./authserver.py --command loadwaiverecontacts
+```
+
 ### Fix wsgl config
 
 Verify that `authserver.wsgi` is set for your appopriate deploy! (See `authserver.wsgi.EXAMPLE` for example)
@@ -206,3 +215,22 @@ You can add API stuff here: https://api.slack.com/apps
 * Click your app
 * "Features and Functionality"
 * "Permissions"
+
+# Slack Setup - there are two tokens you need:
+`BOT_API_TOKEN` - This is the one above which requires all the "granular scopes" to do stuff. It is used most often to send messages to channels, from the MQTT Daemon, and other stuff in the backend. the `slacktest.py` mostly uses this. Go to "OAuth & Permissions" and use the "Bot User OAuth Access Token" provided.
+
+`ADMIN_API_TOKEN` - This is used by the slackdaemon `toolauthslack` for the Tool Authorization Slack robot. This uses an "RTM" connection in Slack. This means it must be created as a "Classic App" - i.e. it cannot have "granular scopes". I think it only needs a "bot" scope. *Do Not* let Slack trick you into converting this into a "new style" app with Granular Scopes or it will not work! If "RTM Connect" fails - it means this token is not correct. Once you create a classic app - go to "OAuth Tokens" and use the "Bot User OAuth Access Token" from this.
+
+# systemctl setup
+We generally use systemctl to create services to make sure these two are always running:
+```
+             ├─authbackend-slack.service
+             │ └─/usr/bin/python /var/www/authbackend-ng/toolauthslack.py
+             └─authbackend-mqtt.service
+               └─/usr/bin/python /var/www/authbackend-ng/mqtt_daemon.py
+```
+
+
+# 1.0.7 Migration
+
+`ALTER TABLE resources ADD COLUMN permissions VARCHAR(255);`

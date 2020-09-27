@@ -21,8 +21,10 @@
    
 <div class="containter"> <!-- Base -->
 	<div class="containter"> 
-    <img class="kioskimg" src="{{ url_for("logs.static",filename="kioskimages/"+entry+".jpg") }}" />
+	<p><code>{{ txt }}</code><br />Status: {{ res }}</p>
+    <img class="kioskimg" src="{{ url_for("logs.static",filename="kioskimages/"+entry+"_cv.jpg") }}" />
     <img class="kioskimg" src="{{ url_for("logs.static",filename="kioskimages/"+entry+"_ir.jpg") }}" />
+    <img class="kioskimg" src="{{ url_for("logs.static",filename="kioskimages/"+entry+".jpg") }}" />
   </div> <! -- Member Add Collapse -->
 </div> <!-- Base -->
 {% endblock %}

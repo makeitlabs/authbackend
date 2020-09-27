@@ -9,6 +9,7 @@
         <th>Member</th>
         <th>Access Level</th>
         <th>Suspended</th>
+        <th>Endorsements</th>
         <th colspan=2>Last Accessed</th>
     </tr>
     {% for accrec in accrecs %}
@@ -16,6 +17,7 @@
 						<td><a href="{{ url_for('members.member_setaccess',id=accrec.member_id) }}">{{ accrec.member }}</a></td>
             <td>{{ accrec.level }}</td>
             <td>{{ accrec.lockout_reason }}</td>
+            <td>{{ accrec.permissions }}</td>
             <td>{{ accrec.usedago }}</td>
             <td>{{ accrec.lastused }}</td>
             <td></td>

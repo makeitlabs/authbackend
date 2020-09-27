@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
       eastern = dateutil.tz.gettz('US/Eastern')
       utc = dateutil.tz.gettz('UTC')
-      fmtime = datetime.now() - timedelta(days=1)
+      fmtime = datetime.now() - timedelta(minutes=33)
       grace = datetime.now() - timedelta(minutes=3)
       for m in Logs.query.filter(Logs.event_type == RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id,Logs.time_reported > fmtime,Logs.time_reported < grace).all():
         if m.member_id not in members: 
@@ -90,7 +90,7 @@ if __name__ == '__main__':
         c=0
         if member:
             mn = member.member
-            fmtime = datetime.now() - timedelta(days=1.5)
+            fmtime = datetime.now() - timedelta(days=1)
             c =  Logs.query.filter(Logs.event_type == RATTBE_LOGEVENT_MEMBER_KIOSK_ACCEPTED.id,Logs.member_id == member.id,Logs.time_reported > fmtime).count()
         print m,mn,c
         if c == 0:
