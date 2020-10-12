@@ -96,6 +96,7 @@ vim:tabstop=2:expandtab:shiftwidth=2
           {% if ((a.myPerms >= 2) and (a.active==1)) %}
             {% if  (a.lockout_reason) %}
               <a  href="javascript:dolockbutton('Unlock','{{ a.resource.name }}','{{ a.lockout_reason }}',{{ a.resource.id }});" class="btn btn-success">RESTORE</a>
+              <br /> {{a.lockout_reason}}
             {% else %}
               <a href="javascript:dolockbutton('Lock','{{ a.resource.name }}','',{{ a.resource.id }});" class="btn btn-outline-info">SUSPEND</a>
             {% endif %}

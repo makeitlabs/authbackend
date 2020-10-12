@@ -171,10 +171,16 @@ def quiz(resource):
     if wc == 0 and hilight == False:
       cnt = AccessByMember.query.filter((AccessByMember.member_id == current_user.id) & (AccessByMember.resource_id == r.id)).count()
       if cnt == 0:
-        ac = AccessByMember(member_id = current_user.id,resource_id = r.id,level=0)
-        db.session.add(ac)
-        flash("Congratulations! You are authorized!","success")
-        authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=r.id,message="Self-Auth",member_id=current_user.id,commit=0)
+        if r.sa_permit == 1:
+          ac = AccessByMember(member_id = current_user.id,resource_id = r.id,level=0,lockout_reason="Self-Trained")
+          db.session.add(ac)
+          flash("Training successful - Awaiting RM approval to authorize","success")
+          authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=r.id,message="Self-Auth - Pending",member_id=current_user.id,commit=0)
+        else:
+          ac = AccessByMember(member_id = current_user.id,resource_id = r.id,level=0)
+          db.session.add(ac)
+          flash("Congratulations! You are authorized!","success")
+          authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=r.id,message="Self-Auth",member_id=current_user.id,commit=0)
           
         db.session.commit()
         authutil.kick_backend()

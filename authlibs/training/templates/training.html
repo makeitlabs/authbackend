@@ -20,6 +20,8 @@ vim:tabstop=2:expandtab:shiftwidth=2
             {% if a.status == 'can' %}
               <button class="btn btn-primary" onClick="window.open('{{ a.url }}', '_blank');">Training</button>
               <button class="btn btn-primary" onClick="location.href='{{ a.quiz_url }}';">Take Quiz</button>
+            {% else %}
+              <button class="btn btn-primary" onClick="window.open('{{ a.url }}', '_blank');">Review</button>
             {% endif %}
           </td>
         </tr>
