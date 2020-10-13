@@ -46,16 +46,17 @@ def api_only(f):
     def decorated(*args, **kwargs):
         auth = request.authorization
         if not auth:
+            print "NOT AUTH"
             return error_401()
         a = check_api_access(auth.username, auth.password)
         if not a:
             return authenticate() # Send a "Login required" Error
-        #print "CHECK",request.url,request.url_root
+        print "CHECK",request.url,request.url_root
         check = request.url.replace(request.url_root,"")
         #print check
         if a.acl:
           for x in a.acl.split("\n"):
-            #print "LINE",x
+            print "LINE",x
             x = x.strip().lower()
             if x == "deny": 
               logger.warning("ACL denied {0} for {1} url {2}".format(str(x),a.name,str(check)))
@@ -686,6 +687,22 @@ def api_test():
 				return "Yay, right host"
 		else:
 				return "Boo, wrong host"
+
+@blueprint.route('/v1/healthcheck', methods=['GET'])
+@api_only
+def api_healthcheck():
+    status = "ok"
+    try:
+      health = subprocess.check_output(['uptime'])
+    except BaseException as e:
+      status = "alert"
+      health = "Uptime failed: "+str(e)
+    status = {
+      'status':status,
+      'version':current_app.jinja_env.globals['VERSION'],
+      'health':health
+    }
+    return json_dump(status, 200, {'Content-type': 'application/json'})
 
 def error_401():
     """Sends a 401 response that enables basic auth"""
