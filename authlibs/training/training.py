@@ -106,6 +106,41 @@ def training():
   #print sa
   return render_template('training.html',training=sa)
 
+@blueprint.route('/approvals/<string:resname>', methods=['GET','POST'])
+@login_required
+def approvals(resname):
+  res = Resource.query.filter(Resource.name == resname).one_or_none()
+  if not res:
+    flash ("Invalid resource id","warning")
+    return redirect(url_for('index'))
+	if request.method == "POST" and request.form:
+    print request.form
+    authorize=True
+    if 'deny' in request.form: authorize=False
+    for x in request.form:
+      if x.startswith("id_"):
+        i = int(x.replace("id_",""))
+        print "Authorize" if authorize else "Deny",i
+        a = AccessByMember.query.filter((AccessByMember.member_id == i) & (AccessByMember.resource_id == res.id)).one_or_none()
+        if a:
+          if authorize:
+            authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=res.id,message="Self-Auth Approved",member_id=current_user.id,commit=0)
+            a.lockout_reason =None 
+          else:
+            authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED.id,resource_id=res.id,message="Self-Auth Denied",member_id=current_user.id,commit=0)
+            db.session.delete(a)
+    db.session.commit()
+    flash("Done")
+    return redirect(url_for('index'))
+  else:
+    m = AccessByMember.query.filter((AccessByMember.resource_id == res.id) & (AccessByMember.lockout_reason == "Self-Trained"))
+    m = m.outerjoin(Member).add_columns(Member.lastname,Member.firstname)
+    users = m.all()
+    u = []
+    for m in users:
+      u.append({'id':m[0].member_id,'name':m[2]+" "+m[1]})
+    return render_template('pending.html',resources=res,users=u)
+
 @blueprint.route('/editquiz', methods=['GET','POST'])
 @login_required
 def editquiz():

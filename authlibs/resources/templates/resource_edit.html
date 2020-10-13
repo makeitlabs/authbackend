@@ -8,6 +8,7 @@
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.resource_usage_reports",resource=rec.name) }}" class="btn btn-link">Usage Reports</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.maintenance",resource=rec.name) }}" class="btn btn-link">Maintenance</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.message",resource=rec.name) }}" class="btn btn-link">Message Users</a>
+		<a class="btn btn-outline-secondary" href="{{ url_for("training.approvals",resname=rec.name) }}" class="btn btn-link">Approve Auth</a>
 	</div>
   <form action={{ url_for('resources.resource_update',resource=rec.id) }} method="POST">
 	{% include 'form.html' %}

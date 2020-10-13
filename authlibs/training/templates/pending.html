@@ -1,0 +1,90 @@
+{# 
+vim:tabstop=2:expandtab:shiftwidth=2
+#}
+{% extends "layout_bootstrap.html" %}
+{% block search %}
+<div class=body>
+	<div class="container"> {# outer container #}
+	<h1>{{ resources.name}} Pending Approvals</h1>
+    {% if users|length == 0 %}
+    No approvals are pending
+    {% else %}
+    <form method="POST">
+	  <table class="table table-sm">
+      <tr>
+        <th>Name</th>
+        <th></th>
+      </tr>
+      {% for a in users %}
+        <tr>
+          <td>
+            <input type="checkbox" name="id_{{ a.id }}" /> 
+            {{ a.name }}
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+
+<!-- Modal -->
+<div class="modal fade" id="authorizeModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Confirm Authorization</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="modaltext">
+        Are you sure you want to authorize user(s)?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+        <input type="submit" name="authorize" value="Authorize" class="btn btn-primary"/>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- END MODAL -->
+
+
+<!-- Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Confirm Denial</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="modaltext">
+        Are you sure you want to reject user(s)?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+        <input type="submit" name="deny" value="Deny" class="btn btn-danger"/>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- END MODAL -->
+
+<!-- END ALL MODALS -->
+    <button type="button" class="btn btn-primary" id="authorize-button" data-toggle="modal" data-target="#authorizeModal">
+      Authorize Selected
+    </button>
+    <button type="button" class="btn btn-secondary" id="authorize-button" data-toggle="modal" data-target="#rejectModal">
+      Reject Selected
+    </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+
+
+{% endblock %}
+
+
+
