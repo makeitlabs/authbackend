@@ -51,12 +51,12 @@ def api_only(f):
         a = check_api_access(auth.username, auth.password)
         if not a:
             return authenticate() # Send a "Login required" Error
-        print "CHECK",request.url,request.url_root
+        #print "CHECK",request.url,request.url_root
         check = request.url.replace(request.url_root,"")
         #print check
         if a.acl:
           for x in a.acl.split("\n"):
-            print "LINE",x
+            #print "LINE",x
             x = x.strip().lower()
             if x == "deny": 
               logger.warning("ACL denied {0} for {1} url {2}".format(str(x),a.name,str(check)))
