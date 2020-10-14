@@ -192,13 +192,22 @@ class Resource(db.Model):
     info_text = db.Column(db.String(150))
     slack_info_text = db.Column(db.String())
     age_restrict = db.Column(db.Integer())  # Years old
-    # Resource that you must already be authorized on for self-auth
-    sa_hours = db.Column(db.Integer())  # Machine hours required for self-auth
-    sa_permit = db.Column(db.Integer())  # 0=Grant Permission 1=Set Pending
-    sa_days = db.Column(db.Integer())  # Authorization days required for self-auth
-    sa_url = db.Column(db.String(150))  # URL to training info for Self-Auth - If empty - no self-auth
-    sa_required = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE')) 
     permissions = db.Column(db.String(255), nullable=True) # Endorsements
+
+class Training(db.Model):
+    __tablename__ = 'training'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(150))  # Cleartext short name of training (Or none for general resource auth)
+    # Resource that you must already be authorized on for self-auth
+    hours = db.Column(db.Integer())  # Machine hours required for self-auth
+    permit = db.Column(db.Integer())  # 0=Grant Permission 1=Set Pending
+    days = db.Column(db.Integer())  # Authorization days required for self-auth
+    url = db.Column(db.String(150))  # URL to training info for Self-Auth - If empty - no self-auth
+    required = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))  # Prerequisite Resource (or None)
+    required_endorsements = db.Column(db.String(50)) # Required Self-training prerequisite endorsements (or none)
+    endorsements = db.Column(db.String(50)) # Endorsements granted (if any)
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE')) # Resorce which this applies to
 
 class ResourceAlias(db.Model):
     __tablename__ = 'resourcealiases'
@@ -207,14 +216,14 @@ class ResourceAlias(db.Model):
     alias = db.Column(db.String(50), unique=True)
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
-class ResourceQuiz(db.Model):
-    __tablename__ = 'resourcequiz'
+class QuizQuestion(db.Model):
+    __tablename__ = 'quizquestion'
     __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
     question = db.Column(db.String())
     answer = db.Column(db.String())
     idx = db.Column(db.Integer())
-    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+    training_id = db.Column(db.Integer(), db.ForeignKey('training.id', ondelete='CASCADE'))
 
 class Subscription(db.Model):
     __tablename__ = 'subscriptions'

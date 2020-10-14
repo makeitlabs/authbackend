@@ -18,6 +18,35 @@
   </form>
 
 	<hr />
+	<div class="container"> <!-- Training Records -->
+	<h3>Training</h3>
+	{% if not train %}
+		<p>There are no self-training courses</p>
+	{% else %}
+    <table class="table">
+      <tr>
+        <td>Name</td>
+        <td>Prerequisite</td>
+        <td>Grants</td>
+       </tr>
+      {% for t in train %}
+        <td> {{ t.name }}</td>
+        <td> {{ t.requires }}</td>
+        <td> {{ t.grants }}</td>
+      {% endfor %}
+    </table>
+  {% endif %}
+  <!-- Button trigger for "Delete" modal -->
+	<button type="button" class="btn btn-info" data-toggle="collapse" data-target="#addTrainCollapse">
+		Add Self-Training Course
+	</button>
+	<div class="collapse" id="addTrainCollapse" >
+		{% include 'training_form.html' %}
+	</div>
+  </div>
+  <!-- End Training -->
+
+	<hr />
 	<div class="container"> <!-- Maintenance Records -->
 	<h3>Maintenance Items</h3>
 	{% if not maint %}

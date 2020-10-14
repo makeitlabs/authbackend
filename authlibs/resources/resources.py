@@ -47,12 +47,6 @@ def resource_create():
 	r.info_text = (request.form['input_info_text']).strip()
 	r.slack_info_text = (request.form['input_slack_info_text']).strip()
 	r.slack_info_text = (request.form['input_slack_info_text']).strip()
-	r.sa_days = int("0"+request.form['input_sa_days'])
-	r.sa_hours = int("0"+request.form['input_sa_hours'])
-	r.sa_permit = int("0"+request.form['input_sa_permit'])
-	r.sa_url = (request.form['input_sa_url']).strip()
-	r.sa_required = int(request.form['input_sa_required'])
-	if (r.sa_required == -1): r.sa_required = None
 	if request.form['input_age_restrict']:
 		ar = 0
 		try:
@@ -86,9 +80,32 @@ def resource_show(resource):
 	cc=comments.get_comments(resource_id=r.id)
 
 	maint= MaintSched.query.filter(MaintSched.resource_id==r.id).all()
+	train=[]
+	for t in Training.query.filter(Training.resource_id==r.id).all():
+		v={}
+		if t.endorsements is None or t.endoresments.strip() == "":
+			v['grants'] = "(General Access)"
+		else:
+			v['grants'] = t.endorsements + " Endorsement"
+
+		if t.name is None or t.name.strip()=="":
+			v['name'] = r.name+" "+v['grants']
+		else:
+			v['name']=t.name
+
+		if t.required is None:
+			v['requires']="(Nothing)"
+		else:
+			v['requires']= Resource.query.filter(Resource.id == t.required).one().name
+			if t.required_endorsements is not None and t.required_endorsemenst.strip()!="":
+				v['requires'] += " " + t.required_endorsements + " endorsement"
+
+		train.append(v)
+		
+			
 
 	resources = Resource.query.all()
-	return render_template('resource_edit.html',rec=r,resources=resources,readonly=readonly,tools=tools,comments=cc,maint=maint)
+	return render_template('resource_edit.html',rec=r,resources=resources,readonly=readonly,tools=tools,comments=cc,maint=maint,train=train)
 
 @blueprint.route('/<string:resource>/usage', methods=['GET'])
 @login_required
@@ -271,13 +288,7 @@ def resource_update(resource):
 		r.info_url = (request.form['input_info_url']).strip()
 		r.info_text = (request.form['input_info_text']).strip()
 		r.slack_info_text = (request.form['input_slack_info_text']).strip()
-		r.sa_days = int("0"+request.form['input_sa_days'])
-		r.sa_hours = int("0"+request.form['input_sa_hours'])
-		r.sa_url = (request.form['input_sa_url']).strip()
-		r.sa_permit = int("0"+request.form['input_sa_permit'])
-		r.sa_required = int(request.form['input_sa_required'])
 		r.permissions = (request.form['input_permissions']).replace("_","-").strip()
-		if (r.sa_required == -1): r.sa_required = None
 		if request.form['input_age_restrict']:
 			ar = 0
 			try:

@@ -170,13 +170,117 @@ For an example crontab - see `crontab.txt`
 
 # Update/Deploy
 
-# v1.0.7 Update
+#  Multitrain Update
+```
+PRAGMA foreign_keys=off;
+BEGIN TRANSACTION;
+
+CREATE TABLE training (
+        id INTEGER NOT NULL,
+        name VARCHAR(150),
+        hours INTEGER,
+        permit INTEGER,
+        days INTEGER,
+        url VARCHAR(150),
+        required INTEGER,
+        required_endorsements VARCHAR(50),
+        endorsements VARCHAR(50),
+        resource_id INTEGER,
+        PRIMARY KEY (id),
+        FOREIGN KEY(required) REFERENCES resources (id) ON DELETE CASCADE,
+        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
+);
+
+INSERT INTO training(hours,permit,days,url,required,resource_id) SELECT sa_hours,sa_permit,sa_days,sa_url,sa_required,id FROM resources WHERE (sa_url is not null and sa_url != "");
+
+CREATE TABLE resources2 (
+        id INTEGER NOT NULL,
+        name VARCHAR(50),
+        short VARCHAR(20),
+        description VARCHAR(50),
+        owneremail VARCHAR(50),
+        last_updated DATETIME,
+        slack_chan VARCHAR(50),
+        slack_admin_chan VARCHAR(50),
+        info_url VARCHAR(150),
+        info_text VARCHAR(150),
+        slack_info_text VARCHAR, 
+        age_restrict INTEGER, 
+        permissions VARCHAR(255), 
+        endorsements VARCHAR(50), 
+        PRIMARY KEY(id), 
+        UNIQUE (name),
+        UNIQUE (short)
+);
+
+INSERT INTO resources2 (
+        id,
+        name,
+        short,
+        description,
+        owneremail,
+        last_updated,
+        slack_chan,
+        slack_admin_chan,
+        info_url,
+        info_text,
+        slack_info_text, 
+        age_restrict, 
+        permissions, 
+        endorsements)
+        SELECT 
+          id,
+          name,
+          short,
+          description,
+          owneremail,
+          last_updated,
+          slack_chan,
+          slack_admin_chan,
+          info_url,
+          info_text,
+          slack_info_text, 
+          age_restrict, 
+          permissions, 
+          endorsements
+        FROM resources;
+
+DROP TABLE resources;
+ALTER TABLE resources2 RENAME TO resources;
+
+CREATE TABLE quizquestion (
+        id INTEGER NOT NULL,
+        question TEXT,
+        answer TEXT,
+        idx INTEGER,
+        training_id INTEGER NOT NULL,
+        PRIMARY KEY (id),
+        FOREIGN KEY(training_id) REFERENCES training (id) ON DELETE CASCADE
+);
+INSERT INTO quizquestion (
+        id,
+        question,
+        answer,
+        idx,
+        training_id)
+        SELECT 
+          id,
+          question,
+          answer,
+          idx,
+          resource_id
+        FROM resourcequiz;
+DROP TABLE resourcequiz;
+
+COMMIT;
+PRAGMA foreign_keys=on;
+```
+
+# v1.0.8 Update
 ```
 sqlite3 <<dbfile>>
-ALTER TABLE Waivers ADD emergencyName VARCHAR(50);
-ALTER TABLE Waivers ADD emergencyPhone VARCHAR(50);
-
-python ./authserver.py --command loadwaiverecontacts
+ALTER TABLE resources ADD COLUMN sa_required_endorsements VARCHAR(50);
+ALTER TABLE resources ADD COLUMN sa_endorsements VARCHAR(50);
 ```
 
 ### Fix wsgl config
