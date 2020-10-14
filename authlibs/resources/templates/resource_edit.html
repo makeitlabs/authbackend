@@ -33,6 +33,7 @@
         <td> {{ t.name }}</td>
         <td> {{ t.requires }}</td>
         <td> {{ t.grants }}</td>
+        <td> <a href="{{ url_for('index') }}"><span class="glyphicon glyphicon-pencil"></span></a></td>
       {% endfor %}
     </table>
   {% endif %}
