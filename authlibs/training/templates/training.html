@@ -8,12 +8,14 @@ vim:tabstop=2:expandtab:shiftwidth=2
 	<h1>Training Portal</h1>
 	  <table class="table table-sm">
       <tr>
+        <th>Course Name</th>
         <th>Resource</th>
-        <th>Description</th>
+        <th>Status</th>
         <th></th>
       </tr>
       {% for a in training %}
         <tr>
+          <td>{{ a.name }}</td>
           <td>{{ a.resource }}</td>
           <td>{{ a.desc }}</td>
           <td>

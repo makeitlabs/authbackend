@@ -5,7 +5,7 @@ vim:tabstop=2:expandtab:shiftwidth=2
 {% block search %}
 <div class=body>
 	<div class="container"> {# outer container #}
-	<h1>{{ resources.name}} Pending Approvals</h1>
+	<h1>{{ resources.name.title() }} Pending Authorizations</h1>
     {% if users|length == 0 %}
     No approvals are pending
     {% else %}

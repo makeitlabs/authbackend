@@ -16,8 +16,18 @@ def training():
   for r in res:
     if r.url:
       # This resrouce supports self-authorization
+      quizname = ""
+      resource = Resource.query.filter(Resource.id == r.resource_id).one()
+      if r.name and r.name.strip() != "":
+        quizname=r.name
+      else:
+        quizname = resource.short.title()
+        if r.endorsements and r.endorsements.strip() != "":
+          quizname += " " + r.endorsements + " Endorsement"
+        else:
+          quizname += " General Authorization"
       ma = AccessByMember.query.filter(AccessByMember.member_id == current_user.id,AccessByMember.resource_id == r.id).one_or_none()
-      ar = {'resource':r.description,'rid':r.id,'status':'?','url':r.url,'quiz_url':url_for('training.quiz',resource=r.name)}
+      ar = {'name':quizname,'resource':resource.short.title(),'rid':r.id,'status':'?','url':r.url,'quiz_url':url_for('training.quiz',quizid=r.id)}
       if ma:
         if ma.level == 0: 
           ar['desc'] = 'Authorized'
@@ -96,7 +106,7 @@ def training():
 
         if ar['status'] == 'can':
           # Make sure quiz is oky
-          q = ResourceQuiz.query.filter(ResourceQuiz.resource_id == r.id).count()
+          q = QuizQuestion.query.filter(QuizQuestion.training_id == r.id).count()
           if (q==0):
             ar['desc'] = 'Quiz is not ready - See Resource Manager'
             ar['status'] = 'cannot'
@@ -130,15 +140,25 @@ def approvals(resname):
             authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED.id,resource_id=res.id,message="Self-Auth Denied",member_id=current_user.id,commit=0)
             db.session.delete(a)
     db.session.commit()
+    authutil.kick_backend()
     flash("Done")
     return redirect(url_for('index'))
   else:
-    m = AccessByMember.query.filter((AccessByMember.resource_id == res.id) & (AccessByMember.lockout_reason == "Self-Trained"))
+    # Find anyone pending on "General Access" - i.e. they will appear "suspended"
+    m = AccessByMember.query.filter((AccessByMember.resource_id == res.id))
     m = m.outerjoin(Member).add_columns(Member.lastname,Member.firstname)
     users = m.all()
     u = []
     for m in users:
-      u.append({'id':m[0].member_id,'name':m[2]+" "+m[1]})
+      acc=m[0]
+      if acc.lockout_reason and acc.lockout_reason.strip() == "Self-Trained":
+        u.append({'name':"General Access",'id':m[0].member_id,'name':m[2]+" "+m[1],"type":"General Access"})
+      if acc.permissions:
+        for e in acc.permissions.strip().split():
+          if e.startswith("pending_"):
+            name = e.replace("pending_","")+ "Endorsement"
+            u.append({'name':name,'id':m[0].member_id,'name':m[2]+" "+m[1],"type":"Endorsement"})
+
     return render_template('pending.html',resources=res,users=u)
 
 #Populate training record from web form
@@ -259,11 +279,11 @@ def training_delete(trainid):
   flash("Deleted","success")
   return redirect(url_for('resources.resource_show',resource=res.name))
 
-@blueprint.route('/quiz/<string:resource>', methods=['GET','POST'])
+@blueprint.route('/quiz/<int:quizid>', methods=['GET','POST'])
 @login_required
-def quiz(resource):
+def quiz(quizid):
   hilight=False
-  r = Resource.query.filter(Resource.name == resource).one_or_none()
+  r = Training.query.filter(Training.id == quizid).one_or_none()
   if not r:
     flash("No resrouce","warning")
     return redirect(url_for('empty'))
