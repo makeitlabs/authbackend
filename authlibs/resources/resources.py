@@ -82,8 +82,8 @@ def resource_show(resource):
 	maint= MaintSched.query.filter(MaintSched.resource_id==r.id).all()
 	train=[]
 	for t in Training.query.filter(Training.resource_id==r.id).all():
-		v={}
-		if t.endorsements is None or t.endoresments.strip() == "":
+		v={'id':t.id}
+		if t.endorsements is None or t.endorsements.strip() == "":
 			v['grants'] = "(General Access)"
 		else:
 			v['grants'] = t.endorsements + " Endorsement"

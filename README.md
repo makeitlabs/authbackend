@@ -191,7 +191,7 @@ CREATE TABLE training (
         FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
 );
 
-INSERT INTO training(hours,permit,days,url,required,resource_id) SELECT sa_hours,sa_permit,sa_days,sa_url,sa_required,id FROM resources WHERE (sa_url is not null and sa_url != "");
+INSERT INTO training(id,hours,permit,days,url,required,resource_id) SELECT id,sa_hours,sa_permit,sa_days,sa_url,sa_required,id FROM resources WHERE (sa_url is not null and sa_url != "");
 
 CREATE TABLE resources2 (
         id INTEGER NOT NULL,

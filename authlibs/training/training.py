@@ -11,13 +11,13 @@ blueprint = Blueprint("training", __name__, template_folder='templates', static_
 @blueprint.route('/', methods=['GET'])
 @login_required
 def training():
-  res = Resource.query.all()
+  res = Training.query.join(Resource,Resource.id == Training.resource_id).all()
   sa = []
   for r in res:
-    if r.sa_url:
+    if r.url:
       # This resrouce supports self-authorization
       ma = AccessByMember.query.filter(AccessByMember.member_id == current_user.id,AccessByMember.resource_id == r.id).one_or_none()
-      ar = {'resource':r.description,'rid':r.id,'status':'?','url':r.sa_url,'quiz_url':url_for('training.quiz',resource=r.name)}
+      ar = {'resource':r.description,'rid':r.id,'status':'?','url':r.url,'quiz_url':url_for('training.quiz',resource=r.name)}
       if ma:
         if ma.level == 0: 
           ar['desc'] = 'Authorized'
@@ -33,10 +33,10 @@ def training():
           ar['status'] = 'already'
       else:
         #User has no access - can they train?
-        if (r.sa_required):
+        if (r.required):
           # They need to have authorization on an existing resource
-          ma2 = AccessByMember.query.filter(AccessByMember.member_id == current_user.id,AccessByMember.resource_id == r.sa_required).one_or_none()
-          r2 = Resource.query.filter(Resource.id == r.sa_required).one_or_none()
+          ma2 = AccessByMember.query.filter(AccessByMember.member_id == current_user.id,AccessByMember.resource_id == r.required).one_or_none()
+          r2 = Resource.query.filter(Resource.id == r.required).one_or_none()
           if r2 == None:
             logger.error("Prerequisite resource broken")
             ar['desc'] = 'Prerequisite resource broken (Seek help!)'
@@ -52,7 +52,7 @@ def training():
             ar['desc'] = 'Training Availalble'
             ar['status'] = 'can'
             # ...unless they don't meet days/hours requirements...
-            if (r.sa_hours) > 0:
+            if (r.hours) > 0:
               q = UsageLog.query.filter(UsageLog.resource_id==r2.id)
               q = q.filter(UsageLog.time_logged >= datetime.datetime.now()-datetime.timedelta(days=365*2))
               q = q.filter(UsageLog.member_id == current_user.id)
@@ -71,10 +71,10 @@ def training():
                 if q[3]: enabled_hours = int(q[3]/3600)
               total_hours=idle_hours+active_hours+enabled_hours
               #print "IDLE",idle_hours,"ACTIVE",active_hours,"ENABLED",enabled_hours,"TOTAL",total_hours
-              if total_hours < r.sa_hours:
+              if total_hours < r.hours:
                 ar['desc'] = 'Must meet expereince prerequisites on '+r2.description
                 ar['status'] = 'cannot'
-            if (r.sa_days) > 0:
+            if (r.days) > 0:
               # Check how long they have been authorized for
               q = Logs.query.filter(Logs.resource_id==r2.id)
               q = q.filter(Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id)
@@ -86,7 +86,7 @@ def training():
                 #print x.time_logged,x.time_reported
                 d =  (datetime.datetime.now()-x.time_logged).days
                 #print "AUTHO FOR",d
-                if d < r.sa_days:
+                if d < r.days:
                   ar['desc'] = 'Must meet expereince prerequisites on '+r2.description
                   ar['status'] = 'cannot'
 
@@ -141,39 +141,123 @@ def approvals(resname):
       u.append({'id':m[0].member_id,'name':m[2]+" "+m[1]})
     return render_template('pending.html',resources=res,users=u)
 
-@blueprint.route('/editquiz', methods=['GET','POST'])
+#Populate training record from web form
+def populate_train(train,request):
+  if (request.form['input_days'].strip() != ""):
+    train.days = int(request.form['input_days'])
+  else:
+    train.days = None
+
+  if (request.form['input_hours'].strip() != ""):
+    train.hours = int(request.form['input_hours'])
+  else:
+    train.hours = None
+
+  if (request.form['input_permit'].strip() != ""):
+    train.permit = int(request.form['input_permit'])
+  else:
+    train.permit = 0
+
+  if (int(request.form['input_required']) != -1):
+    train.required = int(request.form['input_required'])
+  else:
+    train.required = None
+
+  train.name = request.form['input_name'].strip()
+  train.url = request.form['input_url'].strip()
+  train.endorsements = request.form['input_endorsements'].strip()
+  train.required_endorsements = request.form['input_required_endorsements'].strip()
+
+# Train MUST already be "added" and have an index!
+def populate_quiz(train,request):
+    i=1
+    o=0
+    while True:
+      if 'question_'+str(i) not in request.form or 'answer_'+str(i) not in request.form:
+        break
+      q=request.form['question_'+str(i)].strip()
+      a=request.form['answer_'+str(i)].strip().lower()
+      i+=1
+      if q != "" or a !="":
+        print "GOT",i,o,q,a
+        o+=1
+        n = QuizQuestion(answer=a,question=q,idx=o,training_id=train.id)
+        db.session.add(n)
+
+@blueprint.route('/newquiz/<string:resname>', methods=['GET','POST'])
 @login_required
-def editquiz():
-	if request.method == "POST" and request.form:
-		for x in request.form:
-			print x,request.form[x]
-		if 'resource_id' in request.form and request.form['resource_id']:
-			rid = int(request.form['resource_id'])
-			i=1
-			o=0
-      if accesslib.user_privs_on_resource(member=current_user,resource_id=rid) < AccessByMember.LEVEL_ARM:
-        flash("You are not authorized to edit this quiz","warning")
-        return redirect(url_for('training.training'))
-			ResourceQuiz.query.filter(ResourceQuiz.resource_id == rid).delete()
-			while True:
-				if 'question_'+str(i) not in request.form or 'answer_'+str(i) not in request.form:
-					break
-				q=request.form['question_'+str(i)].strip()
-				a=request.form['answer_'+str(i)].strip().lower()
-				i+=1
-				if q != "" or a !="":
-					print "GOT",i,o,q,a
-					o+=1
-					n = ResourceQuiz(answer=a,question=q,idx=o,resource_id=rid)
-					db.session.add(n)
-			db.session.commit()
-			flash("Saved","success")
-	res = Resource.query.filter(Resource.id == request.values['resid']).one_or_none()
+def newquiz(resname):
+  res = Resource.query.filter(Resource.name == resname).one()
   if accesslib.user_privs_on_resource(member=current_user,resource=res) < AccessByMember.LEVEL_ARM:
     flash("You are not authorized to edit this quiz","warning")
     return redirect(url_for('training.training'))
-	questions = ResourceQuiz.query.filter(ResourceQuiz.resource_id == res.id).order_by(ResourceQuiz.idx).all()
-	return render_template('quiz_edit.html',res=res,training={},questions=questions)
+
+	if request.method == "POST" and request.form:
+		for x in request.form:
+			print "POSTED",x,request.form[x]
+    i=1
+    o=0
+    train = Training(resource_id=res.id)
+    populate_train(train,request)
+    db.session.add(train)
+    db.session.flush()
+    populate_quiz(train,request)
+    db.session.commit()
+    return redirect(url_for('training.editquiz',trainid=train.id))
+
+  resources = Resource.query.all()
+	return render_template('quiz_edit.html',resources=resources,res=res,rec={},questions=[])
+  
+@blueprint.route('/editquiz/<int:trainid>', methods=['GET','POST'])
+@login_required
+def editquiz(trainid):
+  train = Training.query.filter(Training.id == trainid).one_or_none()
+  if not train:
+    flash("Error: Does not exist","warning")
+    return redirect(url_for('training.training'))
+  rid = train.resource_id
+  
+	if request.method == "POST" and request.form:
+		for x in request.form:
+			print "POSTED",x,request.form[x]
+    if accesslib.user_privs_on_resource(member=current_user,resource_id=rid) < AccessByMember.LEVEL_ARM:
+      flash("You are not authorized to edit this quiz","warning")
+      return redirect(url_for('training.training'))
+
+
+    populate_train(train,request)
+
+    QuizQuestion.query.filter(QuizQuestion.training_id == trainid).delete()
+
+    populate_quiz(train,request)
+    db.session.commit()
+    flash("Saved","success")
+	res = Resource.query.filter(Resource.id == rid).one_or_none()
+
+  if accesslib.user_privs_on_resource(member=current_user,resource=res) < AccessByMember.LEVEL_ARM:
+    flash("You are not authorized to edit this quiz","warning")
+    return redirect(url_for('training.training'))
+
+  resources = Resource.query.all()
+	questions = QuizQuestion.query.filter(QuizQuestion.training_id == trainid).order_by(QuizQuestion.idx).all()
+	return render_template('quiz_edit.html',resources=resources,res=res,rec=train,questions=questions)
+
+@blueprint.route('/delete/<int:trainid>', methods=['GET','POST'])
+@login_required
+def training_delete(trainid):
+  train = Training.query.filter(Training.id == trainid).one_or_none()
+  if not train:
+    flash("Error: Does not exist","alert")
+    return redirect(url_for('training.training'))
+  rid = train.resource_id
+  res = Resource.query.filter(Resource.id == rid).one()
+  if accesslib.user_privs_on_resource(member=current_user,resource_id=rid) < AccessByMember.LEVEL_ARM:
+    flash("You are not authorized to edit this quiz","alert")
+    return redirect(url_for('training.training'))
+  db.session.delete(train)
+  db.session.commit()
+  flash("Deleted","success")
+  return redirect(url_for('resources.resource_show',resource=res.name))
 
 @blueprint.route('/quiz/<string:resource>', methods=['GET','POST'])
 @login_required
@@ -206,7 +290,7 @@ def quiz(resource):
     if wc == 0 and hilight == False:
       cnt = AccessByMember.query.filter((AccessByMember.member_id == current_user.id) & (AccessByMember.resource_id == r.id)).count()
       if cnt == 0:
-        if r.sa_permit == 1:
+        if r.permit == 1:
           ac = AccessByMember(member_id = current_user.id,resource_id = r.id,level=0,lockout_reason="Self-Trained")
           db.session.add(ac)
           flash("Training successful - Awaiting RM approval to authorize","success")

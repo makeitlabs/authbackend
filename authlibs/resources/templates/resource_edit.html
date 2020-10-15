@@ -30,18 +30,18 @@
         <td>Grants</td>
        </tr>
       {% for t in train %}
-        <td> {{ t.name }}</td>
-        <td> {{ t.requires }}</td>
-        <td> {{ t.grants }}</td>
+        <tr>
+          <td> {{ t.name }}</td>
+          <td> {{ t.requires }}</td>
+          <td> {{ t.grants }}</td>
+          <td> <a href="{{ url_for('training.editquiz',trainid=t.id) }}"><span class="glyphicon glyphicon-pencil" /></a></td>
+        </tr>
       {% endfor %}
     </table>
   {% endif %}
   <!-- Button trigger for "Delete" modal -->
-	<button type="button" class="btn btn-info" data-toggle="collapse" data-target="#addTrainCollapse">
-		Add Self-Training Course
-	</button>
+  <a href="{{ url_for('training.newquiz',resname=rec.name) }}" class="btn btn-info">Add Self-Training Course</a>
 	<div class="collapse" id="addTrainCollapse" >
-		{% include 'training_form.html' %}
 	</div>
   </div>
   <!-- End Training -->
