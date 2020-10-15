@@ -89,15 +89,15 @@ def resource_show(resource):
 			v['grants'] = t.endorsements + " Endorsement"
 
 		if t.name is None or t.name.strip()=="":
-			v['name'] = r.name+" "+v['grants']
+			v['name'] = r.short.title()+" "+v['grants']
 		else:
-			v['name']=t.name
+			v['name']=t.short.title()
 
 		if t.required is None:
-			v['requires']="(Nothing)"
+			v['requires']="(None)"
 		else:
-			v['requires']= Resource.query.filter(Resource.id == t.required).one().name
-			if t.required_endorsements is not None and t.required_endorsemenst.strip()!="":
+			v['requires']= Resource.query.filter(Resource.id == t.required).one().short.title()
+			if t.required_endorsements is not None and t.required_endorsements.strip()!="":
 				v['requires'] += " " + t.required_endorsements + " endorsement"
 
 		train.append(v)

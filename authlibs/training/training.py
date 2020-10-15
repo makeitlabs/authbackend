@@ -11,13 +11,14 @@ blueprint = Blueprint("training", __name__, template_folder='templates', static_
 @blueprint.route('/', methods=['GET'])
 @login_required
 def training():
-  res = Training.query.join(Resource,Resource.id == Training.resource_id).all()
+  res = Training.query.outerjoin(Resource,Resource.id == Training.resource_id).all()
   sa = []
   for r in res:
     if r.url:
       # This resrouce supports self-authorization
       quizname = ""
       resource = Resource.query.filter(Resource.id == r.resource_id).one()
+      ma = AccessByMember.query.filter(AccessByMember.member_id == current_user.id,AccessByMember.resource_id == r.id).one_or_none()
       if r.name and r.name.strip() != "":
         quizname=r.name
       else:
@@ -26,10 +27,21 @@ def training():
           quizname += " " + r.endorsements + " Endorsement"
         else:
           quizname += " General Authorization"
-      ma = AccessByMember.query.filter(AccessByMember.member_id == current_user.id,AccessByMember.resource_id == r.id).one_or_none()
       ar = {'name':quizname,'resource':resource.short.title(),'rid':r.id,'status':'?','url':r.url,'quiz_url':url_for('training.quiz',quizid=r.id)}
+
+      if r.endorsements and r.endorsements.strip() != "":
+        # Doing and endorsement
+        pass
+
+      # General Auth
       if ma:
-        if ma.level == 0: 
+        if ma.lockout_reason == "Self-Trained":
+          ar['desc'] = 'Authorization Pending'
+          ar['status'] = 'already'
+        elif ma.lockout_reason and ma.lockout_reason.strip() != "":
+          ar['desc'] = 'Access Susspended'
+          ar['status'] = 'cannot'
+        elif ma.level == 0: 
           ar['desc'] = 'Authorized'
           ar['status'] = 'already'
         elif ma.level == -2:  
@@ -61,7 +73,21 @@ def training():
             # They are authorized on prerequite resource..
             ar['desc'] = 'Training Availalble'
             ar['status'] = 'can'
-            # ...unless they don't meet days/hours requirements...
+
+            # ...they don't a required endorsement...
+            if r.required_endorsements and r.required_endorsements.strip() != "":
+              # Assume endorsement missing until we find below
+              ar['desc'] = 'Requires %s endorsement on %s' % (r.required_endorsements.strip(),r2.short.title())
+              ar['status'] = 'cannot'
+              for e in r.required_endorsements.strip().split():
+                if r2.permissions and r.permissions.strip() != "":
+                  for e2 in r2.permissions.strip().split():
+                    if e2 == e:
+                      ar['desc'] = 'Training Availalble'
+                      ar['status'] = 'can'
+                
+                
+            # ...or they don't meet days/hours requirements...
             if (r.hours) > 0:
               q = UsageLog.query.filter(UsageLog.resource_id==r2.id)
               q = q.filter(UsageLog.time_logged >= datetime.datetime.now()-datetime.timedelta(days=365*2))
@@ -283,14 +309,32 @@ def training_delete(trainid):
 @login_required
 def quiz(quizid):
   hilight=False
-  r = Training.query.filter(Training.id == quizid).one_or_none()
-  if not r:
-    flash("No resrouce","warning")
+  train = Training.query.filter(Training.id == quizid).one_or_none()
+  if not train:
+    flash("No course found","warning")
     return redirect(url_for('empty'))
-  qz = ResourceQuiz.query.filter(ResourceQuiz.resource_id == r.id).all()
+  res = Resource.query.filter(Resource.id == train.resource_id).one();
+  qz = QuizQuestion.query.filter(QuizQuestion.training_id == train.id).all()
   if len(qz) == 0:
-    flash("Quiz is missing - contact Resource Manager","warning")
-    return redirect(url_for('empty'))
+    flash("Quiz has no questions - contact Resource Manager","warning")
+    return redirect(url_for('training.training'))
+
+  # Are you authorized to take this quiz??
+  if train.required:
+    acc = AccessByMember.query.filter((AccessByMember.member_id == current_user.id) & (AccessByMember.resource_id == train.resource_id)).one_or_none()
+    if not acc:
+      flash("You must have %s access to take this quiz" % acc.short.title())
+      return redirect(url_for('training.training'))
+    if train.required_endorsements and train.required_endorsements.strip() != "":
+      allowed=False
+      for e in train.required_endorsements.strip().split():
+        if acc.permissions and acc.permissions.strip() != "":
+          for e2 in acc.permissions.strip().split():
+            if e2 == e:
+              allowed=True
+        flash("You must have %s endorsement on %s to take this quiz" % (train.required_endorsements,res.short.title()))
+        return redirect(url_for('training.training'))
+
   quiz=[]
   for (i,x) in enumerate(qz):
     quiz.append({'question':x.question,'answer':x.answer})
@@ -308,28 +352,58 @@ def quiz(quizid):
     if 'acknowledge' not in request.form:
       hilight=True
     if wc == 0 and hilight == False:
-      cnt = AccessByMember.query.filter((AccessByMember.member_id == current_user.id) & (AccessByMember.resource_id == r.id)).count()
-      if cnt == 0:
-        if r.permit == 1:
-          ac = AccessByMember(member_id = current_user.id,resource_id = r.id,level=0,lockout_reason="Self-Trained")
+      ac = AccessByMember.query.filter((AccessByMember.member_id == current_user.id) & (AccessByMember.resource_id == res.id)).one_or_none()
+      if not ac:
+        if train.permit == 1:
+          ac = AccessByMember(member_id = current_user.id,resource_id = train.resource_id,level=0,lockout_reason="Self-Trained")
           db.session.add(ac)
           flash("Training successful - Awaiting RM approval to authorize","success")
-          authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=r.id,message="Self-Auth - Pending",member_id=current_user.id,commit=0)
+          authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=train.resource_id,message="Self-Auth - Pending",member_id=current_user.id,commit=0)
         else:
-          ac = AccessByMember(member_id = current_user.id,resource_id = r.id,level=0)
+          ac = AccessByMember(member_id = current_user.id,resource_id = train.resource_id,level=0)
           db.session.add(ac)
           flash("Congratulations! You are authorized!","success")
-          authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=r.id,message="Self-Auth",member_id=current_user.id,commit=0)
+          authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=train.resource_id,message="Self-Auth",member_id=current_user.id,commit=0)
           
-        db.session.commit()
-        authutil.kick_backend()
-        if r.slack_chan and r.slack_chan.strip() != "":
+        if res.slack_chan and res.slack_chan.strip() != "":
           add_user_to_channel(r.slack_chan,current_user)
-      else:
-        flash("Access record already exists","warning")
+
+      if ac and (train.endorsements is None or train.endorsements.strip() == ""):
+        if ac.lockout_reason and ac.lockout_reason.strip() != "":
+          flash("Already awaiting approval")
+        elif ac.lockout_reason and ac.lockout_reason.strip() != "":
+          flash("Locked-out of resource: %s" % ac.lockout_reason)
+        elif ac.level < 0:
+          flash("Resorce permission revoked")
+        else:
+          flash("Access Record already exists")
+        return redirect(url_for('training.training'))
+          
+
+      # Add Endorsements (if we need to)
+      if train.endorsements:
+        existing = ac.permissions.strip().split()
+        for n in train.endorsements.strip().split():
+          if r.permit == 1:
+            # No automatic auth
+            if n not in existing and "pending_"+n not in existing:
+              existing.append("pending_"+n)
+              authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=train.resource_id,message="Pending %s Endorsement" % n,member_id=current_user.id,commit=0)
+            else:
+              if n in existing: flash("You already have %s endoresment" % n)
+              if "pending_"+n in existing: flash("%s endoresment is already pending RM approval" % n)
+          else:
+            # Automatic auth
+            if "pending_"+n in existing: existing.remove("pending_"+n)
+            if n not in existing:
+              existing.append(n)
+              authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=train.resource_id,message="Self-Auth %s Endorsement" % n,member_id=current_user.id,commit=0)
+        ac.permissions=" ".join(existing)
+      db.session.commit()
+      authutil.kick_backend()
       return redirect(url_for('training.training'))
 
-	return render_template('quiz.html',resource=r,quiz=quiz,highlight=hilight)
+	return render_template('quiz.html',resource=res,training=train,quiz=quiz,highlight=hilight)
     
 
 def register_pages(app):
