@@ -18,7 +18,7 @@ def training():
       # This resrouce supports self-authorization
       quizname = ""
       resource = Resource.query.filter(Resource.id == r.resource_id).one()
-      ma = AccessByMember.query.filter(AccessByMember.member_id == current_user.id,AccessByMember.resource_id == r.id).one_or_none()
+      ma = AccessByMember.query.filter(AccessByMember.member_id == current_user.id,AccessByMember.resource_id == r.resource_id).one_or_none()
       if r.name and r.name.strip() != "":
         quizname=r.name
       else:
@@ -29,12 +29,47 @@ def training():
           quizname += " General Authorization"
       ar = {'name':quizname,'resource':resource.short.title(),'rid':r.id,'status':'?','url':r.url,'quiz_url':url_for('training.quiz',quizid=r.id)}
 
+      # Are they trying to get an endorsement?
       if r.endorsements and r.endorsements.strip() != "":
-        # Doing and endorsement
-        pass
+        if not ma:
+          # They don't have any access to this at all
+          ar['desc'] = 'Training Available'
+          ar['status'] = 'can'
+        else:
+          # Doing and endorsement
+          if ma.lockout_reason == "Self-Trained":
+            ar['desc'] = 'General Authorization Pending'
+            ar['status'] = 'already'
+          elif ma.lockout_reason and ma.lockout_reason.strip() != "":
+            ar['desc'] = 'Access Susspended'
+            ar['status'] = 'cannot'
+          elif ma.level == -1:  
+            ar['desc'] = 'Authorization was revoked'
+            ar['status'] = 'cannot'
+          else:
+            if ma.permissions:
+              # They have some endorsements, but the right one(s)?
+              e =  r.endorsements.strip().split()
+              for p in  ma.permissions.strip().split():
+                if "pending_"+p in e:
+                  if ar['status'] != 'can':
+                    # Only if we haven't already determined it's needed!
+                    ar['desc'] = 'Already Pending'
+                    ar['status'] = 'already'
+                elif p not in e:
+                  ar['desc'] = 'Training Available'
+                  ar['status'] = 'can'
+                else:
+                  # Neither pending nor granted
+                  ar['desc'] = 'Training Available'
+                  ar['status'] = 'can'
+            else:
+              # They don't have any endorsements at all (yet)
+              ar['desc'] = 'Training Available'
+              ar['status'] = 'can'
 
-      # General Auth
-      if ma:
+      # Are they trying to get General Auth
+      elif ma:
         if ma.lockout_reason == "Self-Trained":
           ar['desc'] = 'Authorization Pending'
           ar['status'] = 'already'
@@ -53,8 +88,15 @@ def training():
         elif ma.level >0: 
           ar['desc'] = 'You are a Resource Manager'
           ar['status'] = 'already'
+
+      # "else" here means they are trying for general auth and have no existig acces record (ma)
       else:
-        #User has no access - can they train?
+        ar['desc'] = 'Training Available'
+        ar['status'] = 'can'
+
+
+      ## If they 'can' train - let's check prerequisites
+      if ar['status'] == 'can':
         if (r.required):
           # They need to have authorization on an existing resource
           ma2 = AccessByMember.query.filter(AccessByMember.member_id == current_user.id,AccessByMember.resource_id == r.required).one_or_none()
@@ -211,8 +253,16 @@ def populate_train(train,request):
 
   train.name = request.form['input_name'].strip()
   train.url = request.form['input_url'].strip()
+  if train.url == "":
+    flash ("Warning - Training URL not specified - Course will not appear in portal!","danger")
+  elif not train.url.lower().startswith("http://") and not train.url.lower().startswith("https:"):
+    flash ("Warning - Training URL was invalid!","danger")
   train.endorsements = request.form['input_endorsements'].strip()
-  train.required_endorsements = request.form['input_required_endorsements'].strip()
+  if 'input_required_endorsements' in request.form:
+    train.required_endorsements = request.form['input_required_endorsements'].strip()
+  else:
+    train.required_endorsements = None
+  
 
 # Train MUST already be "added" and have an index!
 def populate_quiz(train,request):
@@ -223,12 +273,17 @@ def populate_quiz(train,request):
         break
       q=request.form['question_'+str(i)].strip()
       a=request.form['answer_'+str(i)].strip().lower()
+      if q == "" and a == "": flash("Empty question %s removed"%i,"warning")
+      elif q == "": flash("Question %s was blank - removed"%i,"warning")
+      elif a == "": flash("Question %s had no answer - removed"%i,"warning")
       i+=1
-      if q != "" or a !="":
-        print "GOT",i,o,q,a
+      if q != "" and a !="":
+        #print "GOT",i,o,q,a
         o+=1
         n = QuizQuestion(answer=a,question=q,idx=o,training_id=train.id)
         db.session.add(n)
+    if o==0:
+      flash("No questions provided - Course will not work!","danger")
 
 @blueprint.route('/newquiz/<string:resname>', methods=['GET','POST'])
 @login_required
@@ -239,8 +294,8 @@ def newquiz(resname):
     return redirect(url_for('training.training'))
 
 	if request.method == "POST" and request.form:
-		for x in request.form:
-			print "POSTED",x,request.form[x]
+		#for x in request.form:
+		#	print "POSTED",x,request.form[x]
     i=1
     o=0
     train = Training(resource_id=res.id)
@@ -264,8 +319,8 @@ def editquiz(trainid):
   rid = train.resource_id
   
 	if request.method == "POST" and request.form:
-		for x in request.form:
-			print "POSTED",x,request.form[x]
+		#for x in request.form:
+		#	print "POSTED",x,request.form[x]
     if accesslib.user_privs_on_resource(member=current_user,resource_id=rid) < AccessByMember.LEVEL_ARM:
       flash("You are not authorized to edit this quiz","warning")
       return redirect(url_for('training.training'))
@@ -382,9 +437,12 @@ def quiz(quizid):
 
       # Add Endorsements (if we need to)
       if train.endorsements:
-        existing = ac.permissions.strip().split()
+        if not ac.permissions: 
+          existing=[]
+        else:
+          existing = ac.permissions.strip().split()
         for n in train.endorsements.strip().split():
-          if r.permit == 1:
+          if train.permit == 1:
             # No automatic auth
             if n not in existing and "pending_"+n not in existing:
               existing.append("pending_"+n)

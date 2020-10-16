@@ -91,7 +91,7 @@ def resource_show(resource):
 		if t.name is None or t.name.strip()=="":
 			v['name'] = r.short.title()+" "+v['grants']
 		else:
-			v['name']=t.short.title()
+			v['name']= t.name
 
 		if t.required is None:
 			v['requires']="(None)"
