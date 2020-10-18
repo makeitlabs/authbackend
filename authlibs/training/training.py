@@ -8,182 +8,197 @@ from ..slackutils import add_user_to_channel
 
 blueprint = Blueprint("training", __name__, template_folder='templates', static_folder="static",url_prefix="/training")
 
+# Checks if a user can take the selected training
+def verify_training(train,user=current_user):
+  print "NEW"
+  ar={'status':'error'}
+  quizname = ""
+  resource = Resource.query.filter(Resource.id == train.resource_id).one_or_none()
+  if not resource:
+    return result; # error
+
+  ma = AccessByMember.query.filter(AccessByMember.member_id == user.id,AccessByMember.resource_id == resource.id).one_or_none()
+  if train.name and train.name.strip() != "":
+    quizname=train.name
+  else:
+    quizname = resource.short.title()
+    if train.endorsements and train.endorsements.strip() != "":
+      quizname += " " + train.endorsements + " Endorsement"
+    else:
+      quizname += " General Authorization"
+  ar = {'name':quizname,'resource':resource.short.title(),
+        'rid':train.id,'status':'?','url':train.url,
+        'quiz_url':url_for('training.quiz',quizid=train.id),
+        'quizname':quizname}
+
+  # Are they trying to get an endorsement?
+  if train.endorsements and train.endorsements.strip() != "":
+    if not ma:
+      # They don't have any access to this at all
+      ar['desc'] = 'Training Available'
+      ar['status'] = 'can'
+    else:
+      # Doing and endorsement
+      if ma.lockout_reason == "Self-Trained":
+        ar['desc'] = 'General Authorization Pending'
+        ar['status'] = 'already'
+      elif ma.lockout_reason and ma.lockout_reason.strip() != "":
+        ar['desc'] = 'Access Susspended'
+        ar['status'] = 'cannot'
+      elif ma.level == -1:  
+        ar['desc'] = 'Authorization was revoked'
+        ar['status'] = 'cannot'
+      else:
+        if ma.permissions:
+          # They have some endorsements, but the right one(s)?
+          e =  ma.permissions.strip().split()
+          for p in  train.endorsements.strip().split():
+            print "CHECK",e,p,ar['status']
+            if "pending_"+p in e:
+              print "WE MAYBE CAN"
+              if ar['status'] != 'can':
+                # Only if we haven't already determined it's needed!
+                ar['desc'] = 'Already Pending'
+                ar['status'] = 'already'
+            elif p in e:
+              if ar['status'] != 'can':
+                # Only if we haven't already determined it's needed!
+                ar['desc'] = 'Already Has'
+                ar['status'] = 'already'
+            else:
+              # Neither pending nor granted
+              ar['desc'] = 'Training Available'
+              ar['status'] = 'can'
+        else:
+          # They don't have any endorsements at all (yet)
+          ar['desc'] = 'Training Available'
+          ar['status'] = 'can'
+
+  # Are they trying to get General Auth
+  elif ma:
+    if ma.lockout_reason == "Self-Trained":
+      ar['desc'] = 'Authorization Pending'
+      ar['status'] = 'already'
+    elif ma.lockout_reason and ma.lockout_reason.strip() != "":
+      ar['desc'] = 'Access Susspended'
+      ar['status'] = 'cannot'
+    elif ma.level == 0: 
+      ar['desc'] = 'Authorized'
+      ar['status'] = 'already'
+    elif ma.level == -2:  
+      ar['desc'] = 'Access is pending'
+      ar['status'] = 'cannot'
+    elif ma.level == -1:  
+      ar['desc'] = 'Authorization was revoked'
+      ar['status'] = 'cannot'
+    elif ma.level >0: 
+      ar['desc'] = 'You are a Resource Manager'
+      ar['status'] = 'already'
+  # "else" here means they are trying for general auth and have no existig acces record (ma)
+  else:
+    ar['desc'] = 'Training Available'
+    ar['status'] = 'can'
+
+
+  ## If they 'can' train - let's check prerequisites
+  if ar['status'] == 'can':
+    if (train.required):
+      # They need to have authorization on an existing resource
+      ma2 = AccessByMember.query.filter(AccessByMember.member_id == user.id,AccessByMember.resource_id == train.required).one_or_none()
+      r2 = Resource.query.filter(Resource.id == train.required).one_or_none()
+      if r2 == None:
+        logger.error("Prerequisite resource broken")
+        ar['desc'] = 'Prerequisite resource broken (Seek help!)'
+        ar['status'] = 'cannot'
+      elif ma2 == None:
+        ar['desc'] = 'Need to first be authorized on '+r2.short.title()
+        ar['status'] = 'cannot'
+      elif ma2.level < 0:
+        ar['desc'] = 'You are restricted from using '+r2.short.title()
+        ar['status'] = 'cannot'
+      else:
+        # They are authorized on prerequite resource..
+        ar['desc'] = 'Training Availalble'
+        ar['status'] = 'can'
+
+        # ...Do theyrequire an required endorsement...
+        if train.required_endorsements and train.required_endorsements.strip() != "":
+          # Assume endorsement missing until we find below
+          ar['desc'] = 'Requires %s endorsement on %s' % (train.required_endorsements.strip(),r2.short.title())
+          ar['status'] = 'cannot'
+          print resource.short,"REQUIRES",train.required_endorsements,"on",r2.short,"HAVE",ma2.permissions
+          for e in train.required_endorsements.strip().split():
+            if ma2.permissions and ma.permissions.strip() != "":
+              for e2 in ma.permissions.strip().split():
+                if e2 == e:
+                  ar['desc'] = 'Training Availalble'
+                  ar['status'] = 'can'
+            
+            
+        # ...or they don't meet days/hours requirements...
+        if r2 and (train.hours > 0):
+          q = UsageLog.query.filter(UsageLog.resource_id==r2.id)
+          q = q.filter(UsageLog.time_logged >= datetime.datetime.now()-datetime.timedelta(days=365*2))
+          q = q.filter(UsageLog.member_id == user.id)
+
+          q = q.add_column(func.sum(UsageLog.enabledSecs).label('enabled'))
+          q = q.add_column(func.sum(UsageLog.activeSecs).label('active'))
+          q = q.add_column(func.sum(UsageLog.idleSecs).label('idle'))
+          q= q.one_or_none()
+          #print q
+          idle_hours=0
+          active_hours=0
+          enabled_hours=0
+          if q:
+            if q[1]: idle_hours = int(q[1]/3600)
+            if q[2]: active_hours = int(q[2]/3600)
+            if q[3]: enabled_hours = int(q[3]/3600)
+          total_hours=idle_hours+active_hours+enabled_hours
+          #print "IDLE",idle_hours,"ACTIVE",active_hours,"ENABLED",enabled_hours,"TOTAL",total_hours
+          if total_hours < train.hours:
+            ar['desc'] = 'Must meet expereince prerequisites on '+r2.description
+            ar['status'] = 'cannot'
+        if r2 and (train.days > 0):
+          # Check how long they have been authorized for
+          q = Logs.query.filter(Logs.resource_id==r2.id)
+          q = q.filter(Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id)
+          q = q.filter(Logs.member_id == user.id)
+          q = q.order_by(Logs.time_reported.asc())
+          q = q.limit(1)
+          x = q.one_or_none()
+          if x:
+            #print x.time_logged,x.time_reported
+            d =  (datetime.datetime.now()-x.time_logged).days
+            #print "AUTHO FOR",d
+            if d < train.days:
+              ar['desc'] = 'Must meet expereince prerequisites on '+r2.description
+              ar['status'] = 'cannot'
+
+    else:
+      ar['desc'] = 'Training Availalble'
+      ar['status'] = 'can'
+
+    if ar['status'] == 'can':
+      # Make sure quiz is oky
+      q = QuizQuestion.query.filter(QuizQuestion.training_id == train.id).count()
+      if (q==0):
+        ar['desc'] = 'Quiz is not ready - See Resource Manager'
+        ar['status'] = 'cannot'
+
+  return ar
+  
+
+
 @blueprint.route('/', methods=['GET'])
 @login_required
 def training():
-  res = Training.query.outerjoin(Resource,Resource.id == Training.resource_id).all()
+  courses = Training.query.outerjoin(Resource,Resource.id == Training.resource_id).all()
   sa = []
-  for r in res:
-    if r.url:
-      # This resrouce supports self-authorization
-      quizname = ""
-      resource = Resource.query.filter(Resource.id == r.resource_id).one()
-      ma = AccessByMember.query.filter(AccessByMember.member_id == current_user.id,AccessByMember.resource_id == r.resource_id).one_or_none()
-      if r.name and r.name.strip() != "":
-        quizname=r.name
-      else:
-        quizname = resource.short.title()
-        if r.endorsements and r.endorsements.strip() != "":
-          quizname += " " + r.endorsements + " Endorsement"
-        else:
-          quizname += " General Authorization"
-      ar = {'name':quizname,'resource':resource.short.title(),'rid':r.id,'status':'?','url':r.url,'quiz_url':url_for('training.quiz',quizid=r.id)}
+  for t in courses:
+      ar = verify_training(t)
+      if ar['url']:
+        sa.append(ar)
 
-      # Are they trying to get an endorsement?
-      if r.endorsements and r.endorsements.strip() != "":
-        if not ma:
-          # They don't have any access to this at all
-          ar['desc'] = 'Training Available'
-          ar['status'] = 'can'
-        else:
-          # Doing and endorsement
-          if ma.lockout_reason == "Self-Trained":
-            ar['desc'] = 'General Authorization Pending'
-            ar['status'] = 'already'
-          elif ma.lockout_reason and ma.lockout_reason.strip() != "":
-            ar['desc'] = 'Access Susspended'
-            ar['status'] = 'cannot'
-          elif ma.level == -1:  
-            ar['desc'] = 'Authorization was revoked'
-            ar['status'] = 'cannot'
-          else:
-            if ma.permissions:
-              # They have some endorsements, but the right one(s)?
-              e =  r.endorsements.strip().split()
-              for p in  ma.permissions.strip().split():
-                if "pending_"+p in e:
-                  if ar['status'] != 'can':
-                    # Only if we haven't already determined it's needed!
-                    ar['desc'] = 'Already Pending'
-                    ar['status'] = 'already'
-                elif p in e:
-                  if ar['status'] != 'can':
-                    # Only if we haven't already determined it's needed!
-                    ar['desc'] = 'Already Has'
-                    ar['status'] = 'already'
-                else:
-                  # Neither pending nor granted
-                  ar['desc'] = 'Training Available'
-                  ar['status'] = 'can'
-            else:
-              # They don't have any endorsements at all (yet)
-              ar['desc'] = 'Training Available'
-              ar['status'] = 'can'
-
-      # Are they trying to get General Auth
-      elif ma:
-        if ma.lockout_reason == "Self-Trained":
-          ar['desc'] = 'Authorization Pending'
-          ar['status'] = 'already'
-        elif ma.lockout_reason and ma.lockout_reason.strip() != "":
-          ar['desc'] = 'Access Susspended'
-          ar['status'] = 'cannot'
-        elif ma.level == 0: 
-          ar['desc'] = 'Authorized'
-          ar['status'] = 'already'
-        elif ma.level == -2:  
-          ar['desc'] = 'Access is pending'
-          ar['status'] = 'cannot'
-        elif ma.level == -1:  
-          ar['desc'] = 'Authorization was revoked'
-          ar['status'] = 'cannot'
-        elif ma.level >0: 
-          ar['desc'] = 'You are a Resource Manager'
-          ar['status'] = 'already'
-      # "else" here means they are trying for general auth and have no existig acces record (ma)
-      else:
-        ar['desc'] = 'Training Available'
-        ar['status'] = 'can'
-
-
-      ## If they 'can' train - let's check prerequisites
-      if ar['status'] == 'can':
-        if (r.required):
-          # They need to have authorization on an existing resource
-          ma2 = AccessByMember.query.filter(AccessByMember.member_id == current_user.id,AccessByMember.resource_id == r.required).one_or_none()
-          r2 = Resource.query.filter(Resource.id == r.required).one_or_none()
-          if r2 == None:
-            logger.error("Prerequisite resource broken")
-            ar['desc'] = 'Prerequisite resource broken (Seek help!)'
-            ar['status'] = 'cannot'
-          elif ma2 == None:
-            ar['desc'] = 'Need to first be authorized on '+r2.short.title()
-            ar['status'] = 'cannot'
-          elif ma2.level < 0:
-            ar['desc'] = 'You are restricted from using '+r2.short.title()
-            ar['status'] = 'cannot'
-          else:
-            # They are authorized on prerequite resource..
-            ar['desc'] = 'Training Availalble'
-            ar['status'] = 'can'
-
-            # ...Do theyrequire an required endorsement...
-            if r.required_endorsements and r.required_endorsements.strip() != "":
-              # Assume endorsement missing until we find below
-              ar['desc'] = 'Requires %s endorsement on %s' % (r.required_endorsements.strip(),r2.short.title())
-              ar['status'] = 'cannot'
-              print resource.short,"REQUIRES",r.required_endorsements,"on",r2.short,"HAVE",ma2.permissions
-              for e in r.required_endorsements.strip().split():
-                if ma2.permissions and ma.permissions.strip() != "":
-                  for e2 in ma.permissions.strip().split():
-                    if e2 == e:
-                      ar['desc'] = 'Training Availalble'
-                      ar['status'] = 'can'
-                
-                
-            # ...or they don't meet days/hours requirements...
-            if (r.hours) > 0:
-              q = UsageLog.query.filter(UsageLog.resource_id==r2.id)
-              q = q.filter(UsageLog.time_logged >= datetime.datetime.now()-datetime.timedelta(days=365*2))
-              q = q.filter(UsageLog.member_id == current_user.id)
-
-              q = q.add_column(func.sum(UsageLog.enabledSecs).label('enabled'))
-              q = q.add_column(func.sum(UsageLog.activeSecs).label('active'))
-              q = q.add_column(func.sum(UsageLog.idleSecs).label('idle'))
-              q= q.one_or_none()
-              #print q
-              idle_hours=0
-              active_hours=0
-              enabled_hours=0
-              if q:
-                if q[1]: idle_hours = int(q[1]/3600)
-                if q[2]: active_hours = int(q[2]/3600)
-                if q[3]: enabled_hours = int(q[3]/3600)
-              total_hours=idle_hours+active_hours+enabled_hours
-              #print "IDLE",idle_hours,"ACTIVE",active_hours,"ENABLED",enabled_hours,"TOTAL",total_hours
-              if total_hours < r.hours:
-                ar['desc'] = 'Must meet expereince prerequisites on '+r2.description
-                ar['status'] = 'cannot'
-            if (r.days) > 0:
-              # Check how long they have been authorized for
-              q = Logs.query.filter(Logs.resource_id==r2.id)
-              q = q.filter(Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id)
-              q = q.filter(Logs.member_id == current_user.id)
-              q = q.order_by(Logs.time_reported.asc())
-              q = q.limit(1)
-              x = q.one_or_none()
-              if x:
-                #print x.time_logged,x.time_reported
-                d =  (datetime.datetime.now()-x.time_logged).days
-                #print "AUTHO FOR",d
-                if d < r.days:
-                  ar['desc'] = 'Must meet expereince prerequisites on '+r2.description
-                  ar['status'] = 'cannot'
-
-        else:
-          ar['desc'] = 'Training Availalble'
-          ar['status'] = 'can'
-
-        if ar['status'] == 'can':
-          # Make sure quiz is oky
-          q = QuizQuestion.query.filter(QuizQuestion.training_id == r.id).count()
-          if (q==0):
-            ar['desc'] = 'Quiz is not ready - See Resource Manager'
-            ar['status'] = 'cannot'
-      
-      sa.append(ar)
-
-  #print sa
   return render_template('training.html',training=sa)
 
 @blueprint.route('/approvals/<string:resname>', methods=['GET','POST'])
@@ -199,16 +214,36 @@ def approvals(resname):
     if 'deny' in request.form: authorize=False
     for x in request.form:
       if x.startswith("id_"):
-        i = int(x.replace("id_",""))
-        print "Authorize" if authorize else "Deny",i
+        xx = x.split("_")
+        i = int(xx[1])
+        endo = None
+        if len(xx) == 3:
+          endo = xx[2].strip()
+        print "Authorize" if authorize else "Deny",i,endo
         a = AccessByMember.query.filter((AccessByMember.member_id == i) & (AccessByMember.resource_id == res.id)).one_or_none()
+        endos = []
+        if a.permissions:
+          endos = a.permissions.strip().split()
         if a:
           if authorize:
-            authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=res.id,message="Self-Auth Approved",member_id=current_user.id,commit=0)
+            if endo:
+              endos.remove("pending_"+endo)
+              if endo not in endos:
+                endos.append(endo)
+                authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=res.id,message="Self-Auth %s Endorsement Approved" % endo,member_id=current_user.id,commit=0)
+            else:
+              authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=res.id,message="Self-Auth Approved",member_id=current_user.id,commit=0)
             a.lockout_reason =None 
           else:
             authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED.id,resource_id=res.id,message="Self-Auth Denied",member_id=current_user.id,commit=0)
             db.session.delete(a)
+        else: # No access record exists
+          if authorize:
+            a = AccessByMember(member_id =i,resource_id=res.id)
+            if endo:
+              endos.append(endo)
+        if a:
+          a.permissions = " ".join(endos)
     db.session.commit()
     authutil.kick_backend()
     flash("Done")
@@ -222,12 +257,12 @@ def approvals(resname):
     for m in users:
       acc=m[0]
       if acc.lockout_reason and acc.lockout_reason.strip() == "Self-Trained":
-        u.append({'name':"General Access",'id':m[0].member_id,'name':m[2]+" "+m[1],"type":"General Access"})
+        u.append({'id':m[0].member_id,'name':m[2]+" "+m[1],"desc":"General Access"})
       if acc.permissions:
         for e in acc.permissions.strip().split():
           if e.startswith("pending_"):
-            name = e.replace("pending_","")+ "Endorsement"
-            u.append({'name':name,'id':m[0].member_id,'name':m[2]+" "+m[1],"type":"Endorsement"})
+            name = e.replace("pending_","")
+            u.append({'id':m[0].member_id,'name':m[2]+" "+m[1],"desc":name+" Endorsement","type":name})
 
     return render_template('pending.html',resources=res,users=u)
 
@@ -377,20 +412,10 @@ def quiz(quizid):
     return redirect(url_for('training.training'))
 
   # Are you authorized to take this quiz??
-  if train.required:
-    acc = AccessByMember.query.filter((AccessByMember.member_id == current_user.id) & (AccessByMember.resource_id == train.resource_id)).one_or_none()
-    if not acc:
-      flash("You must have %s access to take this quiz" % acc.short.title())
-      return redirect(url_for('training.training'))
-    if train.required_endorsements and train.required_endorsements.strip() != "":
-      allowed=False
-      for e in train.required_endorsements.strip().split():
-        if acc.permissions and acc.permissions.strip() != "":
-          for e2 in acc.permissions.strip().split():
-            if e2 == e:
-              allowed=True
-        flash("You must have %s endorsement on %s to take this quiz" % (train.required_endorsements,res.short.title()))
-        return redirect(url_for('training.training'))
+  ar = verify_training(train)
+  if ar['status'] != 'can':
+     flash(ar['desc'])
+     return redirect(url_for('training.training'))
 
   quiz=[]
   for (i,x) in enumerate(qz):
@@ -425,17 +450,6 @@ def quiz(quizid):
         if res.slack_chan and res.slack_chan.strip() != "":
           add_user_to_channel(r.slack_chan,current_user)
 
-      if ac and (train.endorsements is None or train.endorsements.strip() == ""):
-        if ac.lockout_reason and ac.lockout_reason.strip() != "":
-          flash("Already awaiting approval")
-        elif ac.lockout_reason and ac.lockout_reason.strip() != "":
-          flash("Locked-out of resource: %s" % ac.lockout_reason)
-        elif ac.level < 0:
-          flash("Resorce permission revoked")
-        else:
-          flash("Access Record already exists")
-        return redirect(url_for('training.training'))
-          
 
       # Add Endorsements (if we need to)
       if train.endorsements:
