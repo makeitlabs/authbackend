@@ -56,9 +56,11 @@ def training():
                     # Only if we haven't already determined it's needed!
                     ar['desc'] = 'Already Pending'
                     ar['status'] = 'already'
-                elif p not in e:
-                  ar['desc'] = 'Training Available'
-                  ar['status'] = 'can'
+                elif p in e:
+                  if ar['status'] != 'can':
+                    # Only if we haven't already determined it's needed!
+                    ar['desc'] = 'Already Has'
+                    ar['status'] = 'already'
                 else:
                   # Neither pending nor granted
                   ar['desc'] = 'Training Available'
@@ -88,7 +90,6 @@ def training():
         elif ma.level >0: 
           ar['desc'] = 'You are a Resource Manager'
           ar['status'] = 'already'
-
       # "else" here means they are trying for general auth and have no existig acces record (ma)
       else:
         ar['desc'] = 'Training Available'
@@ -106,24 +107,25 @@ def training():
             ar['desc'] = 'Prerequisite resource broken (Seek help!)'
             ar['status'] = 'cannot'
           elif ma2 == None:
-            ar['desc'] = 'Need to first be authorized on '+r2.description
+            ar['desc'] = 'Need to first be authorized on '+r2.short.title()
             ar['status'] = 'cannot'
           elif ma2.level < 0:
-            ar['desc'] = 'You are restricted from using '+r2.description
+            ar['desc'] = 'You are restricted from using '+r2.short.title()
             ar['status'] = 'cannot'
           else:
             # They are authorized on prerequite resource..
             ar['desc'] = 'Training Availalble'
             ar['status'] = 'can'
 
-            # ...they don't a required endorsement...
+            # ...Do theyrequire an required endorsement...
             if r.required_endorsements and r.required_endorsements.strip() != "":
               # Assume endorsement missing until we find below
               ar['desc'] = 'Requires %s endorsement on %s' % (r.required_endorsements.strip(),r2.short.title())
               ar['status'] = 'cannot'
+              print resource.short,"REQUIRES",r.required_endorsements,"on",r2.short,"HAVE",ma2.permissions
               for e in r.required_endorsements.strip().split():
-                if r2.permissions and r.permissions.strip() != "":
-                  for e2 in r2.permissions.strip().split():
+                if ma2.permissions and ma.permissions.strip() != "":
+                  for e2 in ma.permissions.strip().split():
                     if e2 == e:
                       ar['desc'] = 'Training Availalble'
                       ar['status'] = 'can'
@@ -453,7 +455,9 @@ def quiz(quizid):
           else:
             # Automatic auth
             if "pending_"+n in existing: existing.remove("pending_"+n)
+            print "AUTO",n,"IN",existing
             if n not in existing:
+              print "ADD EXIST"
               existing.append(n)
               authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=train.resource_id,message="Self-Auth %s Endorsement" % n,member_id=current_user.id,commit=0)
         ac.permissions=" ".join(existing)
