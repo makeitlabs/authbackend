@@ -63,7 +63,7 @@ def verify_training(train,user=current_user):
             elif p in e:
               if ar['status'] != 'can':
                 # Only if we haven't already determined it's needed!
-                ar['desc'] = 'Already Has'
+                ar['desc'] = 'Already Have'
                 ar['status'] = 'already'
             else:
               # Neither pending nor granted
@@ -396,6 +396,18 @@ def training_delete(trainid):
   db.session.commit()
   flash("Deleted","success")
   return redirect(url_for('resources.resource_show',resource=res.name))
+
+@blueprint.route('/endorsements/<string:resid>')
+@login_required
+def get_endorsements(resid):
+  res=[]
+  e = Resource.query.filter(Resource.id==int(resid)).one()
+  if e.permissions:
+    res = e.permissions.strip().split()
+	return json_dump(res, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  
+  
 
 @blueprint.route('/quiz/<int:quizid>', methods=['GET','POST'])
 @login_required
