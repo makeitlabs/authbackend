@@ -301,7 +301,7 @@ def member_editaccess(id):
 		mid = safestr(id)
 		member = db.session.query(Member).filter(Member.id == mid).one_or_none()
 		if not member:
-			flash("Invalid Tag","danger")
+			flash("Member","danger")
 			return redirect(url_for('members.members'))
 		tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
 
@@ -331,8 +331,11 @@ def member_editaccess(id):
 				if r.permissions:
 					for p in r.permissions.strip().split():
 						haspriv = False
+						pending = False
+						print "CHCINING ",p,"IN",permissions
 						if permissions and p.lower() in permissions.strip().lower().split(): haspriv=True
-						permflags.append({p:haspriv})
+						if permissions and ("pending_"+p).lower() in permissions.strip().lower().split(): pending=True
+						permflags.append({'name':p,'haspriv':haspriv,'pending':pending})
 				access.append({'resource':r,'active':active,'level':level,'myPerms':myPerms,'levelText':levelText,'lockout_reason':lockout_reason,'permflags':permflags})
 		allowsave=False
 		if (current_user.privs('Useredit')): allowsave=True
@@ -470,14 +473,15 @@ def member_setaccess(id):
 										acc.level=p
 
 								# This section sets permission flags to whatever's present
-								permission_flags=""
+								permission_flags=[]
+								if acc.permissions: permission_flags=acc.permissions.strip().split()
 								for pf in request.form:
 									if pf.startswith("permflag_"+r+"_"):
-										print "PFF",pf
 										pff = pf.replace("permflag_"+r+"_","")
-										permission_flags += " "+pff
+										if "pending_"+pff in permission_flags: permission_flags.remove("pending_"+pff)
 										if "origpermflag_"+r+"_"+pff not in request.form or request.form["origpermflag_"+r+"_"+pff] == "off":
 											aastr = "Added endorsement: "+pff
+											permission_flags.append(pff)
 											db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE.id,message=aastr,doneby=current_user.id))
 
 								# Log revoked permission flags
@@ -487,9 +491,10 @@ def member_setaccess(id):
 										if "permflag_"+r+"_"+pff not in request.form:
 											if request.form[pf] == 'on':
 												aastr = "Removed endorsement: "+pff
+												while pff in permission_flags: permission_flags.remove(pff)
 												db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE.id,message=aastr,doneby=current_user.id))
 
-								acc.permissions=permission_flags.strip()
+								acc.permissions=" ".join(permission_flags)
 
 								if acc and newcheck == False and acc.level < myPerms:
 										#delete

@@ -74,22 +74,29 @@ vim:tabstop=2:expandtab:shiftwidth=2
 			{% endif %}
         <td>
           <div id="endorsediv_{{ a.resource.name }}" style="display:{% if a.active == 1 %}inline{% else %}none{% endif %}" >
+            <table>
             {% for p in a.permflags %}
-               <input type="hidden" name="origpermflag_{{ a.resource.name }}_{{ p.keys()[0]}}" 
-                        value="{{ 'on' if (p.values()[0]) else 'off' }}" />
+                <tr><td>
+               <input type="hidden" name="origpermflag_{{ a.resource.name }}_{{ p.name }}" 
+                        value="{{ 'on' if (p.haspriv) else 'off' }}" />
               {% if a.myPerms >= 2 %}
-                <input type="checkbox" name="permflag_{{ a.resource.name }}_{{ p.keys()[0]}}" 
-                      {{ 'checked' if p.values()[0] }} />
-                <label for="permflag_{{ a.resource.name }}_{{ p.keys()[0]}}">
-                {{ p.keys()[0] }} 
+                <input type="checkbox" name="permflag_{{ a.resource.name }}_{{ p.name }}" 
+                      {{ 'checked' if p.haspriv }} />
+                <label for="permflag_{{ a.resource.name }}_{{ p.name }}">
+                {{ p.name }} 
+                {% if p.pending %}
+                <b>(Pending)</b>
+                {% endif %}
                 </label>
               {% else %}
-                {% if p.values()[0] %}
-                  {{ p.keys()[0] }}
-                 <input type="hidden" value="on" name="permflag_{{ a.resource.name }}_{{ p.keys()[0]}}" value="on"  />
+                {% if p.haspriv %}
+                  {{ p.name }}
+                 <input type="hidden" value="on" name="permflag_{{ a.resource.name }}_{{ p.name }}" value="on"  />
                 {% endif %}
               {% endif %}
+            </td></tr>
             {% endfor %}
+            </table>
           </div>
         <td>
         <td>
