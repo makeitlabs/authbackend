@@ -207,7 +207,6 @@ CREATE TABLE resources2 (
         slack_info_text VARCHAR, 
         age_restrict INTEGER, 
         permissions VARCHAR(255), 
-        endorsements VARCHAR(50), 
         PRIMARY KEY(id), 
         UNIQUE (name),
         UNIQUE (short)
@@ -226,8 +225,8 @@ INSERT INTO resources2 (
         info_text,
         slack_info_text, 
         age_restrict, 
-        permissions, 
-        endorsements)
+        permissions
+        )
         SELECT 
           id,
           name,
@@ -241,8 +240,7 @@ INSERT INTO resources2 (
           info_text,
           slack_info_text, 
           age_restrict, 
-          permissions, 
-          endorsements
+          permissions 
         FROM resources;
 
 DROP TABLE resources;
