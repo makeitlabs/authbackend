@@ -632,7 +632,7 @@ def member_tagdisable(tag_ident):
 
 def generate_member_report(members):
 	fields=[ 'member', "email", "alt_email", "firstname", "lastname", "phone","dob",
-					"plan", "slack_id","access_enabled", "access_reason", "active", "rate_plan", "sub_active",'Waiver']
+					"plan", "slack_id","access_enabled", "access_reason", "active", "rate_plan", "sub_active",'memberWaiver','guestWaiver','prostoreWaiver','workspaceWaiver']
 	s=""
 	for f in fields:
 		s += "\""+str(f)+"\","
@@ -647,8 +647,7 @@ def generate_member_report(members):
 			values += (m.Subscription.rate_plan, m.Subscription.active)
 		else:
 			values += ("","")
-		if m.Waiver:
-			values += (m.Waiver.created_date,)
+		values += (m.memberWaivers,m.guestWaivers,m.prostoreWaivers,m.workspaceWaivers)
 		for f in values:
 				s += "\""+str(f)+"\","
 		yield s+"\n"
@@ -657,8 +656,28 @@ def generate_member_report(members):
 @login_required
 @roles_required(['Admin','Finance','Useredit'])
 def member_report():
-		members=db.session.query(Member,Subscription,Waiver)
-		members = members.join(Subscription,isouter=True).join(Waiver,isouter=True).all()
+		members=db.session.query(Member,Subscription)
+		members = members.join(Subscription,isouter=True)
+		sq = db.session.query(Waiver.member_id,func.count(Waiver.member_id).label("waiverCount")).group_by(Waiver.member_id)
+		sq = sq.filter(Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER)
+		sq = sq.subquery()
+		members = members.add_column(sq.c.waiverCount.label("memberWaivers")).outerjoin(sq,(sq.c.member_id == Member.id))
+
+		sq = db.session.query(Waiver.member_id,func.count(Waiver.member_id).label("guestWaiverCount")).group_by(Waiver.member_id)
+		sq = sq.filter(Waiver.waivertype == Waiver.WAIVER_TYPE_NONMEMBER)
+		sq = sq.subquery()
+		members = members.add_column(sq.c.guestWaiverCount.label("guestWaivers")).outerjoin(sq,(sq.c.member_id == Member.id))
+
+		sq = db.session.query(Waiver.member_id,func.count(Waiver.member_id).label("prostoreWaiverCount")).group_by(Waiver.member_id)
+		sq = sq.filter(Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)
+		sq = sq.subquery()
+		members = members.add_column(sq.c.prostoreWaiverCount.label("prostoreWaivers")).outerjoin(sq,(sq.c.member_id == Member.id))
+
+		sq = db.session.query(Waiver.member_id,func.count(Waiver.member_id).label("workspaceWaiverCount")).group_by(Waiver.member_id)
+		sq = sq.filter(Waiver.waivertype == Waiver.WAIVER_TYPE_WORKSPACE)
+		sq = sq.subquery()
+		members = members.add_column(sq.c.workspaceWaiverCount.label("workspaceWaivers")).outerjoin(sq,(sq.c.member_id == Member.id))
+		members = members.all()
 		meta={}
 
 		if 'download' in request.values:
@@ -671,8 +690,28 @@ def member_report():
 @blueprint.route('/member_report_api')
 @api.api_only
 def member_report_api():
-		members=db.session.query(Member,Subscription,Waiver)
-		members = members.join(Subscription,isouter=True).join(Waiver,isouter=True).all()
+		members=db.session.query(Member,Subscription)
+		members = members.join(Subscription,isouter=True)
+		sq = db.session.query(Waiver.member_id,func.count(Waiver.member_id).label("waiverCount")).group_by(Waiver.member_id)
+		sq = sq.filter(Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER)
+		sq = sq.subquery()
+		members = members.add_column(sq.c.waiverCount.label("memberWaivers")).outerjoin(sq,(sq.c.member_id == Member.id))
+
+		sq = db.session.query(Waiver.member_id,func.count(Waiver.member_id).label("guestWaiverCount")).group_by(Waiver.member_id)
+		sq = sq.filter(Waiver.waivertype == Waiver.WAIVER_TYPE_NONMEMBER)
+		sq = sq.subquery()
+		members = members.add_column(sq.c.guestWaiverCount.label("guestWaivers")).outerjoin(sq,(sq.c.member_id == Member.id))
+
+		sq = db.session.query(Waiver.member_id,func.count(Waiver.member_id).label("prostoreWaiverCount")).group_by(Waiver.member_id)
+		sq = sq.filter(Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)
+		sq = sq.subquery()
+		members = members.add_column(sq.c.prostoreWaiverCount.label("prostoreWaivers")).outerjoin(sq,(sq.c.member_id == Member.id))
+
+		sq = db.session.query(Waiver.member_id,func.count(Waiver.member_id).label("workspaceWaiverCount")).group_by(Waiver.member_id)
+		sq = sq.filter(Waiver.waivertype == Waiver.WAIVER_TYPE_WORKSPACE)
+		sq = sq.subquery()
+		members = members.add_column(sq.c.workspaceWaiverCount.label("workspaceWaivers")).outerjoin(sq,(sq.c.member_id == Member.id))
+		members = members.all()
 		meta={}
 
 		resp=Response(generate_member_report(members),mimetype='text/csv')
