@@ -22,29 +22,30 @@ def log_bin_event(bin,event,commit=0):
 	authutil.log(eventtypes.RATTBE_LOGEVENT_PROSTORE_NOTICE_SENT.id,member_id=member_id,message=message,doneby=current_user.id,commit=commit)
 
 notice_text = {
-	"NoWaiver" : """We do not have your \"Pro-Storage Waiver\" on file. (This is different/seperate from standard membership waiver). Please execute this waiver immediatley at http://smartwaiver.com/v/prostoragebin  - To avoid further delay, please make sure to enter the following EXACTLY as shown:
+	"NoWaiver" : """We do not have your \"Pro-Storage Waiver\" on file. (This is different/seperate from standard membership waiver). Please execute this waiver immediately at http://smartwaiver.com/v/prostoragebin  - To avoid further delay, please make sure to enter the following EXACTLY as shown:
 
   email: {email}
   First Name: {firstname}
   Last Name: {lastname}
 """,
-	"Subscription" : """There is a problem with your subscription payment. This could be that you have canceled your account, or another problem processing your payment, such as the card on file has expired. Please rectfy by going to the following:
+	"Subscription" : """There is a problem with your subscription payment. This could be that you have canceled your account, or another problem processing your payment, such as the card on file has expired. Please rectify by going to the following url:
 
 http://join.makeitlabs.com/account
+
 """,
-	"BinGone" : "Your bin is listed as \"gone\".",
-	"Grace" : "Your should have received a prior notice about your Pro-Storage membership. You may need to either collect your belongings, or fix your membership",
-	"Forefeit" : "Your Pro-Storage location has been forfitted. Please collect your belongings and notify us when you have vacated the bin.",
-	"Moved" : "Your location has been forefited, but you have not removed your belongings. The bin with your materials has been moved elsewhere to re-purpose this storage locations. Please contact us to collect your belongins. Failure to do so will result in loss of property.",
-	"Donated" : "You have not collected items left in your forfitted storage bin. Persuiant to MakeIt Labs rules, these items have either been discarded, or donated to the lab."
+	"BinGone" : "Your bin is listed as \"gone\". Bins are property of MakeIt Labs, and should not be removed from the premises.",
+	"Grace" : "Your should have received a prior notice about your Pro-Storage membership. You may need to either collect your belongings, or fix your membership.",
+	"Forefeit" : "Your Pro-Storage location has been forfeited due to a lapse in membership. Please collect your belongings and notify us when you have vacated the bin.",
+	"Moved" : "The bin with your materials has been moved. Please contact us to collect your belongings. Failure to do so will result in your bin contents being considered a donation to MakeIt Labs after 60 days from first notice.",
+	"Donated" : "You have not collected items left in your forfeited storage bin. Persuiant to MakeIt Labs rules, these items have either been discarded, or donated to the lab."
 }
 
 notice_header = """
-This is an automated message about in issue with your MakeIt Lab Pro-Membership storage bin (at locaiton {location}). Please attend to immediately to avoid property loss, access loss or revocation of storage or membership privileges.
+This is an automated message about in issue with your MakeIt Lab Pro-Membership storage bin (at location {location}). Please attend to immediately to avoid property loss, access loss or revocation of storage or membership privileges.
 """
 
 notice_footer = """
-For any other questions or assistance with this matter, please email borad@makeitlabs.com
+For any other questions or assistance with this matter, please email board@makeitlabs.com
 """
 # Send notices to members
 def sendnotices(bin_id,notices):
