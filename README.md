@@ -270,6 +270,19 @@ INSERT INTO quizquestion (
         FROM resourcequiz;
 DROP TABLE resourcequiz;
 
+CREATE TABLE tempauth (
+        id INTEGER NOT NULL,
+        member_id INTEGER NOT NULL,
+        admin_id INTEGER NOT NULL,
+        resource_id INTEGER NOT NULL,
+        expires DATETIME,
+        timesallowed INTEGER,
+        PRIMARY KEY (id),
+        FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE,
+        FOREIGN KEY(admin_id) REFERENCES members (id) ON DELETE CASCADE,
+        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
+);
+
 COMMIT;
 PRAGMA foreign_keys=on;
 ```

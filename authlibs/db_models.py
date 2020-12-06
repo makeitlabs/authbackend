@@ -471,6 +471,16 @@ class MaintSched(db.Model):
     machinetime_unit = db.Column(db.String(12))
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
+# Temporary Authoriziaitons
+class TempAuth(db.Model):
+    __tablename__ = 'tempauth'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    timesallowed = db.Column(db.Integer())
+    expires = db.Column(db.DateTime(timezone=True))
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    admin_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
 ##
 ## LOGS

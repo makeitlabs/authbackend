@@ -3,6 +3,11 @@ vim:tabstop=2:expandtab:shiftwidth=2
 #}
 {% extends "layout_bootstrap.html" %}
 {% block search %}
+<script type="text/javascript">
+$(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+})
+</script>
 <div class=body>
 	{% include "member_header.html" %}
 	<div class="container"> {# outer container #}
@@ -102,10 +107,17 @@ vim:tabstop=2:expandtab:shiftwidth=2
         <td>
           {% if ((a.myPerms >= 2) and (a.active==1)) %}
             {% if  (a.lockout_reason) %}
-              <a  href="javascript:dolockbutton('Unlock','{{ a.resource.name }}','{{ a.lockout_reason }}',{{ a.resource.id }});" class="btn btn-success">RESTORE</a>
-              <br /> {{a.lockout_reason}}
+            <span class="d-inline-block" tabindex="0" data-toggle="tooltip" title="Restore Susspended Access">
+              <a  href="javascript:dolockbutton('Unlock','{{ a.resource.name }}','{{ a.lockout_reason }}',{{ a.resource.id }});" class="btn glyphicon glyphicon-ban-circle btn btn-danger"></a>
+            </span>
+              &nbsp; {{a.lockout_reason}}
             {% else %}
-              <a href="javascript:dolockbutton('Lock','{{ a.resource.name }}','',{{ a.resource.id }});" class="btn btn-outline-info">SUSPEND</a>
+            <span class="d-inline-block" tabindex="0" data-toggle="tooltip" title="Susspend Access">
+              <a href="javascript:dolockbutton('Lock','{{ a.resource.name }}','',{{ a.resource.id }});" class="glyphicon glyphicon-ban-circle btn btn-outline-info"></a>
+            </span>
+            <span class="d-inline-block" tabindex="1" data-toggle="tooltip" title="Temporary Access">
+              <a href="{{ url_for('members.tempauth',id=rec.id,rid=a.resource.id) }}" class="glyphicon glyphicon-time btn btn-outline-info"></a>
+            </span>
             {% endif %}
           {% endif %}
         </td>

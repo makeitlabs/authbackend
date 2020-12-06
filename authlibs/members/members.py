@@ -70,6 +70,68 @@ def member_add():
 		else:
 				return redirect(url_for('members.members'))
 
+# TempAuth
+@blueprint.route('/<string:id>/tempauth/<string:rid>', methods = ['GET','POST'])
+@login_required
+def tempauth(id,rid):
+	member = Member.query.filter(Member.id == int(id)).one_or_none()
+	resource = Resource.query.filter(Resource.id == int(rid)).one_or_none()
+	tempauth = TempAuth.query.filter((TempAuth.member_id == int(id)) & (TempAuth.resource_id == int(rid))).all()
+	print "TEMPAUTH",int(id),int(rid),tempauth
+
+	if not member:
+	  flash("Invalid member","warning")
+	  return redirect(url_for('members.members'))
+	if not resource:
+	  flash("Invalid resource","warning")
+	  return redirect(url_for('members.members'))
+
+	if len(tempauth) > 1:
+	  # We should never have more than one record!
+	  for x in tempauth[1:-1]:
+	    db.session.delete(x)
+	  db.session.commit()
+
+	rec = {
+	  'times':1,
+	  'expires':2
+	}
+
+	if len(tempauth) >=1:
+	  if tempauth[0].expires < datetime.datetime.now():
+	    db.session.delete(tempauth[0])
+	    db.session.commit()
+	    tempauth = None
+	  else:
+	    rec['times'] = tempauth[0].timesallowed
+	    rec['expires'] = round((tempauth[0].expires - datetime.datetime.now()).total_seconds() / 3600,1)
+
+
+	debug = request.method
+
+	if request.method == "POST":
+	  debug += str (request.form)
+	  rec['times'] = int(request.form['times'])
+	  rec['expires'] = float(request.form['hours'])
+	  if 'SaveChanges' in request.form:
+	    if tempauth:
+	      db.session.delete(tempauth[0])
+	    t = TempAuth(member_id=member.id,resource_id=resource.id,admin_id=current_user.id)
+	    t.expires = datetime.datetime.now() + datetime.timedelta(hours=rec['times'])
+	    t.timesallowed = rec['times']
+	    db.session.add(t)
+	    db.session.commit()
+	    pass
+	  elif 'RemoveAuth' in request.form:
+	    if tempauth:
+	      db.session.delete(tempauth[0])
+	      db.session.commit()
+	    pass
+	  return redirect(url_for('members.member_editaccess',id=member.id))
+
+
+	return render_template('tempauth.html',debug=debug,rec=rec,member=member,resource=resource,admin=current_user)
+
 # memberedit
 @blueprint.route('/<string:id>/edit', methods = ['GET','POST'])
 @login_required
