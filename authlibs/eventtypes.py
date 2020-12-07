@@ -250,6 +250,16 @@ class RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE:
     desc='Resource privilege change'
 		slack_icon=":level_slider:"
 
+class RATTBE_LOGEVENT_RESOURCE_TEMP_ACCESS_GRANTED:
+    id=4005
+    desc='Resource temporary access granted'
+		slack_icon=":thumbs_up:"
+
+class RATTBE_LOGEVENT_RESOURCE_TEMP_ACCESS_REVOKED:
+    id=4006
+    desc='Resource temporary access revoked'
+		slack_icon=":thumbs_down:"
+
 class RATTBE_LOGEVENT_PROSTORE_OTHER:
     id=5000
     desc='Pro-Storage Bin Misc Event'

@@ -116,7 +116,9 @@ $(function () {
               <a href="javascript:dolockbutton('Lock','{{ a.resource.name }}','',{{ a.resource.id }});" class="glyphicon glyphicon-ban-circle btn btn-outline-info"></a>
             </span>
             <span class="d-inline-block" tabindex="1" data-toggle="tooltip" title="Temporary Access">
-              <a href="{{ url_for('members.tempauth',id=rec.id,rid=a.resource.id) }}" class="glyphicon glyphicon-time btn btn-outline-info"></a>
+              <a href="{{ url_for('members.tempauth',id=rec.id,rid=a.resource.id) }}" class="glyphicon glyphicon-time btn
+{% if a.resource.id in tempauths %} btn-danger {% else %} btn-outline-info {% endif %}
+"></a>
             </span>
             {% endif %}
           {% endif %}
