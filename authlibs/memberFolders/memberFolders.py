@@ -42,6 +42,13 @@ def sizeunit(val):
 @blueprint.route('/folder', methods=['GET'])
 @login_required
 def folder():
+  print "ROOT FOLDER"
+  return infolder("")
+
+@blueprint.route('/folder/<path:folder>', methods=['GET'])
+@login_required
+def infolder(folder):
+    print "INFOLDER",folder
     folderPath = None
     if current_app.config['globalConfig'].Config.has_option('General','MemberFolderPath'):
       folderPath = current_app.config['globalConfig'].Config.get('General','MemberFolderPath')
@@ -54,7 +61,7 @@ def folder():
     if not os.path.isdir(folderPath):
       flash("NAS Path does not exist - Contact Administrator","danger")
       return redirect(url_for("index"))
-    path = folderPath+"/"+current_user.memberFolder
+    path = folderPath+"/"+current_user.memberFolder+"/"+folder
     if not os.path.isdir(path):
       flash("Member Folder does not exist - Contact Administrator","danger")
       return redirect(url_for("index"))
@@ -77,6 +84,10 @@ def folder():
         ext = ext[-1]
       else:
         ext=''
+      if folder =="":
+        fullpath=fn
+      else:
+        fullpath = folder+"/"+fn
       files.append({
         'name':fn,
         'size':stat.st_size,
@@ -87,11 +98,22 @@ def folder():
         'type':ft,
         'ext':ext,
         'dir':statmod.S_ISDIR(stat.st_mode),
+        'path':fullpath,
         'lastmod':stat.st_mtime
       })
     
     print  files
-    return render_template('folder.html',member=current_user,files=files)
+    top = folder.split("/")
+    print "FOLDER",folder,"TOP",top
+    if folder == "":
+      up=None
+    elif len(top)==1:
+      up=""
+    else:
+      up = "/"+("/".join(top[:-1]))
+    print "UP",up
+    return render_template('folder.html',up=up,folder=folder,member=current_user,files=files)
+
 
 @blueprint.route('/download/<path:filename>', methods=['GET'])
 @login_required
@@ -99,7 +121,7 @@ def download(filename):
     folderPath = None
     if current_app.config['globalConfig'].Config.has_option('General','MemberFolderPath'):
       folderPath = current_app.config['globalConfig'].Config.get('General','MemberFolderPath')
-    if filename.contains(".."):
+    if filename.find("..") != -1:
       flash("Error in file path","warning")
       return redirect(url_for("index"))
     if not folderPath:
