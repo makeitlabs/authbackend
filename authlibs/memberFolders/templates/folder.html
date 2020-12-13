@@ -44,6 +44,11 @@
     </tr>
   {% endfor %}
   </table>
+  <form method="post" enctype="multipart/form-data" action="{{ url_for("memberFolders.upload_file") }}">
+    <input type="hidden" name="folder" value="{{ folder }}">
+    <input type=file name=file>
+    <input type=submit value=Upload>
+   </form>
 </div>
 
 <script type="text/javascript">

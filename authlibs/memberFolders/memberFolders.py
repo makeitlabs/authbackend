@@ -20,6 +20,7 @@ import stat as statmod
 from .. import ago
 import math
 from flask import send_from_directory
+from werkzeug.utils import secure_filename
 
 
 # You must call this modules "register_pages" with main app's "create_rotues"
@@ -137,5 +138,40 @@ def download(filename):
     print "GET",filename,"FROM",path
     return send_from_directory(directory=path, filename=filename)
 
+@blueprint.route('/upload', methods=['GET', 'POST'])
+@login_required
+def upload_file():
+		folder=""
+		if request.form and 'folder' in request.form:
+			folder = request.form['folder']
+			srcfolder = folder
+		if folder != "":
+			if not folder.endswith("/"):
+				folder += "/"
+		if folder.find("../") != -1 or folder.find("/..") != -1:
+			flash("Invalid Filename","warning")
+      return redirect(url_for("memberFolders.folder",folder=""))
+		print "UPLOADING TO FOLDER",folder
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(url_for("memberFolders.infolder",folder=srcfolder))
+        file = request.files['file']
+        # if user does not select file, browser also
+        # submit an empty part without filename
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(url_for("memberFolders.infolder",folder=srcfolder))
+        if file:
+            filename = secure_filename(file.filename)
+						print "SAVE TO",filename
+            file.save("/tmp/bkg/"+ folder + filename)
+						flash("File saved","success")
+            return redirect(url_for('memberFolders.infolder', folder=srcfolder))
+		flash("No file posted")
+    return redirect(url_for('memberFolders.infolder', folder=srcfolder))
+
 def register_pages(app):
 	app.register_blueprint(blueprint)
+
