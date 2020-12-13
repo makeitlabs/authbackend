@@ -46,9 +46,11 @@ def folder():
   print "ROOT FOLDER"
   return infolder("")
 
+@blueprint.route('/folder/', methods=['GET'])
+@blueprint.route('/folder', methods=['GET'])
 @blueprint.route('/folder/<path:folder>', methods=['GET'])
 @login_required
-def infolder(folder):
+def infolder(folder=""):
     print "INFOLDER",folder
     folderPath = None
     if current_app.config['globalConfig'].Config.has_option('General','MemberFolderPath'):
@@ -145,8 +147,10 @@ def upload_file():
 		if request.form and 'folder' in request.form:
 			folder = request.form['folder']
 			srcfolder = folder
+    print "FOLDER IS",folder
 		if folder != "":
 			if not folder.endswith("/"):
+        print "AMMENDING FOLDER"
 				folder += "/"
 		if folder.find("../") != -1 or folder.find("/..") != -1:
 			flash("Invalid Filename","warning")

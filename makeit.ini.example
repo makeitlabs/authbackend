@@ -15,7 +15,7 @@ Logins: all
 DefaultLogin: oauth
 ; "oauth" or "local"
 HelpURL: https://github.com/makeitlabs/authbackend/wiki/RATT-Tool-Authentication-Backend
-MemberFoldersPath: /mnt/memberfolders
+MemberFolderPath: /mnt/memberfolders
 ; BackendLogfile: /tmp/authit.log  NOT USED YET
 ; LockoutMessage: Covid-19 Training Required
 
