@@ -20,9 +20,8 @@
         <th>Last Modified  <i class="glyphicon glyphicon-sort"></i></th>
         <th></th>
         <th>Ext.  <i class="glyphicon glyphicon-sort"></i></th>
-        <th>Type  <i class="glyphicon glyphicon-sort"></i></th>
         <th>Size  <i class="glyphicon glyphicon-sort"></i></th>
-        <th>Download</th>
+        <th>Action</th>
       </thead>
   {% for f in files %}
      <tr>
@@ -31,13 +30,11 @@
       <td>{{ f['ago2'] }} Ago</td>
 
       {% if f['dir'] %}
-        <td></td>
         <td>Directory</td>
         <td sortvalue=0></td>
         <td><a href="{{ url_for("memberFolders.folder")+"/"+f['path'] }}" class="btn btn-outline-secondary glyphicon glyphicon-folder-open"></a></td>
       {% else %}
         <td>{{ f['ext'] }}</td>
-        <td>{{ f['type'] }}</td>
         <td sortvalue={{ f['size'] }}>{{ f['sizeText'] }}</td>
         <td><a href="{{ url_for("memberFolders.download",filename=f['path']) }}" class="btn btn-outline-secondary glyphicon glyphicon-download"></a></td>
       {% endif %}

@@ -78,7 +78,7 @@ def infolder(folder=""):
       print created
       (ago1,ago2,ago3) = ago.ago(created,datetime.datetime.now())
       try:
-        ft = subprocess.check_output(['file','-b',fp])
+        ft = "" # TOO SLOW!! subprocess.check_output(['file','-b',fp])
       except:
         ft = "??"
       print "File Type",ft
