@@ -15,6 +15,7 @@ import base64
 import random,string
 import tempfile
 import subprocess
+import datetime
 
 
 # You must call this modules "register_pages" with main app's "create_rotues"
@@ -331,12 +332,66 @@ def api_v1_kiosklog_options():
                         'Access-Control-Allow-Methods':'OPTIONS,GET',
                         'Content-Type': 'application/json', 'Content-Language': 'en'}
 
+@blueprint.route('/v1/tempauth', methods=['POST'])
+@api_only
+def api_v1_tempauth():
+  data=request.get_json()
+  print "REQUEST",request
+  print "DATA",data
+  if not data:
+		return json_dump({'result':'failure','reason':'Not JSON request'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+
+  tag = None
+  resource = None
+  if 'fobid' not in data:
+		return json_dump({'result':'failure','reason':'No Fob ID specified'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+
+  if 'resource' not in data:
+		return json_dump({'result':'failure','reason':'No resource specified'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+
+  print "FINDING RAW FOB",data['fobid']
+  tag = MemberTag.query.filter(MemberTag.tag_ident == data['fobid']).one_or_none()
+
+  if tag is None:
+		return json_dump({'result':'failure','reason':'Fob not found'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+
+  resource = Resource.query.filter(Resource.name == data['resource']).one_or_none()
+  if resource is None:
+		return json_dump({'result':'failure','reason':'Resource not found'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+  
+
+  ta = TempAuth.query.filter((TempAuth.member_id == tag.member_id) & (TempAuth.resource_id == resource.id)).all()
+
+  print "QUERIED",ta,"Member",tag.member_id,"RESOURCE",resource.id,ta
+  if ta:
+    ta = ta[0]
+    if ta.expires < datetime.datetime.now():
+      db.session.delete(ta)
+      db.session.commit()
+      return json_dump({'result':'failure','reason':'Time Expired'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+    if ta.timesallowed <= 0:
+      db.session.delete(ta)
+      db.session.commit()
+      return json_dump({'result':'failure','reason':'Count Expired'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+
+    ta.timesallowed -= 1
+    if (ta.timesallowed <= 0):
+      db.session.delete(ta)
+    db.session.commit()
+    
+  print ta
+
+  if not ta:
+		return json_dump({'result':'failure','reason':'No Access'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+
+	return json_dump({'result':'success','reason':'Access Allowed'}), 200, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+
 @blueprint.route('/v1/kiosklog', methods=['POST'])
 @api_only
 def api_v1_kiosklog():
   data=request.get_json()
-  print "REQUEST",request
-  print "DATA",data
+  #print "REQUEST",request
+  #print "DATA",data
   if not data:
 		return json_dump({'result':'failure','reason':'Not JSON request'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
   

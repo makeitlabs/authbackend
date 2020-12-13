@@ -94,6 +94,10 @@ def tempauth(id,rid):
 	  flash("Invalid resource","warning")
 	  return redirect(url_for('members.members'))
 
+	if (accesslib.user_privs_on_resource(member=current_user,resource=resource) < AccessByMember.LEVEL_ARM):
+	  flash("No privileges to grant temp auth on {0}".format(resource.name))
+	  return redirect(url_for('members.members'))
+
 	if len(tempauth) > 1:
 	  # We should never have more than one record!
 	  for x in tempauth[1:-1]:
@@ -122,18 +126,22 @@ def tempauth(id,rid):
 	  rec['times'] = int(request.form['times'])
 	  rec['expires'] = float(request.form['hours'])
 	  if 'SaveChanges' in request.form:
+	    r = "{0} hours {1} times".format(rec['expires'],rec['times'])
 	    if tempauth:
 	      db.session.delete(tempauth[0])
 	    t = TempAuth(member_id=member.id,resource_id=resource.id,admin_id=current_user.id)
 	    t.expires = datetime.datetime.now() + datetime.timedelta(hours=rec['times'])
 	    t.timesallowed = rec['times']
 	    db.session.add(t)
+	    authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_TEMP_ACCESS_GRANTED.id,resource_id=resource.id,message=r,member_id=member.id,doneby=current_user.id,commit=0)
 	    db.session.commit()
+	    flash("Temporary Authorizaiton Set")
 	    pass
 	  elif 'RemoveAuth' in request.form:
 	    if tempauth:
 	      db.session.delete(tempauth[0])
 	      db.session.commit()
+	      flash("Temporary Authorizaiton Removed")
 	    pass
 	  return redirect(url_for('members.member_editaccess',id=member.id))
 
@@ -411,7 +419,14 @@ def member_editaccess(id):
 		allowsave=False
 		if (current_user.privs('Useredit')): allowsave=True
 		elif (accesslib.user_is_authorizor(current_user)): allowsave=True
-		return render_template('member_access.html',rec=member,access=access,tags=tags,roles=roles,page="access",allowsave=allowsave)
+
+		tempauths={}
+		for ta in TempAuth.query.filter(TempAuth.member_id == member.id).all():
+		  #print "EVA",ta,(ta.expires > datetime.datetime.now())
+		  if ((ta.expires > datetime.datetime.now()) and (ta.timesallowed > 0)):
+		    tempauths[ta.resource_id]=True
+		#print "TEMPAUTHS",tempauths
+		return render_template('member_access.html',tempauths=tempauths,rec=member,access=access,tags=tags,roles=roles,page="access",allowsave=allowsave)
 
 
 @blueprint.route('/<string:id>/access', methods = ['POST'])
