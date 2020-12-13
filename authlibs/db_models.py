@@ -63,6 +63,7 @@ class Member(db.Model,UserMixin):
     warning_level = db.Column(db.Integer()) 
     email_confirmed_at = db.Column(db.DateTime())
     membership = db.Column(db.String(50),nullable=True,unique=True)
+    memberFolder = db.Column(db.String(255))
 
     password = db.Column(db.String(255),nullable=True)
     roles= db.relationship('Role', secondary = 'userroles')

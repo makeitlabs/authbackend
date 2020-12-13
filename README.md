@@ -171,6 +171,8 @@ For an example crontab - see `crontab.txt`
 # Update/Deploy
 
 #  Multitrain Update
+
+Add `MemberFoldersPath` to `[General]` section of `makeit.ini` with mount point to Member Folders
 ```
 PRAGMA foreign_keys=off;
 BEGIN TRANSACTION;
@@ -282,6 +284,8 @@ CREATE TABLE tempauth (
         FOREIGN KEY(admin_id) REFERENCES members (id) ON DELETE CASCADE,
         FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
 );
+
+ALTER TABLE members ADD COLUMN memberFolder VARCHAR(255);
 
 COMMIT;
 PRAGMA foreign_keys=on;

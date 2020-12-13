@@ -59,6 +59,7 @@ from authlibs.main_menu import main_menu, index_page
 
 from authlibs.auth import auth
 from authlibs.members import members
+from authlibs.memberFolders import memberFolders
 from authlibs.resources import resources as resource_pages
 from authlibs.logs import logs as log_pages
 from authlibs.waivers import waivers 
@@ -585,6 +586,7 @@ with app.app_context():
     prostore.register_pages(app)
     training.register_pages(app)
     belog.register_pages(app)
+    memberFolders.register_pages(app)
     slackutils.create_routes(app)
     g.main_menu = main_menu
     app.config['main_menu'] = main_menu

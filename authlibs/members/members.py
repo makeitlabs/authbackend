@@ -35,6 +35,14 @@ blueprint = Blueprint("members", __name__, template_folder='templates', static_f
 #  /<memberid>/edit - Show current user base info and interface to adjust (GET), Change existing user (POST)
 # --------------------------------------
 
+
+# Strip, but return None if empty
+def stripNone(x):
+	x = x.strip()
+	if x == "":
+		return None
+	return x
+
 @blueprint.route('/', methods = ['GET'])
 @login_required
 def members():
@@ -201,9 +209,10 @@ def member_edit(id):
 					else:
 						flash("Invalid Date of Birth Format - must be \"MM/DD/YYYY\"","danger")
 						nocommit=True
-				m.slack= f['input_slack']
-				m.alt_email= f['input_alt_email']
-				m.email= f['input_email']
+				m.slack= f['input_slack'].strip()
+				m.memberFolder= stripNone(f['input_memberFolder'])
+				m.alt_email= f['input_alt_email'].strip()
+				m.email= f['input_email'].strip()
 				if 'input_access_enabled' in f:
 					if m.access_enabled != 1:
 						authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id,message=f['input_access_reason'],member_id=m.id,doneby=current_user.id,commit=0)

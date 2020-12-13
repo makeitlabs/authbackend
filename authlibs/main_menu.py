@@ -52,6 +52,13 @@ def get_raw_menu():
                     'importance':1200
             },
             {
+                    'url':url_for('memberFolders.folder'),
+                    'img':url_for("static",filename="memberFolder.png"),
+                    'alt':"Member Folder",
+                    'title':"Member Folder (NAS)",
+                    'importance':1200
+            },
+            {
                     'privs':'RATT',
                     'checkfunc':rm_check,
                     'url':url_for('tools.tools'),
