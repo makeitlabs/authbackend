@@ -27,7 +27,7 @@ blueprint = Blueprint("memberFolders", __name__, template_folder='templates', st
 
 
 def sizeunit(val):
-  if val==0: return "Empty"
+  if val==0: return "0b"
   units=['b','k','M','G','T','P','E','Z']
   l = math.log10(val)
   i = int(math.floor(l/3))
@@ -76,7 +76,7 @@ def folder():
       if len(ext) > 1:
         ext = ext[-1]
       else:
-        ext='n/a'
+        ext=''
       files.append({
         'name':fn,
         'size':stat.st_size,
@@ -99,6 +99,9 @@ def download(filename):
     folderPath = None
     if current_app.config['globalConfig'].Config.has_option('General','MemberFolderPath'):
       folderPath = current_app.config['globalConfig'].Config.get('General','MemberFolderPath')
+    if filename.contains(".."):
+      flash("Error in file path","warning")
+      return redirect(url_for("index"))
     if not folderPath:
       flash("MemberFolderPath not configured in INI file","danger")
       return redirect(url_for("index"))
