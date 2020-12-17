@@ -694,6 +694,23 @@ def api_v1_show_resource_acl(id):
 		output = accesslib.getAccessControlList(rid)
 		return output, 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
 
+@blueprint.route('/v1/resources/<string:id>/endorsementAcl/<string:endorsement>', methods=['GET'])
+@api_only
+def api_v1_show_resource_endorsement_acl(id,endorsement):
+		"""(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
+		rid = safestr(id)
+		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+		orig = json.loads(accesslib.getAccessControlList(rid))
+    output = []
+    for x in orig:
+      if 'endorsements' in x:
+        e = x['endorsements'].strip().split()
+        if endorsement in e:
+          output.append(x)
+    
+    output = json.dumps(output,indent=2)
+		return output, 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
+
 @blueprint.route('/ubersearch/<string:ss>',methods=['GET'])
 @login_required
 def ubersearch_handler(ss):
