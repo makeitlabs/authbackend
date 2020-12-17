@@ -732,6 +732,23 @@ def api_v0_show_resource_acl(id):
 						outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
 				return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
+@blueprint.route('/v0/resources/<string:id>/endorsementAcl/<string:endorsement>', methods=['GET'])
+@api_only
+def api_v0_show_resource_endorsement_acl(id,endorsement):
+		"""(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
+		rid = safestr(id)
+		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+		#users = _getResourceUsers(rid)
+		users = json_load(accesslib.getAccessControlList(rid))
+		outformat = request.args.get('output','csv')
+		if outformat == 'csv':
+				outstr = "username,key,value,allowed,hashedCard,lastAccessed"
+				for u in users:
+          if 'endorsements' in u:
+            e = u['endorsements'].strip().split()
+            if endorsement in e:
+              outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
+				return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
 @blueprint.route('/v1/payments/update', methods=['GET'])
 @api_only
