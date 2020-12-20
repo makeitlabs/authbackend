@@ -190,6 +190,7 @@ def connect_waivers():
 		#else:
 		#	print s+" ?? len "+str(len(m))
 	db.session.commit()
+	authutil.kick_backend()
 
 @blueprint.route('/relate', methods = ['GET'])
 @login_required
@@ -238,6 +239,7 @@ def relate_assign():
               mem.access_enabled=1;
               authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id,member_id=mem.id,commit=0)
         db.session.commit()
+        authutil.kick_backend()
         flash ("Assigning waiver to existing member","success")
     else:
       flash("No action specified","warning")
