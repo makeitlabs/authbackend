@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 """
 vim:tabstop=2:expandtab
 MakeIt Labs Authorization System, v0.4
@@ -15,9 +15,9 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from flask_sqlalchemy import SQLAlchemy
 from authlibs import utilities as authutil
-from slackclient import SlackClient
+from slack import WebClient as SlackClient
 import json
-import ConfigParser,sys,os
+import configparser,sys,os
 import paho.mqtt.client as mqtt
 import paho.mqtt.subscribe as sub
 from datetime import datetime
@@ -84,7 +84,7 @@ def seconds_to_timespan(s):
 def send_slack_message(towho,message):
   sc = SlackClient(slack_token)
   if sc.rtm_connect():
-    print "SLACK-SEND",towho,message
+    print ("SLACK-SEND",towho,message)
     res = sc.api_call(
         "chat.postMessage",
         channel=towho,
@@ -103,7 +103,7 @@ def on_message(client,userdata,msg):
     try:
         with app.app_context():
             log=Logs()
-            print "FROM WIRE",msg.topic,msg.payload
+            print ("FROM WIRE",msg.topic,msg.payload)
             message = json.loads(msg.payload)
             topic=msg.topic.split("/")
 
@@ -126,7 +126,7 @@ def on_message(client,userdata,msg):
                 member_cache={}
             elif topic[0]=="ratt" and topic[1]=="status":
                 if topic[2]=="node":
-                    print topic
+                    print (topic)
                     n=Node.query.filter(Node.mac == topic[3]).one_or_none()
                     t=Tool.query.join(Node,((Node.id == Tool.node_id) & (Node.mac == topic[3]))).one_or_none()
                     if t is None:
@@ -288,7 +288,6 @@ def on_message(client,userdata,msg):
                     log_text = errorText
 
                 elif sst=="logout":
-                    print "LOGOUT"
                     log_event_type = RATTBE_LOGEVENT_TOOL_LOGOUT.id
                     reason = message['reason']
                     enabledSecs = message['enabledSecs']
@@ -341,12 +340,12 @@ def on_message(client,userdata,msg):
                       text=slacktext
                     )
                   except BaseException as e:
-                    print "ERROR",e
+                    print ("ERROR",e)
                 db.session.add(logevent)
                 db.session.commit()
     except BaseException as e:
-        print "LOG ERROR",e,"PAYLOAD",msg.payload
-        print "NOW4"
+        print ("LOG ERROR",e,"PAYLOAD",msg.payload)
+        print ("NOW4")
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser()
@@ -393,5 +392,5 @@ if __name__ == '__main__':
           except KeyboardInterrupt:    #on_message(msg)
             sys.exit(0)
           except:
-            print "EXCEPT"
+            print ("EXCEPT")
             time.sleep(1)

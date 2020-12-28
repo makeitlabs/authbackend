@@ -10,23 +10,28 @@ Some rough documentation as of December 2018.
 (DEPRICATE??) `sudo apt install sqlite3 flask python-pycurl python-httplib2 python-auth2client`
 `sudo apt install sqlite3 python3-pip python3-pycurl`
 
-`pip3 install --upgrade cryptography`
-`pip3 install testresources`
-`pip3 install flask_login`
-`pip3 install flask_user`
-`pip3 install flask_dance`
-`pip3 install stripe`
-`pip3 install apiclient`
-`pip3 install google-api-python-client`
-`pip3 install paho-mqtt`
-`pip3 install pytz`
-`pip3 install boto3`
-`pip3 install oauth2client`
-`pip3 install google-oauth`
-`pip3 install sqlalchemy_utils`
-`pip3 install email_validator`
-`pip3 install pycurl`
-`pip3 install configparser`
+```
+pip3 install --upgrade cryptography
+pip3 install testresources
+pip3 install flask_login
+pip3 install flask_user
+pip3 install flask_dance
+pip3 install stripe
+pip3 install apiclient
+pip3 install google-api-python-client
+pip3 install paho-mqtt
+pip3 install pytz
+pip3 install boto3
+pip3 install oauth2client
+pip3 install google-oauth
+pip3 install sqlalchemy_utils
+pip3 install email_validator
+pip3 install pycurl
+pip3 install configparser
+pip3 install slackclient
+pip3 install coverage (If test coverage is used)
+pip3 install functools (Unclear if this actually works or not??)
+```
 
 For Covid-19 video kiosk compliance reporting script
 `sudo apt install ffmpeg`
