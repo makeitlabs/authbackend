@@ -7,7 +7,7 @@ import hashlib,zlib
 from flask_login.mixins import AnonymousUserMixin
 import random, string
 import sqlalchemy
-from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
+from flask_dance.consumer.storage.sqla import SQLAlchemyStorage, OAuthConsumerMixin
 
 
 
@@ -32,11 +32,11 @@ class AnonymousMember(AnonymousUserMixin):
     def resource_roles(self):
         return []
 	
-		def is_arm(self):
-				return False
+    def is_arm(self):
+        return False
 
     def has_privs(self):
-      return False
+        return False
 
 # Members and their data
 class Member(db.Model,UserMixin):
@@ -93,7 +93,7 @@ class Member(db.Model,UserMixin):
         return self.member+"@makeitlabs.com"
 
     def is_arm(self):
-				return AccessByMember.query.filter(AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).count() >= 1
+        return AccessByMember.query.filter(AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).count() >= 1
 
     def resource_roles(self):
         return [x[0] for x in db.session.query(Resource.name).join(AccessByMember,AccessByMember.resource_id == Resource.id).filter(AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).all()]
@@ -351,14 +351,14 @@ class Waiver(db.Model):
 
   @staticmethod
   def addWaiverTypeCol(query):
-		return query.add_column(sqlalchemy.case([
-				((Waiver.waivertype == 0), 'Other'),
-				((Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER), 'Member'),
-				((Waiver.waivertype == Waiver.WAIVER_TYPE_NONMEMBER), 'Non-Member'),
-				((Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE), 'Pro-Storage'),
-				((Waiver.waivertype == Waiver.WAIVER_TYPE_WORKSPACE), 'Workspace'),
-				], 
-				else_ = 'Unknown').label('waivertype'))
+    return query.add_column(sqlalchemy.case([
+      ((Waiver.waivertype == 0), 'Other'),
+      ((Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER), 'Member'),
+      ((Waiver.waivertype == Waiver.WAIVER_TYPE_NONMEMBER), 'Non-Member'),
+      ((Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE), 'Pro-Storage'),
+      ((Waiver.waivertype == Waiver.WAIVER_TYPE_WORKSPACE), 'Workspace'),
+      ], 
+      else_ = 'Unknown').label('waivertype'))
 
   @staticmethod
   def codeFromWaiverTitle(title):

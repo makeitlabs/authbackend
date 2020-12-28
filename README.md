@@ -8,11 +8,13 @@ Some rough documentation as of December 2018.
 
 (DEPRICATE??) `sudo apt install libcurl4-openssl-dev libssl-dev`
 (DEPRICATE??) `sudo apt install sqlite3 flask python-pycurl python-httplib2 python-auth2client`
-`sudo apt install sqlite3 python3-pip`
+`sudo apt install sqlite3 python3-pip python3-pycurl`
 
-`pip3 install flask-login`
-`pip3 install flask-user`
-`pip3 install flask-dance`
+`pip3 install --upgrade cryptography`
+`pip3 install testresources`
+`pip3 install flask_login`
+`pip3 install flask_user`
+`pip3 install flask_dance`
 `pip3 install stripe`
 `pip3 install apiclient`
 `pip3 install google-api-python-client`

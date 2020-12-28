@@ -1,15 +1,15 @@
 # vim:tabstop=2:shiftwidth=2:expandtab
 from flask import Blueprint, redirect, url_for, session, flash, g
 from flask_dance.contrib.google import make_google_blueprint, google
-from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
+from flask_dance.consumer.storage.sqla import SQLAlchemyStorage, OAuthConsumerMixin
 from flask_login import current_user, login_user, logout_user
 from flask_dance.consumer import oauth_authorized
 from sqlalchemy.orm.exc import NoResultFound
 from oauthlib.oauth2.rfc6749.errors import InvalidClientIdError
-from db_models import db, Member, OAuth, AnonymousMember, Role, UserRoles, AccessByMember
+from .db_models import db, Member, OAuth, AnonymousMember, Role, UserRoles, AccessByMember
 from flask_login import LoginManager
 from flask_user import UserManager
-from accesslib import quickSubscriptionCheck
+from .accesslib import quickSubscriptionCheck
 
 # Set-up Python module logging
 import logging
