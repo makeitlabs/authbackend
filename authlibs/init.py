@@ -12,7 +12,7 @@ from flask_user import current_user, login_required, roles_required, UserManager
 from flask_sqlalchemy import SQLAlchemy
 import logging
 import sys
-import ConfigParser
+#import ConfigParser
 from db_models import db,  Member, Role, defined_roles, ApiKey
 from datetime import datetime
 from werkzeug.contrib.fixers import ProxyFix

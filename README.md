@@ -6,21 +6,25 @@ Some rough documentation as of December 2018.
 
 (Note: Ubuntu-flavored)
 
-`sudo apt install libcurl4-openssl-dev libssl-dev`
-`sudo apt install sqlite3 flask python-pycurl python-httplib2 python-auth2client`
+(DEPRICATE??) `sudo apt install libcurl4-openssl-dev libssl-dev`
+(DEPRICATE??) `sudo apt install sqlite3 flask python-pycurl python-httplib2 python-auth2client`
+`sudo apt install sqlite3 python3-pip`
 
-`pip install flask-login`
-`pip install flask-user`
-`pip install flask-dance`
-`pip install stripe`
-`pip install apiclient`
-`pip install --upgrade google-api-python-client`
-`pip install paho-mqtt`
-`pip install pytz`
-`pip install boto3`
-`pip install --upgrade oauth2client`
-`pip install google-oauth`
-`sudo pip install sqlalchemy_utils`
+`pip3 install flask-login`
+`pip3 install flask-user`
+`pip3 install flask-dance`
+`pip3 install stripe`
+`pip3 install apiclient`
+`pip3 install google-api-python-client`
+`pip3 install paho-mqtt`
+`pip3 install pytz`
+`pip3 install boto3`
+`pip3 install oauth2client`
+`pip3 install google-oauth`
+`pip3 install sqlalchemy_utils`
+`pip3 install email_validator`
+`pip3 install pycurl`
+`pip3 install configparser`
 
 For Covid-19 video kiosk compliance reporting script
 `sudo apt install ffmpeg`
@@ -170,7 +174,7 @@ For an example crontab - see `crontab.txt`
 
 # Update/Deploy
 
-#  Multitrain Update
+#  Multitrain/Python3 Update
 
 Add `MemberFoldersPath` to `[General]` section of `makeit.ini` with mount point to Member Folders
 ```
