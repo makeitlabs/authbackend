@@ -23,8 +23,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(GLOBAL_LOGGER_LEVEL)
 
 def do_help(cmd=None,**kwargs):
-    print "Commands"
-    for x in sorted(commands): print "  ",commands[x]['usage']
+    for x in sorted(commands): print ("  ",commands[x]['usage'])
 
 def addadmin(cmd,**kwargs):
   admin_role = Role.query.filter(Role.name=='Admin').first()
@@ -42,12 +41,12 @@ def deleteadmin(cmd,**kwargs):
 
 def changepassword(cmd,**kwargs):
   user = Member.query.filter(Member.member.like(cmd[1])).one()
-	print "Set password for %s - %s" % (user.member,user.email)
+  print ("Set password for %s - %s" % (user.member,user.email))
   if len(cmd) <3:
       pw1=getpass.getpass("Password:")
       pw2=getpass.getpass("Reenter :")
       if pw1 != pw2:
-          print "Password mismatch"
+          print ("Password mismatch")
           return
       user.password=kwargs['um'].hash_password(pw2)
   else:
@@ -66,7 +65,7 @@ def deactivate(cmd,**kwargs):
 def changekey(cmd,**kwargs):
   user = User.query.filter(User.email==cmd[1]).first()
   user.api_key=cmd[2]
-  print "Set",user.email,user.api_key
+  print ("Set",user.email,user.api_key)
   db.session.commit()
 
 def revoke(cmd, **kwargs):
@@ -86,7 +85,7 @@ def grant(cmd, **kwargs):
 def showadmins(cmd,**kwargs):
     #for x in Role.query.join(UserRoles).join(Member).add_column(Member.member).all():
     for x in db.session.query(Member.member).outerjoin(UserRoles).outerjoin(Role).add_column(Role.name).filter(Role.id!=None).all():
-        print x
+        print (x)
   
 commands = {
 	"addadmin":{
@@ -201,12 +200,12 @@ commands = {
 
 
 def cli_command(cmd,**kwargs):
-	if len(cmd)==0:
+  if len(cmd)==0:
     return do_help()
 
   if cmd[0] in commands:
       with kwargs['app'].app_context():
         return (commands[cmd[0]]['cmd'](cmd,**kwargs))
 	
-	do_help()
+  do_help()
 	
