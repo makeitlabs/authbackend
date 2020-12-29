@@ -28,9 +28,10 @@ pip3 install sqlalchemy_utils
 pip3 install email_validator
 pip3 install pycurl
 pip3 install configparser
-pip3 install slackclient
-pip3 install coverage (If test coverage is used)
 pip3 install functools (Unclear if this actually works or not??)
+pip3 install slackclient (DEPRICATED?!)
+pip3 install slack_sdk (THis is the newer one)
+pip3 install coverage (If test coverage is used)
 ```
 
 For Covid-19 video kiosk compliance reporting script

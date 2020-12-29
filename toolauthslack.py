@@ -42,14 +42,16 @@ from authlibs.templateCommon import *
 logger.info("Files copied")
 print ( "LOAD")
 #from slack import WebClient as SlackClient
-import slack
+from slack_sdk.rtm import RTMClient
 print ( "DONE")
 
 Config = init.get_config()
 slack_token = Config.get('Slack','BOT_API_TOKEN')
 print ( "API TOKEN",slack_token)
 #sc = SlackClient(slack_token)
-rtmclient = slack.RTMClient(token=slack_token)
+rtmclient = RTMClient(token=slack_token)
+#rtmclient.setPresence(presence="auto")
+#print (dir(rtmclient))
 
 
 def oxfordlist(lst,conjunction="or"):
@@ -551,7 +553,15 @@ def log_event(name,message):
 		log_events=log_events[1:]
 	
 contexts={}
-@slack.RTMClient.run_on(event='message')
+@RTMClient.run_on(event='open')
+def onopen(**payload):
+    #print (payload)
+    sc = payload['web_client']
+    ret = sc.users_setPresence(presence="auto")
+    #print ("SET PRESENCE",ret)
+    
+
+@RTMClient.run_on(event='message')
 def say_hello(**payload):
     print ("")
     print ("GOT",payload)

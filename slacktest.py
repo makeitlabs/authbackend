@@ -16,7 +16,7 @@ from flask_user import current_user, login_required, roles_required, UserManager
 from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel,send_slack_message
 from flask_sqlalchemy import SQLAlchemy
 from authlibs import utilities as authutil
-from slack import WebClient as SlackClient
+from slack_sdk import WebClient as SlackClient
 import json
 import configparser,sys,os
 import paho.mqtt.client as mqtt
