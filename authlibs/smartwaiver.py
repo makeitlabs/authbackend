@@ -26,7 +26,7 @@ temporary file (/tmp/waivers.xml) is kept for the last API call result to aid in
 
 """
 
-import urllib
+import urllib 
 import re
 import xml.etree.ElementTree as ET
 import configparser
@@ -42,7 +42,7 @@ baseuri = "https://api.smartwaiver.com"
 
 def _getWaiversJSON(api_key,waiverid,last_date):
 		resp = []
-		response = urllib2.urlopen(baseuri+"/ping")
+		response = urllib.request.urlopen(baseuri+"/ping")
 		html = response.read()
 	
 		headers = {'sw-api-key': api_key}
@@ -56,8 +56,8 @@ def _getWaiversJSON(api_key,waiverid,last_date):
 		#params += "&fromDts={0}".format(fromDts)
 		#print "PARAMS",params
 		
-		req = urllib2.Request(baseuri+"/v4/search"+params, None, headers)
-		response = urllib2.urlopen(req)
+		req = urllib.request.Request(baseuri+"/v4/search"+params, None, headers)
+		response = urllib.request.urlopen(req)
 		#the_page = response.read()
 		j = json.load(response)
 		#print json.dumps(j,indent=2)
@@ -66,8 +66,8 @@ def _getWaiversJSON(api_key,waiverid,last_date):
 		#print "SEARCH GUID {0} PAGES {1}".format(guid,pages)
 
 		for i in range(0,pages):
-			req = urllib2.Request(baseuri+"/v4/search/{0}/results?page={1}".format(guid,str(i)), None, headers)
-			response = urllib2.urlopen(req)
+			req = urllib.request.Request(baseuri+"/v4/search/{0}/results?page={1}".format(guid,str(i)), None, headers)
+			response = urllib.request.urlopen(req)
 			j = json.load(response)
 			for r in j['search_results']:
 				#print "RESULT",r

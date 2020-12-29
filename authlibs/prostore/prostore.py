@@ -76,7 +76,8 @@ def bins():
 	bins = bins.outerjoin(Subscription,Subscription.member_id == Member.id)
 
 	bins=addQuickAccessQuery(bins)
-	bins=ProBin.addBinStatusStr(bins).all()
+	bins=ProBin.addBinStatusStr(bins)
+	bins=bins.all()
 
 	locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
 	locs=locs.all()
@@ -254,7 +255,7 @@ def notices():
 			bb['lastNoticeWhat'] = ""
 		# Which notices are recommented??
 		rcmd = []
-		if b.waiverCount <1: rcmd.append("NoWaiver")
+		if b.waiverCount is None or b.waiverCount <1: rcmd.append("NoWaiver")
 		if b.active != "Active": rcmd.append("Subscription")
 
 		if b.ProBin.status == ProBin.BINSTATUS_GONE:
