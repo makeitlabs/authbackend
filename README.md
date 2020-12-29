@@ -8,7 +8,7 @@ Some rough documentation as of December 2018.
 
 (DEPRICATE??) `sudo apt install libcurl4-openssl-dev libssl-dev`
 (DEPRICATE??) `sudo apt install sqlite3 flask python-pycurl python-httplib2 python-auth2client`
-`sudo apt install sqlite3 python3-pip python3-pycurl`
+`sudo apt install sqlite3 python3-pip python3-pycurl mosquitto`
 
 ```
 pip3 install --upgrade cryptography
@@ -331,7 +331,10 @@ groups:write im:history im:read im:write incoming-webhook mpim:history mpim:read
 reactions:write remote_files:read remote_files:share remote_files:write team:read users:read users:read.email users:write```
 
 User token scopes:
-``` channels:write ```
+``` channels:write ``
+
+Add the following OAuth scopes:
+`identify,bot,channels:read,groups:read,im:read,mpim:read,chat:write:bot,channels:write,rtm:stream`
 
 This should ALREADY be done - just set the ADMIN_API_TOKEN to the "Authorizaiton Bot" and run Slacktest below.
 

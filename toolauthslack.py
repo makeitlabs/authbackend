@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # vim:tabstop=2:shiftwidth=2:expandtab
 
 """
@@ -19,7 +19,7 @@ logger.addHandler(logging.StreamHandler())
 import os,time,json,datetime,sys
 import linecache
 from authlibs import init
-import requests,urllib,urllib2
+import requests,urllib
 from  authlibs import config
 
 import logging
@@ -40,14 +40,16 @@ logger.addHandler(streamHandler)
 from authlibs.templateCommon import *
 
 logger.info("Files copied")
-print "LOAD"
-from slackclient import SlackClient
-print "DONE"
+print ( "LOAD")
+#from slack import WebClient as SlackClient
+import slack
+print ( "DONE")
 
 Config = init.get_config()
-slack_token = Config.get('Slack','ADMIN_API_TOKEN')
-print "API TOKEN",slack_token
-sc = SlackClient(slack_token)
+slack_token = Config.get('Slack','BOT_API_TOKEN')
+print ( "API TOKEN",slack_token)
+#sc = SlackClient(slack_token)
+rtmclient = slack.RTMClient(token=slack_token)
 
 
 def oxfordlist(lst,conjunction="or"):
@@ -76,10 +78,10 @@ def get_users(sc):
 
 def matchusers(sc,user,ctx,pattern):
   matches=[]
-	v=""
+  v=""
 
-	if 'quids' not in ctx:
-		ctx['quids']={}
+  if 'quids' not in ctx:
+    ctx['quids']={}
 
   foundQuick=False
   if 'quids' in ctx:
@@ -114,7 +116,7 @@ def matchusers(sc,user,ctx,pattern):
           v += ("{1} {2} {0:s}\n".format(x['title'],f,x['member']))
 
         matches.append({'name':x['title'],'member':x['member'],'id':x['id']})
-	return (matches,v)
+        return (matches,v)
 
 def cancel_callbacks(ctx):
 	if 'confirm_callback' in ctx: del ctx['confirm_callback']
@@ -139,10 +141,9 @@ def authorize_confirm(sc,user,ctx):
     return "Failed: %s" % t['reason']
   elif r.status_code != 200:
     raise BaseException ("%s API failed %d" % (url,r.status_code))
-
-	text = "Authorized "+oxfordlist([x['name'] for x in ctx['authorize_users']],conjunction="and")+" on "+oxfordlist([x['name'] for x in ctx['authorize_resources']],conjunction="and")+"."
-	cancel_callbacks(ctx)
-	return text
+  text = "Authorized "+oxfordlist([x['name'] for x in ctx['authorize_users']],conjunction="and")+" on "+oxfordlist([x['name'] for x in ctx['authorize_resources']],conjunction="and")+"."
+  cancel_callbacks(ctx)
+  return text
 
 def resources(sc,user,ctx,*s):
   text="*Resources*:\n"
@@ -154,44 +155,43 @@ def resources(sc,user,ctx,*s):
   return text
     
 def on_resource(sc,user,ctx,*s):
-	if 'authorize_users' not in ctx:
-		return "Use the \"authorize\" command to say who you're trying to authorize, first"
+  if 'authorize_users' not in ctx:
+    return "Use the \"authorize\" command to say who you're trying to authorize, first"
   allresources=get_resources()
   resources=[]
-	for r in s[1:]:
+  for r in s[1:]:
     for rr in allresources:
       if (r.lower() == rr['name'].lower()) or (rr['short'] is not None  and r.lower() == rr['short'].lower()):
         resources.append(rr)
 
-	if len(resources) == 0:
-		return "Authorize on what resource? (Type \"on <resources...>\""
-	text = "Authorize "+oxfordlist([x['name'] for x in ctx['authorize_users']],conjunction="and")+" on "+oxfordlist([r['name'] for r in resources],conjunction="and")+"? Type \"ok\" to confirm"
-	ctx['confirm_callback']=authorize_confirm
-	ctx['cancel_callback']=default_cancel_callback
-	ctx['authorize_resources']=resources
-	return text
+  if len(resources) == 0:
+    return "Authorize on what resource? (Type \"on <resources...>\""
+  text = "Authorize "+oxfordlist([x['name'] for x in ctx['authorize_users']],conjunction="and")+" on "+oxfordlist([r['name'] for r in resources],conjunction="and")+"? Type \"ok\" to confirm"
+  ctx['confirm_callback']=authorize_confirm
+  ctx['cancel_callback']=default_cancel_callback
+  ctx['authorize_resources']=resources
+  return text
 	
 	
 
 def authorize(sc,user,ctx,*s):
-	error=""
-	if len(s) <2:
-		return "`USAGE: authorize <usersids..> [on <resources...>]`"
-		
-	res=False
-	users=[]
-	resourcenames=[]
-	for x in s[1:]:
-		if x.lower() == "on":
-			res=True
-		elif res == False:
-			users.append(x)
-		else:
-			resourcenames.append(x)
-	
-	mems=[]
-	for uid in users:
-
+  error=""
+  if len(s) <2:
+    return "`USAGE: authorize <usersids..> [on <resources...>]`"
+    
+  res=False
+  users=[]
+  resourcenames=[]
+  for x in s[1:]:
+    if x.lower() == "on":
+      res=True
+    elif res == False:
+      users.append(x)
+    else:
+      resourcenames.append(x)
+  
+  mems=[]
+  for uid in users:
     if len(uid)>=2:
       (matches,cleartext) = matchusers(sc,user,ctx,uid)
     else:
@@ -205,31 +205,31 @@ def authorize(sc,user,ctx,*s):
 
   allresources=get_resources()
   resources=[]
-	for r in resourcenames:
+  for r in resourcenames:
     for rr in allresources:
       if (r.lower() == rr['name'].lower()) or (rr['short'] is not None  and r.lower() == rr['short'].lower()):
         resources.append(rr)
 	
-	if error != "":
-		return error+"\n(Correct, or select from above list and try again)"
+  if error != "":
+    return error+"\n(Correct, or select from above list and try again)"
 
-	if (len(mems)==0):
-		return "You must specify users to authorized on"
-	ctx['authorize_users']=mems
-	if (len(resources)==0):
-		return "Authorize "+oxfordlist([m['name'] for m in mems],conjunction="and")+" on what resource? (Type \"on <resources...>\")"
-	text = "Authorize "+oxfordlist([m['name'] for m in mems],conjunction="and")+" on "+oxfordlist([r['name'] for r in resources],conjunction="and")+"? Type \"ok\" to confirm"
-	ctx['confirm_callback']=authorize_confirm
-	ctx['authorize_resources']=resources
-	return text
+  if (len(mems)==0):
+    return "You must specify users to authorized on"
+  ctx['authorize_users']=mems
+  if (len(resources)==0):
+    return "Authorize "+oxfordlist([m['name'] for m in mems],conjunction="and")+" on what resource? (Type \"on <resources...>\")"
+  text = "Authorize "+oxfordlist([m['name'] for m in mems],conjunction="and")+" on "+oxfordlist([r['name'] for r in resources],conjunction="and")+"? Type \"ok\" to confirm"
+  ctx['confirm_callback']=authorize_confirm
+  ctx['authorize_resources']=resources
+  return text
 
-	return "DOne"
+  return "DOne"
 def divzero(sc,user,ctx,*s):
 	x = 0/0
 	return "Tadah!"
 
 def echo_cmd(sc,user,ctx,*s):
-	print "echo"," ".join([x for x in s])
+	print ( "echo"," ".join([x for x in s]))
 	return "Echoed"
 
 def safestr(s):
@@ -253,7 +253,7 @@ def api_cmd(sc,user,ctx,*s):
   result="```"
   if len(s)<2:
     return "No string specified"
-	(matches,v)= matchusers(sc,user,ctx,s[1])
+  (matches,v)= matchusers(sc,user,ctx,s[1])
   result +=v
   result +=  "\nReturned %d match.\n" % len(matches)
   result += "```"
@@ -272,7 +272,7 @@ def tools_cmd(sc,user,ctx,*s):
 def use_tool(sc,user,ctx,*s):
   myid = safestr(user['user']['id'])
   if (len(s)<2):
-    print "Which tool or resource?"
+    print ( "Which tool or resource?")
   tool = s[1]
   req = requests.Session()
   url = url_base+"/api/v1/slack/open/"+tool+"/"+str(myid)
@@ -306,7 +306,7 @@ def admin_commands(sc,user,ctx,*s):
 def privileges(sc,user,ctx,*s):
   if len(s)<2:
     return "No user specified"
-	(matches,v)= matchusers(sc,user,ctx,s[1])
+  (matches,v)= matchusers(sc,user,ctx,s[1])
   if (len(matches) == 0):
     return "No valid user found"
   if (len(matches) > 1):
@@ -328,13 +328,13 @@ def privileges(sc,user,ctx,*s):
 
 
 def quickids(sc,user,ctx,*s):
-	if 'quids' not in ctx:
-		return "No IDs cached"
+  if 'quids' not in ctx:
+    return "No IDs cached"
 
-	text=""
-	for q in sorted(ctx['quids']):
+  text=""
+  for q in sorted(ctx['quids']):
       text += ("{0} {1} {2}\n".format(q,ctx['quids'][q]['member'],ctx['quids'][q]['name']))
-	return "```"+text+"```"
+  return "```"+text+"```"
 		
 
 def default_cancel_callback (sc,user,ctx):
@@ -380,43 +380,43 @@ def ping(sc,user,ctx,*s):
 	return "Hello "+str(display_name)+" I am alive at "+str(datetime.datetime.now())
 
 def help_cb(sc,user,ctx,*s):
-	text = '```'
+  text = '```'
   showhidden=False
-	if (len(s) == 2) and s[1] == 'hidden':
+  if (len(s) == 2) and s[1] == 'hidden':
     showhidden=True
 
-	if (len(s) == 2) and not showhidden:
-		text="```Unrecognized command. Type `help` for a list of commands"
-		for x in verbs:
-			if s[1].lower()==x['name'].lower():
-				text = "*"+x['name']+"*\n```"
-				if 'usage' in x:
-					text += "Usage: "+x['usage']+"\n"
-				if 'detail' in x:
-					text += x['detail']+"\n\n"
-				elif 'desc' in x:
-					text += x['desc']+"\n\n"
-	else:
-		text= "Enter one of the following, or `help {command}` for more detail:\n```"
+  if (len(s) == 2) and not showhidden:
+    text="```Unrecognized command. Type `help` for a list of commands"
+    for x in verbs:
+      if s[1].lower()==x['name'].lower():
+        text = "*"+x['name']+"*\n```"
+        if 'usage' in x:
+          text += "Usage: "+x['usage']+"\n"
+        if 'detail' in x:
+          text += x['detail']+"\n\n"
+        elif 'desc' in x:
+          text += x['desc']+"\n\n"
+  else:
+    text= "Enter one of the following, or `help {command}` for more detail:\n```"
 
-		for x in sorted(verbs,key=lambda x:x['name']):
-			if 'callback' in x and (('hidden' not in x) or (showhidden)):
-				if 'usage' in x:
-					text += x['usage']+ "  -- "+x['desc']+"\n"
-				elif 'desc' in x:
-					text += x['name']+" - "+x['desc']+"\n"
-				else:
-					text += x['name'] +"\n"
+    for x in sorted(verbs,key=lambda x:x['name']):
+      if 'callback' in x and (('hidden' not in x) or (showhidden)):
+        if 'usage' in x:
+          text += x['usage']+ "  -- "+x['desc']+"\n"
+        elif 'desc' in x:
+          text += x['name']+" - "+x['desc']+"\n"
+        else:
+          text += x['name'] +"\n"
 
-		text+= "\nOther help topics:\n"
-		for x in sorted(verbs,key=lambda x:x['name']):
-			if 'callback' not in x and (('hidden' not in x) or (showhidden)):
-				if 'desc' in x:
-					text += x['name'] + " - "+x['desc']+"\n"
-				else:
-					text += x['name']
-	text += '```'
-	return text
+    text+= "\nOther help topics:\n"
+    for x in sorted(verbs,key=lambda x:x['name']):
+      if 'callback' not in x and (('hidden' not in x) or (showhidden)):
+        if 'desc' in x:
+          text += x['name'] + " - "+x['desc']+"\n"
+        else:
+          text += x['name']
+  text += '```'
+  return text
 	
 # Dont specify a callback to just create a help topic
 
@@ -538,97 +538,83 @@ def prune_contexts(contexts):
 		if ((now-ctx['lastUsed']) > datetime.timedelta(minutes=15)):
 			d.append(x)
 	for x in d:
-		print "DELETE CONTEXT",x
+		print ( "DELETE CONTEXT",x)
 		del contexts[x]
 
 def log_event(name,message):
 	global log_events
 	logstr=str(datetime.datetime.now())+" "+name+" "+message
 	log_events.append(logstr)
-	print logstr
+	print ( logstr)
 	open(slack_logfile,"a").write(logstr+"\n")
 	if len(log_events)>40:
 		log_events=log_events[1:]
 	
+contexts={}
+@slack.RTMClient.run_on(event='message')
+def say_hello(**payload):
+    print ("")
+    print ("GOT",payload)
+    data = payload['data']
+    sc = payload['web_client']
+    print ("DATA",data)
 
-keepgoing=True
+    for x in data.keys():
+        print (x,data[x])
+    #if 'type' in msg and (msg['type'] == "message") and 'channel' in msg and msg['channel'][0] == 'D':
+    if 'subtype' not in data and data['channel'][0] == 'D':
+      try:
+        text="???"
+        #print msg
+        #print "Message from ",msg['user'],msg['text'],msg['channel']
+        chan = data['channel']
+        if chan not in contexts:
+          contexts[chan]={}
+        contexts[chan]['lastUsed']=datetime.datetime.now()
+        userinfo= sc.users_info(user=data['user'])
+        #print json.dumps(userinfo,indent=2)
+        display_name=userinfo['user']['profile']['display_name']
+        display_name_norm=userinfo['user']['profile']['display_name_normalized']
+        email=userinfo['user']['profile']['email']
+        #print json.dumps(msg,indent=2)
+        m = data['text'].strip().replace("\s+"," ").split()
+        if len(m)==0:
+          m=[""]
+        matches=[]
+        cb=None
+        exact=None
+        for v in verbs:
+          #if (m[0].lower().startswith(v['name'].lower())) and 'callback' in v:   
+          cmds=[v['name'].lower()]
+          if 'aliases' in v:
+            for a in v['aliases']: cmds.append(a.lower())
+          for cmd in cmds:
+            if (cmd.startswith(m[0].lower())) and 'callback' in v:   
+              matches.append(v['name'])
+              cb=v['callback']
+              if m[0].lower() == v['name'].lower():
+                exact=cb
+              
+        if exact:
+          log_event( display_name,data['text'])
+          text=exact(sc,userinfo,contexts[chan],*m)
+        elif len(matches)==1:
+          log_event( display_name,data['text'])
+          text=cb(sc,userinfo,contexts[chan],*m)
+        elif len(matches)==0:
+          text="Unknown command. Type `help` for help"
+        else: 
+          text="Ambiguous command: Did you mean "
+          text += oxfordlist(matches)
+          text += "?\n(`help` for more)"
+        
+      except BaseException as e:
+        text = ":alert: Epic fail: ```"+str(e)+"```"
+        log_event( "<Error>",str(e))
+
+      sc.chat_postMessage(channel=data['channel'],text=text,thread_ts=data['ts'])
+    prune_contexts(contexts)
+    sys.stdout.flush()
 
 
-while keepgoing:
-	log_event("<system>","Reconnect")
-	if sc.rtm_connect():
-		sc.server.websocket.sock.setblocking(1)
-		contexts={}
-		#print json.dumps(get_users(sc),indent=2)
-		all_users = sc.api_call("users.setPresence",presence="active")
-		while sc.server.connected is True and keepgoing is True:
-			try:
-				l= sc.rtm_read()
-			except KeyboardInterrupt:
-				log_event("<System>", "Keyboard Interrupt")
-				keepgoing=False
-				sys.exit(0)
-			except BaseException as e:
-				log_event("<Exception>", str(e))
-				break
-			#print "READ",l
-			for msg in l:
-				# DMs all have a channel that starts with 'D'. Listen only to these.
-				if 'type' in msg and (msg['type'] == "message") and 'channel' in msg and msg['channel'][0] == 'D':
-					try:
-						text="???"
-            #print msg
-						#print "Message from ",msg['user'],msg['text'],msg['channel']
-						chan = msg['channel']
-						if chan not in contexts:
-							contexts[chan]={}
-						contexts[chan]['lastUsed']=datetime.datetime.now()
-						userinfo= sc.api_call("users.info",user=msg['user'])
-						#print json.dumps(userinfo,indent=2)
-						display_name=userinfo['user']['profile']['display_name']
-						display_name_norm=userinfo['user']['profile']['display_name_normalized']
-						email=userinfo['user']['profile']['email']
-						#print json.dumps(msg,indent=2)
-						m = msg['text'].strip().replace("\s+"," ").split()
-						if len(m)==0:
-							m=[""]
-						matches=[]
-						cb=None
-						exact=None
-						for v in verbs:
-							#if (m[0].lower().startswith(v['name'].lower())) and 'callback' in v: 	
-							cmds=[v['name'].lower()]
-							if 'aliases' in v:
-								for a in v['aliases']: cmds.append(a.lower())
-							for cmd in cmds:
-								if (cmd.startswith(m[0].lower())) and 'callback' in v: 	
-									matches.append(v['name'])
-									cb=v['callback']
-									if m[0].lower() == v['name'].lower():
-										exact=cb
-									
-						if exact:
-							log_event( display_name,msg['text'])
-							text=exact(sc,userinfo,contexts[chan],*m)
-						elif len(matches)==1:
-							log_event( display_name,msg['text'])
-							text=cb(sc,userinfo,contexts[chan],*m)
-						elif len(matches)==0:
-							text="Unknown command. Type `help` for help"
-						else: 
-							text="Ambiguous command: Did you mean "
-							text += oxfordlist(matches)
-							text += "?\n(`help` for more)"
-						
-					except BaseException as e:
-						text = ":alert: Epic fail: ```"+str(e)+"```"
-						log_event( "<Error>",str(e))
-
-					sc.rtm_send_message(msg['channel'],text)
-			prune_contexts(contexts)
-			sys.stdout.flush()
-	else:
-		print "Connection Failed"
-	time.sleep(2)
-	print "RETRY"
-
+rtmclient.start()

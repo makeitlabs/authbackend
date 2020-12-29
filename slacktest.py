@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 """
 vim:tabstop=2:expandtab:shiftwidth=2
 MakeIt Labs Authorization System, v0.4
@@ -16,18 +16,18 @@ from flask_user import current_user, login_required, roles_required, UserManager
 from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel,send_slack_message
 from flask_sqlalchemy import SQLAlchemy
 from authlibs import utilities as authutil
-from slackclient import SlackClient
+from slack import WebClient as SlackClient
 import json
-import ConfigParser,sys,os
+import configparser,sys,os
 import paho.mqtt.client as mqtt
 import paho.mqtt.subscribe as sub
 from datetime import datetime
 from authlibs.init import authbackend_init, createDefaultUsers
-import requests,urllib,urllib2
+import requests,urllib
 import logging, logging.handlers
 from  authlibs import eventtypes
 
-Config = ConfigParser.ConfigParser({})
+Config = configparser.ConfigParser({})
 Config.read('makeit.ini')
 slack_api_token = Config.get('Slack','BOT_API_TOKEN')
 admin_api_token = Config.get('Slack','ADMIN_API_TOKEN')
@@ -37,7 +37,7 @@ if __name__ == '__main__':
         parser.add_argument("--command",help="Special command",action="store_true")
         (args,extras) = parser.parse_known_args(sys.argv[1:])
 
-        print "ADMIN API TOKEN",admin_api_token
+        print ("ADMIN API TOKEN",admin_api_token)
         sc1 = SlackClient(slack_api_token)
         #if sc1.rtm_connect():
         #  print "RTM connected on BOT"
@@ -45,51 +45,56 @@ if __name__ == '__main__':
         #  print "RTM Connection Failed"
         #  sys.exit(1)
 
-        print "API TOKEN",slack_api_token
-        sc = SlackClient(admin_api_token)
+        print ("API TOKEN",slack_api_token)
         res = sc1.api_call(
-          "chat.postMessage",
+          api_method="chat.postMessage",
+          json={
+              "channel":"U03126YLY",
+              "text":"Admin Test Message"
+          }
+        )
+        sc = SlackClient(admin_api_token)
+        res = sc1.chat_postMessage(
           channel="U03126YLY",
-          text="Admin Test Message"
+          text="Admin Test Message2"
           )
         res = sc.api_call(
-          "chat.postMessage",
-          channel="U03126YLY",
-          text="Bot Test Message"
+          api_method="chat.postMessage",
+          json={
+              "channel":"U03126YLY",
+              "text":"Bot Test Message"
+            }
           )
         next_cursor=None
         while True:
-          res = sc.api_call(
-          "conversations.list",
+          res = sc.conversations_list(
           cursor=next_cursor,
           exclude_archived=True
           )
           if not res['ok']:
-            print "conversaitons.list failed ",res
+            print ("conversaitons.list failed ",res)
             sys.exit(1)
           for x in res['channels']:
             if x['is_channel']:
-              print x['name'],x['id']
+              print (x['name'],x['id'])
             pass
           if 'response_metadata' not in res or 'next_cursor' not in res['response_metadata']:
             break
           next_cursor = res['response_metadata']['next_cursor']
           if next_cursor.strip() == "": break
-          print "NEXT CUROSR IS",next_cursor
+          print ("NEXT CUROSR IS",next_cursor)
           
         # fake-resource-users
-        res = sc.api_call(
-        "conversations.join",
+        res = sc.conversations_join(
         channel="CTN7EK3A9"
         )
-        res = sc.api_call(
-        "conversations.join",
+        res = sc.conversations_join(
         channel="C014U9VPH16"
         )
-        print res
+        print (res)
 
-        res = sc.api_call(
-        "conversations.invite",
+        # Okay if this fails
+        res = sc.conversations_invite(
         channel="CTN7EK3A9",
         users="U03126YLY"
         )
