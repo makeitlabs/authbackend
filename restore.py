@@ -5,7 +5,7 @@
 
 from authlibs.templateCommon import *
 from authlibs.init import authbackend_init
-import urllib2,urllib,requests
+import urllib,requests
 import argparse
 from  datetime import datetime,timedelta
 import random

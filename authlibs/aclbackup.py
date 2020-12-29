@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
-import sys,re,os,urllib2,urllib,requests
+import sys,re,os,urllib,requests
 from  datetime import datetime,timedelta
 import json
-import ConfigParser
-from slackclient import SlackClient
+import configparser
+from slack import WebClient as SlackClient
 
 
 now = datetime.now()
@@ -12,7 +12,7 @@ yesterday = now-timedelta(days=1)
 todaystr = now.strftime("%Y-%m-%d")
 yesterdaystr = yesterday.strftime("%Y-%m-%d")
 
-Config = ConfigParser.ConfigParser({})
+Config = configparser.ConfigParser({})
 Config.read('makeit.ini')
 slack_token = Config.get('backups','BOT_API_TOKEN')
 api_username = Config.get("backups","api_username")
@@ -31,7 +31,7 @@ def compare_v1(first,second,resource):
 	fn2 = "%s/%s-%s-v1.txt" % (ACL_STORAGE,second,resource)
 
 	if not os.path.isfile(fn1):
-		print "Yesterday's file",fn1,"does not exist"
+		print ("Yesterday's file",fn1,"does not exist")
 		return
 
 	f1 = json.load(open(fn1))
