@@ -42,7 +42,7 @@ def authinit(app):
         offline=True
         )
 
-    google_blueprint.backend = SQLAlchemyBackend(OAuth, db.session,
+    google_blueprint.backend = SQLAlchemyStorage(OAuth, db.session,
                                                  user=current_user,
                                                  user_required=True)
 

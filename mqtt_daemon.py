@@ -22,7 +22,7 @@ import paho.mqtt.client as mqtt
 import paho.mqtt.subscribe as sub
 from datetime import datetime
 from authlibs.init import authbackend_init, createDefaultUsers
-import requests,urllib,urllib2
+import requests,urllib
 import logging, logging.handlers
 from  authlibs import eventtypes
 
@@ -46,12 +46,12 @@ ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 logger.addHandler(handler)
 
-Config = ConfigParser.ConfigParser({})
+Config = configparser.ConfigParser({})
 Config.read('makeit.ini')
 slack_token = Config.get('Slack','BOT_API_TOKEN')
 
 def get_mqtt_opts(app):
-  Config = ConfigParser.ConfigParser({})
+  Config = configparser.ConfigParser({})
   Config.read('makeit.ini')
   mqtt_opts={}
   mqtt_base_topic = Config.get("MQTT","BaseTopic")
@@ -391,6 +391,6 @@ if __name__ == '__main__':
             print("%s %s" % (msg.topic, msg.payload))
           except KeyboardInterrupt:    #on_message(msg)
             sys.exit(0)
-          except:
-            print ("EXCEPT")
+          except BaseException as e:
+            print ("EXCEPT",e)
             time.sleep(1)

@@ -26,17 +26,17 @@ temporary file (/tmp/waivers.xml) is kept for the last API call result to aid in
 
 """
 
-import urllib2
+import urllib
 import re
 import xml.etree.ElementTree as ET
-import ConfigParser
-from db_models import db, Waiver
-from StringIO import StringIO
+import configparser
+from .db_models import db, Waiver
+#from StringIO import StringIO
 import json
 from flask import current_app
 import datetime
 
-from templateCommon import *
+from .templateCommon import *
 
 baseuri = "https://api.smartwaiver.com"
 
@@ -98,36 +98,36 @@ def getWaivers(waiver_dict):
     waiver_id = waiver_dict.get('waiver_id',None)
     last_date = waiver_dict.get('last_date',None)
     logger.debug ("Fetching waivers after %s" % last_date)
-		try:
-			jsonwaivers = _getWaiversJSON(waiver_dict['api_key'],waiver_id,last_date)
-		except BaseException as e:
-			logger.error ("Error fetching waivers {0}".format(str(e)))
-			return
+    try:
+      jsonwaivers = _getWaiversJSON(waiver_dict['api_key'],waiver_id,last_date)
+    except BaseException as e:
+      logger.error ("Error fetching waivers {0}".format(str(e)))
+      return
 	
     for j in  jsonwaivers:
-			email = j['primary_email']
-			waiver_id = j['waiver_id']
-			title = j['waiver_title']
-			firstname = j['firstname']
-			lastname = j['lastname']
-			eContactName = j['emergencyContactName']
-			eContactPhone = j['emergencyContactPhone']
-			created_date = j['date_created_utc']
-			m = {'email': email, 'waiver_id': waiver_id, 'firstname': firstname,'emergencyName':eContactName,'emergencyPhone':eContactPhone,
-					 'lastname': lastname, 'title': title, 'created_date': created_date}
-			members.append(m)
+      email = j['primary_email']
+      waiver_id = j['waiver_id']
+      title = j['waiver_title']
+      firstname = j['firstname']
+      lastname = j['lastname']
+      eContactName = j['emergencyContactName']
+      eContactPhone = j['emergencyContactPhone']
+      created_date = j['date_created_utc']
+      m = {'email': email, 'waiver_id': waiver_id, 'firstname': firstname,'emergencyName':eContactName,'emergencyPhone':eContactPhone,
+           'lastname': lastname, 'title': title, 'created_date': created_date}
+      members.append(m)
     return members
     
 def waiverXML():
     f = open('/tmp/waivers.xml','r')
     data = f.read();
-    print data
+    print (data)
     root = ET.fromstring(data)
-    print root.tag
+    print (root.tag)
     for child in root.iter('participant'):
-        print child.tag
-        print child.find('primary_email').text
-        print child.find('participant_id').text
+        print (child.tag)
+        print (child.find('primary_email').text)
+        print (child.find('participant_id').text)
 
 def getLastWaiver():
     """Retrieve the most recently created (last) waiver from the database"""
@@ -140,6 +140,6 @@ def getLastWaiver():
 
 
 if __name__ == "__main__":
-		print "To do this, use:"
-		print "python ./authserver.py --command updatewaivers"
+		print ("To do this, use:")
+		print ("python ./authserver.py --command updatewaivers")
 

@@ -10,7 +10,7 @@ blueprint = Blueprint("training", __name__, template_folder='templates', static_
 
 # Checks if a user can take the selected training
 def verify_training(train,user=current_user):
-  print "NEW"
+  #print ("NEW")
   ar={'status':'error'}
   quizname = ""
   resource = Resource.query.filter(Resource.id == train.resource_id).one_or_none()
@@ -53,9 +53,9 @@ def verify_training(train,user=current_user):
           # They have some endorsements, but the right one(s)?
           e =  ma.permissions.strip().split()
           for p in  train.endorsements.strip().split():
-            print "CHECK",e,p,ar['status']
+            #print ("CHECK",e,p,ar['status'])
             if "pending_"+p in e:
-              print "WE MAYBE CAN"
+              #print( "WE MAYBE CAN")
               if ar['status'] != 'can':
                 # Only if we haven't already determined it's needed!
                 ar['desc'] = 'Already Pending'
@@ -126,7 +126,7 @@ def verify_training(train,user=current_user):
           # Assume endorsement missing until we find below
           ar['desc'] = 'Requires %s endorsement on %s' % (train.required_endorsements.strip(),r2.short.title())
           ar['status'] = 'cannot'
-          print resource.short,"REQUIRES",train.required_endorsements,"on",r2.short,"HAVE",ma2.permissions
+          #print (resource.short,"REQUIRES",train.required_endorsements,"on",r2.short,"HAVE",ma2.permissions)
           for e in train.required_endorsements.strip().split():
             if ma2.permissions and ma.permissions.strip() != "":
               for e2 in ma.permissions.strip().split():
@@ -208,8 +208,8 @@ def approvals(resname):
   if not res:
     flash ("Invalid resource id","warning")
     return redirect(url_for('index'))
-	if request.method == "POST" and request.form:
-    print request.form
+  if request.method == "POST" and request.form:
+    #print (request.form)
     authorize=True
     if 'deny' in request.form: authorize=False
     for x in request.form:
@@ -219,7 +219,7 @@ def approvals(resname):
         endo = None
         if len(xx) == 3:
           endo = xx[2].strip()
-        print "Authorize" if authorize else "Deny",i,endo
+        #print ("Authorize" if authorize else "Deny",i,endo)
         a = AccessByMember.query.filter((AccessByMember.member_id == i) & (AccessByMember.resource_id == res.id)).one_or_none()
         endos = []
         if a.permissions:
@@ -330,9 +330,9 @@ def newquiz(resname):
     flash("You are not authorized to edit this quiz","warning")
     return redirect(url_for('training.training'))
 
-	if request.method == "POST" and request.form:
-		#for x in request.form:
-		#	print "POSTED",x,request.form[x]
+  if request.method == "POST" and request.form:
+    #for x in request.form:
+    #	print "POSTED",x,request.form[x]
     i=1
     o=0
     train = Training(resource_id=res.id)
@@ -344,7 +344,7 @@ def newquiz(resname):
     return redirect(url_for('training.editquiz',trainid=train.id))
 
   resources = Resource.query.all()
-	return render_template('quiz_edit.html',resources=resources,res=res,rec={},questions=[])
+  return render_template('quiz_edit.html',resources=resources,res=res,rec={},questions=[])
   
 @blueprint.route('/editquiz/<int:trainid>', methods=['GET','POST'])
 @login_required
@@ -355,9 +355,9 @@ def editquiz(trainid):
     return redirect(url_for('training.training'))
   rid = train.resource_id
   
-	if request.method == "POST" and request.form:
-		#for x in request.form:
-		#	print "POSTED",x,request.form[x]
+  if request.method == "POST" and request.form:
+    #for x in request.form:
+    #  print "POSTED",x,request.form[x]
     if accesslib.user_privs_on_resource(member=current_user,resource_id=rid) < AccessByMember.LEVEL_ARM:
       flash("You are not authorized to edit this quiz","warning")
       return redirect(url_for('training.training'))
@@ -370,15 +370,15 @@ def editquiz(trainid):
     populate_quiz(train,request)
     db.session.commit()
     flash("Saved","success")
-	res = Resource.query.filter(Resource.id == rid).one_or_none()
+  res = Resource.query.filter(Resource.id == rid).one_or_none()
 
   if accesslib.user_privs_on_resource(member=current_user,resource=res) < AccessByMember.LEVEL_ARM:
     flash("You are not authorized to edit this quiz","warning")
     return redirect(url_for('training.training'))
 
   resources = Resource.query.all()
-	questions = QuizQuestion.query.filter(QuizQuestion.training_id == trainid).order_by(QuizQuestion.idx).all()
-	return render_template('quiz_edit.html',resources=resources,res=res,rec=train,questions=questions)
+  questions = QuizQuestion.query.filter(QuizQuestion.training_id == trainid).order_by(QuizQuestion.idx).all()
+  return render_template('quiz_edit.html',resources=resources,res=res,rec=train,questions=questions)
 
 @blueprint.route('/delete/<int:trainid>', methods=['GET','POST'])
 @login_required
@@ -404,7 +404,7 @@ def get_endorsements(resid):
   e = Resource.query.filter(Resource.id==int(resid)).one()
   if e.permissions:
     res = e.permissions.strip().split()
-	return json_dump(res, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return json_dump(res, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
   
   
@@ -481,9 +481,9 @@ def quiz(quizid):
           else:
             # Automatic auth
             if "pending_"+n in existing: existing.remove("pending_"+n)
-            print "AUTO",n,"IN",existing
+            #print ("AUTO",n,"IN",existing)
             if n not in existing:
-              print "ADD EXIST"
+              #print ("ADD EXIST")
               existing.append(n)
               authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=train.resource_id,message="Self-Auth %s Endorsement" % n,member_id=current_user.id,commit=0)
         ac.permissions=" ".join(existing)
@@ -491,7 +491,7 @@ def quiz(quizid):
       authutil.kick_backend()
       return redirect(url_for('training.training'))
 
-	return render_template('quiz.html',resource=res,training=train,quiz=quiz,highlight=hilight)
+  return render_template('quiz.html',resource=res,training=train,quiz=quiz,highlight=hilight)
     
 
 def register_pages(app):

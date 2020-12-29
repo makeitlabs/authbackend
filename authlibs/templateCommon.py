@@ -30,7 +30,7 @@ from sqlalchemy import and_, or_, func, case
 # Set-up actual database logging
 
 from authlibs import eventtypes
-import utilities #as authutil
+from . import utilities as authutil
 # Set-up Python module logging
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL

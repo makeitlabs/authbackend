@@ -1,6 +1,6 @@
 # vim:tabstop=2:expandtab:shiftwidth=2
-from templateCommon import *
-import accesslib
+from .templateCommon import *
+from . import accesslib
 
 ''' If "img" is missing - will not appear in index page, only menu '''
 

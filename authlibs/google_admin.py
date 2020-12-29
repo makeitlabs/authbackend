@@ -139,8 +139,8 @@ def testMessage():
                .execute())
         #print 'Message Id: %s' % message['id']
         return message
-    except errors.HttpError, err:
-        print 'An error occurred: %s' % err
+    except errors.HttpError as  err:
+        print ('An error occurred: %s' % err)
 
 def _SendMessage(service, user_id, message):
   try:
@@ -148,8 +148,8 @@ def _SendMessage(service, user_id, message):
                .execute())
     #print 'Message Id: %s' % message['id']
     return message
-  except errors.HttpError, err:
-    print 'An error occurred: %s' % err
+  except errors.HttpError as err:
+    print ('An error occurred: %s' % err)
     
 def _CreateMessage(sender, to, subject, message_text):
   """Create a formatted and properly encoded message for an email."""
@@ -181,7 +181,7 @@ def testGoogle():
     service = _buildAdminService()
     results = service.users().list(domain=DOMAIN, maxResults=500,orderBy='email').execute()
     users = results.get('users', [])
-    print users
+    print (users)
 
 if __name__ == "__main__":
     #testGoogle()
