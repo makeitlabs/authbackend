@@ -1,11 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # vim:tabstop=2:shiftwidth=2:expandtab
 # Nightly Backup and updates
 
 
 from authlibs.templateCommon import *
 from authlibs.init import authbackend_init
-import urllib2,urllib,requests
+import urllib,requests
 import argparse
 from  datetime import datetime,timedelta
 import random
@@ -20,11 +20,11 @@ from authlibs import aclbackup
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser()
-		parser.add_argument("--verbose","-v",help="verbosity",action="count")
-		parser.add_argument("--debug","-d",help="verbosity",action="count")
-		parser.add_argument("--nopayment",help="Do not update payment and waiver data",action="store_true")
-		parser.add_argument("--noupload",help="Do not send backups to AWS",action="store_true")
-		(args,extras) = parser.parse_known_args(sys.argv[1:])
+    parser.add_argument("--verbose","-v",help="verbosity",action="count")
+    parser.add_argument("--debug","-d",help="verbosity",action="count")
+    parser.add_argument("--nopayment",help="Do not update payment and waiver data",action="store_true")
+    parser.add_argument("--noupload",help="Do not send backups to AWS",action="store_true")
+    (args,extras) = parser.parse_known_args(sys.argv[1:])
 
     now = datetime.now()
     today=now.strftime("%Y-%m-%d")
