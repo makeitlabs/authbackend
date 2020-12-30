@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-vim:tabstop=2:expandtab:shiftwidth=2
+vim:tabstop=2:expandtab:shiftwidth=2:softtabstop=2
 Get from: https://www.digicert.com/CACerts/DigiCertGlobalRootCA.crt
 export WEBSOCKET_CLIENT_CA_BUNDLE=DigiCertGlobalRootCA.crt
 
@@ -19,7 +19,7 @@ import os,time,json,datetime,sys
 import linecache
 from . import init
 from .db_models import db, ApiKey, Role, UserRoles, Member, Resource, MemberTag, AccessByMember, Blacklist, Waiver
-from slack import WebClient as SlackClient
+from slack_sdk import WebClient as SlackClient
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response, Markup
@@ -37,7 +37,7 @@ def get_users():
     #  sc.server.websocket.sock.setblocking(1)
     #print json.dumps(get_users(sc),indent=2)
     #if sc.server.connected:
-    return sc.api_call("users.list")
+    return sc.users_list()
     #else:
     #  logger.error("get_users slack connection fail")
 
@@ -215,8 +215,7 @@ def send_slack_message(towho,message):
   sc = SlackClient(slack_token)
   #if sc.rtm_connect():
   #  print "SLACK-SEND",towho,message
-  res = sc.api_call(
-      "chat.postMessage",
+  res = sc.chat_postMessage(
       channel=towho,
       text=message
       )
@@ -226,8 +225,7 @@ def get_channel_id(sc,channel):
   if channel[0] == "#": channel = channel[1:]
   next_cursor=None
   while True:
-    res = sc.api_call(
-      "conversations.list",
+    res = sc.conversations_list(
         cursor=next_cursor,
         exclude_archived=True
       )
@@ -290,7 +288,7 @@ def cli_slack_add_all_to_channels(cmd,**kwargs):
 
 def api_call_ratelimit(sc,api,**kwargs):
   while True:
-    x = sc.api_call(api,**kwargs)
+    x = sc.api_call(api_method=api,json=kwargs)
     if x['ok'] or x['error'] != "ratelimit":
       return x
     time.sleep(1)
@@ -324,3 +322,9 @@ def add_user_to_channel(channel,member):
       return False
     
   return True
+
+
+def cli_slacktest(cmd,**kwargs):
+    m = Member.query.filter(Member.id==13).one()
+    send_slack_message(m.slack,"test")
+

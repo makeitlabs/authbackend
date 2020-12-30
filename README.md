@@ -8,7 +8,7 @@ Some rough documentation as of December 2018.
 
 (DEPRICATE??) `sudo apt install libcurl4-openssl-dev libssl-dev`
 (DEPRICATE??) `sudo apt install sqlite3 flask python-pycurl python-httplib2 python-auth2client`
-`sudo apt install sqlite3 python3-pip python3-pycurl mosquitto`
+`sudo apt install sqlite3 python3-pip python3-pycurl mosquitto net-tools`
 
 ```
 pip3 install --upgrade cryptography
@@ -29,8 +29,8 @@ pip3 install email_validator
 pip3 install pycurl
 pip3 install configparser
 pip3 install functools (Unclear if this actually works or not??)
-pip3 install slackclient (DEPRICATED?!)
-pip3 install slack_sdk (THis is the newer one)
+pip3 install slackclient (OLD - SHOULDN'T NEED)
+pip3 install slack_sdk 
 pip3 install coverage (If test coverage is used)
 ```
 
@@ -168,16 +168,21 @@ There are lots more - for info do:
 
 ## Other Housekeeping
 
-You will want to run `nightly.py` on some nightly cron job. It will:
+There are several scripts that need to be added as cron jobs to do things like:
 
 * Snapshot the database
 * Handle payment and waiver updates
 * Get snapshots of ACL lists - send messages to slack groups of changes since prior run
 * Back all snaps up to Amazon
-
-To help restore backups - you can use the `restore.py` helper script
+* Node monitoring
+* Covosk Compliance
 
 For an example crontab - see `crontab.txt`
+
+# Backups
+
+Backups should be run with `nightly.py` script in cron file
+To help restore backups - you can use the `restore.py` helper script
 
 
 # Update/Deploy

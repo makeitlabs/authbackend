@@ -85,8 +85,7 @@ def send_slack_message(towho,message):
   sc = SlackClient(slack_token)
   if sc.rtm_connect():
     print ("SLACK-SEND",towho,message)
-    res = sc.api_call(
-        "chat.postMessage",
+    res = sc.chat_postMessage(
         channel=towho,
         text=message
         )
@@ -334,8 +333,7 @@ def on_message(client,userdata,msg):
                     else:
                       slacktext += "%s: Event #%s" % (str(toolname),log_event_type)
                     if log_text: slacktext += " "+log_text
-                    res = sc.api_call(
-                      "chat.postMessage",
+                    res = sc.chat_postMessage(
                       channel=associated_resource['slack_admin_chan'],
                       text=slacktext
                     )
@@ -360,8 +358,7 @@ if __name__ == '__main__':
       sc = SlackClient(slack_api_token)
       # TODO BKG BUG change channel
       try:
-              res = sc.api_call(
-                "chat.postMessage",
+              res = sc.chat_postMessage(
                 channel="#test-resource-admins",
                 text="mqtt daemon alive :tada:"
               )

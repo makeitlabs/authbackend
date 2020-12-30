@@ -8,6 +8,7 @@ from flask_user import current_user, login_required, roles_required, UserManager
 from authlibs.db_models import db, ApiKey,  Role, UserRoles, Member, Resource, AccessByMember
 from authlibs.payments import cli_updatepayments
 from authlibs.membership import cli_syncmemberpayments
+from authlibs.slackutils import cli_slacktest
 from authlibs.ubersearch import cli_ubersearch
 from authlibs.api import api
 from flask_sqlalchemy import SQLAlchemy
@@ -191,6 +192,10 @@ commands = {
 	"notices":{
 		'usage':"notices -- Process member account notifications",
 		'cmd':cli_member_notices
+	},
+	"slacktest":{
+		'usage':"slacktest -- Send slack test",
+		'cmd':cli_slacktest
 	},
 	"ubersearch":{
 		'usage':"ubersearch {searchstr} -- Try ubersearch",
