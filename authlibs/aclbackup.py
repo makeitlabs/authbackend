@@ -4,7 +4,7 @@ import sys,re,os,urllib,requests
 from  datetime import datetime,timedelta
 import json
 import configparser
-from slack import WebClient as SlackClient
+from slack_sdk import WebClient as SlackClient
 
 
 now = datetime.now()
@@ -91,8 +91,7 @@ def do_update():
 		get_v1_acl(x['name'])
 		str= compare_v1(yesterdaystr,todaystr,x['name'])
 		if x['slack_admin_chan']:
-			sc.api_call(
-				"chat.postMessage",
+			sc.chat_postMessage(
 				channel=x['slack_admin_chan'],
 				text=str
 				)
