@@ -6,6 +6,8 @@ Some rough documentation as of December 2018.
 
 (Note: Ubuntu-flavored)
 
+Consult pip.freeze file to see a dump of pip dependecies from a working system
+
 `sudo apt install libcurl4-openssl-dev libssl-dev`
 `sudo apt install sqlite3 flask python-pycurl python-httplib2 python-auth2client`
 
