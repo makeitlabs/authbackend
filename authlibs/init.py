@@ -15,7 +15,10 @@ import sys
 import ConfigParser
 from db_models import db,  Member, Role, defined_roles, ApiKey
 from datetime import datetime
-from werkzeug.contrib.fixers import ProxyFix
+try:
+	from werkzeug.contrib.fixers import ProxyFix
+except:
+	from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_dance.consumer import oauth_authorized
 from flask_dance.contrib.google import make_google_blueprint
 from flask_dance.contrib.google import  google as google_flask

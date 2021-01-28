@@ -1,7 +1,11 @@
 # vim:tabstop=2:shiftwidth=2:expandtab
 from flask import Blueprint, redirect, url_for, session, flash, g
 from flask_dance.contrib.google import make_google_blueprint, google
-from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
+try:
+	from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
+except:
+	from flask_dance.consumer.storage.sqla import SQLAlchemyStorage as SQLAlchemyBackend
+	from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
 from flask_login import current_user, login_user, logout_user
 from flask_dance.consumer import oauth_authorized
 from sqlalchemy.orm.exc import NoResultFound

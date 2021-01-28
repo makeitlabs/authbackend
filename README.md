@@ -11,17 +11,22 @@ Consult pip.freeze file to see a dump of pip dependecies from a working system
 `sudo apt install libcurl4-openssl-dev libssl-dev`
 `sudo apt install sqlite3 flask python-pycurl python-httplib2 python-auth2client`
 
+`sudo apt install libffi-dev`
 `pip install flask-login`
 `pip install flask-user`
 `pip install flask-dance`
 `pip install stripe`
 `pip install apiclient`
+`pip install slackclient`
 `pip install --upgrade google-api-python-client`
 `pip install paho-mqtt`
 `pip install pytz`
 `pip install boto3`
 `pip install --upgrade oauth2client`
 `pip install google-oauth`
+`pip install email_validator`
+`pip install python-dateutil`
+`pip install pyopenssl --no-binary :all:
 `sudo pip install sqlalchemy_utils`
 
 For Covid-19 video kiosk compliance reporting script

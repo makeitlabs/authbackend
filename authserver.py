@@ -23,7 +23,10 @@ import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response, Markup, make_response
 # NEwer login functionality
-from werkzeug.contrib.fixers import ProxyFix
+try:
+	from werkzeug.contrib.fixers import ProxyFix
+except:
+	from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 #from flask_oauth import OAuth
 from flask_login import logout_user, login_user
