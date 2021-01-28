@@ -6,6 +6,8 @@ Some rough documentation as of December 2018.
 
 (Note: Ubuntu-flavored)
 
+See pip3.freeze for reference of working config
+
 (DEPRICATE??) `sudo apt install libcurl4-openssl-dev libssl-dev`
 (DEPRICATE??) `sudo apt install sqlite3 flask python-pycurl python-httplib2 python-auth2client`
 `sudo apt install sqlite3 python3-pip python3-pycurl`
