@@ -40,6 +40,26 @@ pip3 install coverage (If test coverage is used)
 For Covid-19 video kiosk compliance reporting script
 `sudo apt install ffmpeg`
 
+## Quick setup
+
+Copy `makeit.ini` from your existing system. Thiss will DIFFER in production vs staging systems!
+
+Fetch databases from old system - or restore nightly backups like:
+
+```
+./restore.py 2021-02-10-db.sq3
+./restore.py 2021-02-10-logdb.sq3
+```
+...and change filenames to something to run with...
+```
+mv 2021-02-10-db.sq3 db.sq3
+mv 2021-02-10-logdb.sq3 dblog.sq3
+```
+Make sure these two databases match the `Database` and `LogDatabase` entries in `makeit.ini`
+(If you don't have a makeit.ini - you will not have required keys to fetch backups)
+
+If database is sufficiently new (i.e. subscriptions were all up-to-date) everything should be ready to go. But if you need to do anything else, like you are running a development server and won't be able to immediatley use OATH (need local login users), or you can't login because the database was old and it thinks your account is expired and you need to manual update subscrptions - read onward.
+
 ## Creating stub database
 
 (ONLY do this if you are starting from a completely clean slate and importing/migrating no old data!)
