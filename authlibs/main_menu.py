@@ -130,6 +130,12 @@ def get_raw_menu():
                     'importance':2000
             },
             {
+                    'privs':'Admin',
+                    'url':url_for('autoplot.autoplot'),
+                    'title':"Auto Plot Billing",
+                    'importance':2000
+            },
+            {
                     'privs':'RATT',
                     'url':url_for('nodes.nodes'),
                     'img':url_for("static",filename="rattcfg.png"),

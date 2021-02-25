@@ -102,3 +102,7 @@ api_password=camerasystempassword
 camera_id=cameraid
 camera_addr=10.0.0.3:7001
 slackchan=SlackCHallelIDtoReport
+
+[autoplot]
+ical_uri=<Autoplot ical URI>
+stripe item=<Stripe sku_ or price_ to purchase>

@@ -24,6 +24,7 @@ Consult pip.freeze file to see a dump of pip dependecies from a working system
 `pip install boto3`
 `pip install --upgrade oauth2client`
 `pip install google-oauth`
+`pip install icalendar`
 `pip install email_validator`
 `pip install python-dateutil`
 `pip install pyopenssl --no-binary :all:

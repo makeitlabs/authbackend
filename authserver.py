@@ -71,6 +71,7 @@ from authlibs.api import api
 from authlibs.reports import reports 
 from authlibs.tools import tools 
 from authlibs.nodes import nodes 
+from authlibs.autoplot import autoplot 
 from authlibs.kvopts import kvopts 
 from authlibs.comments import comments 
 from authlibs.apikeys import apikeys 
@@ -582,6 +583,7 @@ with app.app_context():
     paylib.register_pages(app)
     reports.register_pages(app)
     nodes.register_pages(app)
+    autoplot.register_pages(app)
     tools.register_pages(app)
     kvopts.register_pages(app)
     comments.register_pages(app)
