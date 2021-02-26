@@ -39,6 +39,16 @@ def autoplot():
                     errors.append("Subscription Not Found")
             else:
                 errors.append("Member not found")
+        # If we found an error  in membership or subscriptionm chekcs
+        if len(errors) > 0:
+            data['Decision']='error'
+
+        if data['Decision'] == 'bill':
+            pass
+            # Check log
+            #run billing code
+            # log even
+            #
         return render_template('autoplot.html',defdate=defdate,errors=errors,warnings=warnings,debug=debug,data=data,billables=billables)
 
     # Default

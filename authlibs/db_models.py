@@ -14,7 +14,7 @@ except:
 	from flask_dance.consumer.storage.sqla import SQLAlchemyStorage, OAuthConsumerMixin
 
 
-defined_roles=['Admin','RATT','Finance','Useredit','HeadRM','ProStore']
+defined_roles=['Admin','RATT','Finance','Useredit','HeadRM','ProStore','AutoPlot']
 
 db = SQLAlchemy()
 

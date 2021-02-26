@@ -46,7 +46,8 @@ def crunch_calendar(rundate=None):
   data={}
 
   debug.append("{2} Week #{3} - {0} through {1}".format(weekstart.strftime("%b-%d"),weekend.strftime("%b-%d"),weekstart.year,weeknum))
-  data['sumary']="{2} Week #{3} - {0} through {1}".format(weekstart.strftime("%b-%d"),weekend.strftime("%b-%d"),weekstart.year,weeknum)
+  data['title']="{2} Week #{3} - {0} through {1}".format(weekstart.strftime("%b-%d"),weekend.strftime("%b-%d"),weekstart.year,weeknum)
+  data['weekid']="{2:04}-{3:02}".format(weekstart.strftime("%b-%d"),weekend.strftime("%b-%d"),weekstart.year,weeknum)
 
   for component in cal.walk():
       #print component.name
@@ -140,6 +141,12 @@ def crunch_calendar(rundate=None):
   elif len(billables) >1:
     errors.append("ERROR - MULTIPLE BILLABLES THIS WEEK!")
 
+  if (len(errors) != 0):
+    data['Decision']='error'
+  elif (len(billables) == 0):
+    data['Decision']='no_bill'
+  else:
+    data['Decision']='bill'
   return (errors,warnings,debug,data,billables)
 
 def do_payment():

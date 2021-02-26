@@ -181,6 +181,9 @@ For an example crontab - see `crontab.txt`
 #  Multitrain Update
 
 Add `MemberFoldersPath` to `[General]` section of `makeit.ini` with mount point to Member Folders
+Add `autoplot` section to `makeit.ini`
+`sudo pip install icalendar`
+
 ```
 PRAGMA foreign_keys=off;
 BEGIN TRANSACTION;
