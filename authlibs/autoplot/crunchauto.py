@@ -1,12 +1,12 @@
 #!/usr/bin/python
 
-# vim:expandtab:shiftwidth=2
 
 #import ConfigParser
 import icalendar,sys,os,datetime
 import stripe
 import pytz
 import urllib
+import json
 from dateutil import tz
 
 from ..templateCommon import  *
@@ -149,31 +149,121 @@ def crunch_calendar(rundate=None):
     data['Decision']='bill'
   return (errors,warnings,debug,data,billables)
 
-def do_payment():
-  Config=ConfigParser.ConfigParser()
-  Config.read("makeit.ini")
-  stripe.api_key = Config.get('Stripe','token')
+def do_payment(customer,price,leaseid,description,test=False):
+  errors=[]
+  warnings=[]
+  debug=[]
+  stripe.api_key = current_app.config['globalConfig'].Config.get('autoplot','stripe_token')
   #stripe.api_key = "sk_test_4eC39HqLyjWDarjtT1zdp7dc" # TEST KEY
   #print stripe.SKU.list(limit=99)
   #print stripe.Customer.list(limit=99)
 
-  print """
-  ** INVOICE ITEM
+  debug.append("Process Payment customer {0} Price {1} leaseid {2}".format(customer,price,leaseid))
+  print "Process Payment customer {0} Price {1} leaseid {2}".format(customer,price,leaseid)
+  debug.append("Description: {0}".format(description))
+  print "Description: {0}".format(description)
+
   """
-  print stripe.InvoiceItem.create(
-    #customer="cus_J0mrDmtpzbfYOk", # Stripe Test Customer
-    customer="cus_BrcR4XAzDYl87s", # MIL Brad Goodman
-    #price="sku_IpxYEyVzmdmEy6", # TEST
-    price="price_1IOZ6DI573ycCeJ1voBFqlDP", # MIL ZERO DOLLAR PLOT
-  )
-  print """
-  ** INVOICE
   """
-  inv = stripe.Invoice.create(
-    customer="cus_J0mrDmtpzbfYOk",
-    description="Auto Plot Rental Weekly Automaitc Invoice"
-  )
-  print inv
+  print """
+  ** GET EXISTING INVOICE ITEM
+  """
+
+  # Get existing outstanding items in Stripe to invoice
+  lastItem=None
+  pendingleases={}
+  while True:
+      ii= stripe.InvoiceItem.list(
+        limit=2,
+        #customer="cus_J0mrDmtpzbfYOk", # Stripe Test Customer
+        customer=customer, # MIL Brad Goodman
+        starting_after=lastItem
+        )
+
+      print "EXISTING ITEMS"
+      print ii
+      if ii:
+          for d in ii['data']:
+              lastItem=d['id']
+              if 'metadata' in d:
+                  print "Metadata ",d['metadata']
+                  if 'X-MIL-lease-id' in d['metadata']:
+                    pendingleases[d['metadata']['X-MIL-lease-id']] = { 'invoice':d['invoice'],'invoiceitem':d['id']}
+                    warnings.append("Lease already pending: "+d['metadata']['X-MIL-lease-id']+" in invoice "+str(d['invoice']))
+                  else:
+                    warnings.append("No metadata in item")
+      if not ii['has_more']: break
+ 
+  print "PENDING LEASES",pendingleases
+  
+  # If our new entry is not here - create item in stripe
+  if leaseid not in pendingleases:
+      print """
+      ** ADD INVOICE ITEM
+      """
+      
+      ii= stripe.InvoiceItem.create(
+        #customer="cus_J0mrDmtpzbfYOk", # Stripe Test Customer
+        customer=customer, # MIL Brad Goodman
+        description=description,
+        #price="sku_IpxYEyVzmdmEy6", # TEST
+        price=price, # MIL ZERO DOLLAR PLOT
+        metadata={
+                'X-MIL-lease-id':leaseid,
+                'X-MIL-lease-location':'autoplot'
+            }
+        )
+      pendingleases[leaseid]= { 'invoice':None,'invoiceitem':ii['id']}
+      None # We have a pending now, with no invoice
+      debug.append("Created Invoice Item {0} for lease {1}".format(ii['id'],leaseid))
+
+  # If we have not created an invoice with this item in it - do so
+  if leaseid not in pendingleases or pendingleases[leaseid]['invoice'] is None:
+      print """
+      ** INVOICE
+      """
+      inv = stripe.Invoice.create(
+        customer=customer,
+        description=description,
+        auto_advance=False,
+        collection_method="charge_automatically",
+        metadata={
+                'X-MIL-lease-id':leaseid,
+                'X-MIL-lease-location':'autoplot'
+            }
+        #period_start=,
+        #period_end=json
+      )
+      pendingleases[leaseid]['invoice']=inv['id']
+      debug.append("Created Invoice {0} for lease {1}".format(inv['id'],leaseid))
+  else:
+    warnings.append("Using existing Invoice {0} for lease {1}".format(pendingleases[leaseid]['invoice'],leaseid))
+    # We have a current lease - let's look at it!
+    print "INSPECT INVOICE"
+    print "***"
+    inv = stripe.Invoice.retrieve(pendingleases[leaseid]['invoice'])
+
+  print json.dumps(inv,indent=2)
+
+  # If unpaied - pay it!
+ 
+  if inv['paid'] == True and inv['status']=='paid':
+    debug.append("Already paid")
+    print "** Aleady Paid!"
+  else:
+    print "** Paying!"
+    debug.append("Paying")
+    stripe.Invoice.pay(inv['id'])
+    debug.append("Payment Done")
+    print "** Paid!"
+
+  return
+  
+  print "DELETEING INVOICE"
+  print stripe.Invoice.delete(inv['id'])
+  debug.append("Created Invoice {0} for lease {1}".format(inv['id'],leaseid))
+
+  return 
   print """
   ** INVOICE PAY
   """
@@ -182,19 +272,3 @@ def do_payment():
   print pay
 
 
-def auto_cli(*args,**kwargs):
-    (errors,warnings,debug,data,billables) = crunch_calendar()
-    print "***\n***\n WARNINGS:"
-    for w in warnings:
-      print "  "+w
-    print "***\n***\n ERRORS:"
-    for e in errors:
-      print "  "+e
-    print "***\n***\n DEBUG:"
-    for d in debug:
-      print "  "+d
-    print """***
-    BILLING
-    ***
-    """
-    print billables

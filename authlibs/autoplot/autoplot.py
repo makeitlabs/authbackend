@@ -54,5 +54,24 @@ def autoplot():
     # Default
     return render_template('autoplot.html',data=None,defdate=defdate)
 
+def cli_autoplot(cmd,**kwargs):
+    print "AUTOPLOT"
+    (errors,warnings,debug,data,billables) = crunchauto.crunch_calendar()
+    print "**ERRORS"
+    print errors
+    print "**WARNINGS"
+    print warnings
+    print "**DEBUG"
+    print debug
+    print "**DATA"
+    print data
+    print "**BILLABLES"
+    print billables
+
+    price = current_app.config['globalConfig'].Config.get("autoplot","stripe_item")
+    crunchauto.do_payment('cus_J1MAqeEKC1dLfT',price,'autoplot-2021-wk07-test',"Autoplot TEST 2021 Week 7",test=True)
+
 def register_pages(app):
 	app.register_blueprint(blueprint)
+
+0
