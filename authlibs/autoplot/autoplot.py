@@ -17,6 +17,7 @@ blueprint = Blueprint("autoplot", __name__, template_folder='templates', static_
 @login_required
 def autoplot():
     """(Controller) Display Nodes and controls"""
+    price = current_app.config['globalConfig'].Config.get("autoplot","stripe_item")
     defdate = datetime.now().strftime("%Y-%m-%d")
     if 'Process' in request.form and 'datepicker' in request.form:
         (errors,warnings,debug,data,billables) = crunchauto.crunch_calendar(rundate=request.form['datepicker'])
@@ -27,8 +28,7 @@ def autoplot():
                 print mem.stripe_name
                 sub = Subscription.query.filter(Subscription.member_id == mem.id).one_or_none()
                 if sub:
-                    print sub.subid
-                    data['Stripe ID']=sub.subid
+                    data['Stripe ID']=sub.customerid
                     data['Plan']=sub.plan
                     data['Active']=sub.active
                     if not data['Active']:
@@ -44,11 +44,18 @@ def autoplot():
             data['Decision']='error'
 
         if data['Decision'] == 'bill':
-            pass
             # Check log
             #run billing code
             # log even
             #
+            if 'invoice' in request.form:
+              dopay = False
+              if 'pay' in request.form: dopay=True
+              (pay_errors,pay_warnings,pay_debug,pay_status) = crunchauto.do_payment(data['Stripe ID'],price,data['lease-id'],data['title'],pay=dopay)
+              errors += pay_errors
+              warnings += pay_warnings
+              debug += pay_debug
+              data['pay_status']=pay_status
         return render_template('autoplot.html',defdate=defdate,errors=errors,warnings=warnings,debug=debug,data=data,billables=billables)
 
     # Default

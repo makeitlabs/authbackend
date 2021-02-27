@@ -6,7 +6,9 @@
 
 
 	<form method="POST">
-		Week to Process: <input type="date" value="{{ defdate }}" id="datepicker" name="datepicker"></input>
+    Week to Process: <input type="date" value="{{ defdate }}" id="datepicker" name="datepicker"></input></br>
+    <input type="checkbox"  name="invoice" />Invoice <br />
+    <input type="checkbox"  name="pay" /> Collect Payment <br />
 	<input type="submit"  name="Process" />
 	</form>
 	{% if data is not none %}

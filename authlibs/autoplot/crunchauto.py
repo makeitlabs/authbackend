@@ -46,7 +46,8 @@ def crunch_calendar(rundate=None):
   data={}
 
   debug.append("{2} Week #{3} - {0} through {1}".format(weekstart.strftime("%b-%d"),weekend.strftime("%b-%d"),weekstart.year,weeknum))
-  data['title']="{2} Week #{3} - {0} through {1}".format(weekstart.strftime("%b-%d"),weekend.strftime("%b-%d"),weekstart.year,weeknum)
+  data['title']="Auto Plot Lease {2} Week #{3} - {0} through {1}".format(weekstart.strftime("%b-%d"),weekend.strftime("%b-%d"),weekstart.year,weeknum)
+  data['lease-id']="autoplot-lease-{2}-Week{3:02}".format(weekstart.strftime("%b-%d"),weekend.strftime("%b-%d"),weekstart.year,weeknum)
   data['weekid']="{2:04}-{3:02}".format(weekstart.strftime("%b-%d"),weekend.strftime("%b-%d"),weekstart.year,weeknum)
 
   for component in cal.walk():
@@ -149,7 +150,7 @@ def crunch_calendar(rundate=None):
     data['Decision']='bill'
   return (errors,warnings,debug,data,billables)
 
-def do_payment(customer,price,leaseid,description,test=False):
+def do_payment(customer,price,leaseid,description,test=False,pay=False):
   errors=[]
   warnings=[]
   debug=[]
@@ -236,7 +237,9 @@ def do_payment(customer,price,leaseid,description,test=False):
       )
       pendingleases[leaseid]['invoice']=inv['id']
       debug.append("Created Invoice {0} for lease {1}".format(inv['id'],leaseid))
+      status="invoiced"
   else:
+    status="already_invoiced"
     warnings.append("Using existing Invoice {0} for lease {1}".format(pendingleases[leaseid]['invoice'],leaseid))
     # We have a current lease - let's look at it!
     print "INSPECT INVOICE"
@@ -250,25 +253,20 @@ def do_payment(customer,price,leaseid,description,test=False):
   if inv['paid'] == True and inv['status']=='paid':
     debug.append("Already paid")
     print "** Aleady Paid!"
-  else:
+    status="already_paid"
+  elif pay:
     print "** Paying!"
     debug.append("Paying")
     stripe.Invoice.pay(inv['id'])
     debug.append("Payment Done")
     print "** Paid!"
+    status="paid"
 
-  return
   
-  print "DELETEING INVOICE"
-  print stripe.Invoice.delete(inv['id'])
-  debug.append("Created Invoice {0} for lease {1}".format(inv['id'],leaseid))
+  #print "DELETEING INVOICE"
+  #print stripe.Invoice.delete(inv['id'])
+  #debug.append("Created Invoice {0} for lease {1}".format(inv['id'],leaseid))
 
-  return 
-  print """
-  ** INVOICE PAY
-  """
-  print "PAYING",inv['id']
-  pay = stripe.Invoice.pay(inv)
-  print pay
+  return (errors,warnings,debug,status)
 
 
