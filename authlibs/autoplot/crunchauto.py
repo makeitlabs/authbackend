@@ -261,7 +261,8 @@ def do_payment(customer,price,leaseid,description,test=False,pay=False):
     print "** Paying!"
     debug.append("Paying")
     try:
-      stripe.Invoice.pay(inv['id'])
+      #stripe.Invoice.pay(inv['id'])
+      stripe.Invoice.pay(inv)
       debug.append("Payment Done")
       print "** Paid!"
       status="paid"

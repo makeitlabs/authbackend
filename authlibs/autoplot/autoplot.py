@@ -63,7 +63,7 @@ def autoplot_logic(rundate=None,process_payment=False,process_invoice=False,debu
       elif process_invoice:
         dopay = False
         (pay_errors,pay_warnings,pay_debug,pay_status) = crunchauto.do_payment(data['Stripe ID'],price,data['lease-id'],data['title'],pay=process_payment)
-        if len(pay_errors) >0: error += ['PAYMENT',]
+        if len(pay_errors) >0: errors += ['PAYMENT',]
         errors += pay_errors
         if len(pay_warnings) >0: warnings += ['PAYMENT',]
         warnings += pay_warnings
