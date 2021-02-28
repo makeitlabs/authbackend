@@ -125,10 +125,8 @@ def autoplot():
     return render_template('autoplot.html',data=None,defdate=rundate)
 
 def cli_autoplot(cmd,**kwargs):
-    sendemails()
-    return
     print "AUTOPLOT"
-    (errors,warnings,debug,data,billables) = crunchauto.crunch_calendar()
+    (errors,warnings,debug,data,billables) = autoplot_logic()
     print "**ERRORS"
     print errors
     print "**WARNINGS"
@@ -140,21 +138,11 @@ def cli_autoplot(cmd,**kwargs):
     print "**BILLABLES"
     print billables
 
-    if data['Decision'] == 'bill':
-      print "** DO PAYMENT \n\n"
-      price = current_app.config['globalConfig'].Config.get("autoplot","stripe_item")
-      (pay_errors,pay_warnings,pay_debug,pay_status) = crunchauto.do_payment(data['Stripe ID'],price,data['lease-id'],data['title'],pay=True)
-      print "**STRIPE ERRORS"
-      print pay_errors
-      print "**STRIPE WARNINGS"
-      print pay_warnings
-      print "**STRIPE DEBUG"
-      print pay_debug
-      print "Stripe Status: "+str(status)
 
 def autoplot_api():
   logger.warning("Autoplot Payment Cron")
-  if err:
+  (errors,warnings,debug,data,billables) = autoplot_logic()
+  if len(errors)>0:
     logger.warning("Weekly notice CRON ERROR")
     return json_dump({'status':'error'}, 401, {'Content-type': 'application/json'})
   else:
