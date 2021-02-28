@@ -110,9 +110,9 @@ class RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED:
     id=1026
     desc='Entry denied'
 
-class RATTBE_LOGEVENT_MEMBER_AUTOPLOT_CHARGE:
+class RATTBE_LOGEVENT_MEMBER_LEASE_CHARGE:
     id=1027
-    desc='Charge for Auto Plot Lease'
+    desc='Charge for Leased Space'
 
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000

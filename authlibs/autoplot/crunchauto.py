@@ -60,6 +60,7 @@ def crunch_calendar(rundate=None):
       #print(component.get('dtstamp'))
       summary={'errors':[],'warnings':[]}
       if component.name == 'VEVENT':
+        print component
         billable=False
         members=[]
         event={}
@@ -76,7 +77,7 @@ def crunch_calendar(rundate=None):
         #print "NOW",now
         if (weekstart <= calstart) and (calend <= weekend):
           if 'ATTENDEE' not in component: 
-            summary['errors']+="No Attendees"
+            summary['errors'].append("No Attendees")
           else:
             if isinstance(component['ATTENDEE'],list):
               attlist = component['ATTENDEE']
@@ -104,6 +105,8 @@ def crunch_calendar(rundate=None):
           if (hrs > 24):
             if len(members) > 1:
               summary['errors'].append("More than one member assigned")
+            elif len(members) == 0:
+              summary['errors'].append("No attendees in calendar entry")
             else:
               if not members[0].lower().endswith("@makeitlabs.com"):
                 summary['errors'].append("Non-MIL email")
@@ -253,14 +256,19 @@ def do_payment(customer,price,leaseid,description,test=False,pay=False):
   if inv['paid'] == True and inv['status']=='paid':
     debug.append("Already paid")
     print "** Aleady Paid!"
-    status="already_paid"
+    status="already_paid_stripe"
   elif pay:
     print "** Paying!"
     debug.append("Paying")
-    stripe.Invoice.pay(inv['id'])
-    debug.append("Payment Done")
-    print "** Paid!"
-    status="paid"
+    try:
+      stripe.Invoice.pay(inv['id'])
+      debug.append("Payment Done")
+      print "** Paid!"
+      status="paid"
+    except BaseException as e:
+      errors.append("Payment failed on invoice {0}: {1}".format(inv['id'],e))
+      print "** Payment failed!"
+      status="payment_failed"
 
   
   #print "DELETEING INVOICE"

@@ -48,7 +48,10 @@ def autoplot():
             #run billing code
             # log even
             #
-            if 'invoice' in request.form:
+            logs = Logs.query.filter((Logs.member_id == mem.id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_MEMBER_LEASE_CHARGE.id) & (Logs.message== data['lease-id'])).all()
+            if (len(logs) > 0):
+              data['pay_status']='already_paid'
+            elif 'invoice' in request.form:
               dopay = False
               if 'pay' in request.form: dopay=True
               (pay_errors,pay_warnings,pay_debug,pay_status) = crunchauto.do_payment(data['Stripe ID'],price,data['lease-id'],data['title'],pay=dopay)
@@ -56,6 +59,11 @@ def autoplot():
               warnings += pay_warnings
               debug += pay_debug
               data['pay_status']=pay_status
+              if pay_status == 'paid' or pay_status == 'already_paid_stripe':
+                print "CURRENT_APP",type(current_app)
+                print "CURRENT_APP",current_app.extensions
+                authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_LEASE_CHARGE.id,member_id=mem.id,message=data['lease-id'],commit=0)
+                db.session.commit()
         return render_template('autoplot.html',defdate=defdate,errors=errors,warnings=warnings,debug=debug,data=data,billables=billables)
 
     # Default
