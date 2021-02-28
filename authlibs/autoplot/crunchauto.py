@@ -11,12 +11,19 @@ from dateutil import tz
 
 from ..templateCommon import  *
 
-def utctolocal(dt):
+def utctolocal(dt,endofdate=False):
   from_zone = tz.gettz('UTC')
   to_zone = tz.gettz('America/New_York')
-  utc = dt.replace(tzinfo=from_zone)
-  l = utc.astimezone(to_zone)
-  return l
+
+  if isinstance(dt,datetime.datetime): 
+    dt = dt.replace(tzinfo=from_zone)
+    dt = dt.astimezone(to_zone)
+  else:
+    if endofdate:
+      dt = datetime.datetime.combine(dt,datetime.time(hour=23,minute=59,second=59,tzinfo=to_zone))
+    else:
+      dt = datetime.datetime.combine(dt,datetime.time(tzinfo=to_zone))
+  return dt
 
 weekday=['Sun','Mon','Tues','Wed','Thurs','Fri','Sat'] # OUR Sunday=0 Convention!!
 def crunch_calendar(rundate=None):
@@ -60,12 +67,14 @@ def crunch_calendar(rundate=None):
       #print(component.get('dtstamp'))
       summary={'errors':[],'warnings':[]}
       if component.name == 'VEVENT':
-        print component
+        #print component
         billable=False
         members=[]
         event={}
-        calstart = utctolocal(component['DTSTART'].dt)
-        calend =  utctolocal(component['DTEND'].dt)
+        calstart = component['DTSTART'].dt
+        calstart = utctolocal(calstart)
+        calend =  component['DTEND'].dt
+        calend =  utctolocal(calend,endofdate=True)
         #print "SUMMARY",component['SUMMARY']
         #print "START",calstart
         #print "END",calend
