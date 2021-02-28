@@ -10,6 +10,7 @@ from authlibs import payments
 from authlibs.waivers.waivers import cli_waivers,connect_waivers
 from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel,send_slack_message
 from authlibs.members.notices import send_all_notices
+from authlibs.autoplot.autoplot import autoplot_api
 import slackapi
 import base64
 import random,string
@@ -833,6 +834,12 @@ def api_cron_weekly_notices():
   else:
     logger.info("Weekly notice CRON finished")
     return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
+
+# Meant for CRON job
+@blueprint.route('/autoplot/pay', methods=['GET'])
+@api_only
+def api_autoplot_pay():
+  return autoplot(api)
 
 @blueprint.route('/v1/last_tool_event', methods=['GET'])
 @api_only

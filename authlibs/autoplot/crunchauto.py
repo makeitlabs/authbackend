@@ -104,12 +104,12 @@ def crunch_calendar(rundate=None):
             summary['warnings'].append("Entry isn't quite full week, but billing anyway")
           if (hrs > 24):
             if len(members) > 1:
-              summary['errors'].append("More than one member assigned")
+              summary['errors'].append("More than one member assigned: "+str(", ".join(members)))
             elif len(members) == 0:
               summary['errors'].append("No attendees in calendar entry")
             else:
               if not members[0].lower().endswith("@makeitlabs.com"):
-                summary['errors'].append("Non-MIL email")
+                summary['errors'].append("Non-MIL email: "+str(members[0]))
               else:
                 billable=True
                 print "*** BILLABLE"

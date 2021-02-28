@@ -297,6 +297,7 @@ CREATE TABLE tempauth (
 );
 
 ALTER TABLE members ADD COLUMN memberFolder VARCHAR(255);
+insert into roles (id,name) values (7,"LeaseMgr");
 
 COMMIT;
 PRAGMA foreign_keys=on;
