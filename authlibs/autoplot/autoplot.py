@@ -26,8 +26,9 @@ def sendemails(subject="MIL Lease Update",text="(No Body)"):
 # This does it all from GUI, CLI and API
 def autoplot_logic(rundate=None,process_payment=False,process_invoice=False,debug=False,noemail=False):
   price = current_app.config['globalConfig'].Config.get("autoplot","stripe_item")
-  if rundate is False:
+  if rundate is None:
     rundate = datetime.now().strftime("%Y-%m-%d")
+  #print "RUNDATE EFFECTIVE",rundate
   (errors,warnings,debug,data,billables) = crunchauto.crunch_calendar(rundate)
   if (len(errors) == 0) and len(billables) ==1:
       mem = Member.query.filter(func.lower(Member.member)==func.lower(billables[0]['member'].replace("@makeitlabs.com",''))).one_or_none()
@@ -125,8 +126,11 @@ def autoplot():
     return render_template('autoplot.html',data=None,defdate=rundate)
 
 def cli_autoplot(cmd,**kwargs):
-    print "AUTOPLOT"
-    (errors,warnings,debug,data,billables) = autoplot_logic()
+    print "AUTOPLOT",cmd
+    rundate=None
+    if len(cmd)  >=2:
+        rundate=cmd[1]
+    (errors,warnings,debug,data,billables) = autoplot_logic(rundate=rundate)
     print "**ERRORS"
     print errors
     print "**WARNINGS"

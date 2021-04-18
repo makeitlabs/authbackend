@@ -36,14 +36,16 @@ def crunch_calendar(rundate=None):
     now = datetime.datetime.strptime(rundate,"%Y-%m-%d").replace(tzinfo=tz.gettz('America/New York'))
   else:
     now = datetime.datetime.now().replace(tzinfo=tz.gettz('America/New York'))
+  #print "CRUNCH EFFECTIVE RUNDATE",rundate
   ## ADJUST HERE FOR TZ! (i.e. If we run Midnight on Sunday don't want LAST week's run
   dow = now.weekday() # 0=Monday
-  dow = (dow+1) %8  #0=Sunday
+  dow = (dow+1) %7  #0=Sunday
   weeknum = int(now.strftime("%U")) 
-  #print "weeknum",weeknum,"Weekday",weekday[dow]
+  #print "weeknum",weeknum,"Weekday",weekday[dow],"DOW",dow
   weekstart = (now - datetime.timedelta(days=dow))
   weekstart = weekstart.replace(hour=0,minute=0,second=0,microsecond=0)
   weekend = weekstart + datetime.timedelta(days=7)
+  weekend = weekend - datetime.timedelta(seconds=1)
   #print "WEEKSTART",weekstart,"through",weekend
   errors=[]
   warnings=[]
