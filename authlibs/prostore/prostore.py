@@ -282,8 +282,8 @@ def notices():
 # v0.8 migration
 def migrate(cmd,**kwargs):
 	for f in ('Garage','Cleanspace'):
-		for x in "ABCDEFGH" if f is 'Garage' else "AB":
-			for y in range(1,7 if f is 'Garage' else 5):
+		for x in "ABCDEFGH" if f == 'Garage' else "AB":
+			for y in range(1,7 if f == 'Garage' else 5):
 				name= "%s-%s-%s" % (f,x,y)
 				l = ProLocation()
 				l.location = name
