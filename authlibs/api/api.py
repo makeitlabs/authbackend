@@ -17,6 +17,7 @@ import random,string
 import tempfile
 import subprocess
 import datetime
+import hashlib
 
 
 # You must call this modules "register_pages" with main app's "create_rotues"
@@ -732,6 +733,29 @@ def api_v0_show_resource_acl(id):
 				for u in users:
 						outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
 				return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
+
+@blueprint.route('/v0/resources/<string:id>/aclhash', methods=['GET'])
+@api_only
+def api_v0_show_resource_aclhash(id):
+		"""(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
+		rid = safestr(id)
+		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+		#users = _getResourceUsers(rid)
+		users = json_load(accesslib.getAccessControlList(rid))
+		outformat = request.args.get('output','csv')
+		if outformat == 'csv':
+				digest = hashlib.md5()
+				for u in users:
+						outstr = "%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
+
+						digest.update(outstr.decode("utf-8"))
+				outstr=base64.b64encode(digest.digest())
+				return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
+
+
+
+
+
 
 @blueprint.route('/v0/resources/<string:id>/endorsementAcl/<string:endorsement>', methods=['GET'])
 @api_only

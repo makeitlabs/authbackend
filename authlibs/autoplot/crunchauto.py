@@ -30,7 +30,9 @@ def crunch_calendar(rundate=None):
   #ICAL_URL = Config.get('autoplot','ICAL_URI')
   ICAL_URL = current_app.config['globalConfig'].Config.get("autoplot","ICAL_URI")
   g = urllib.urlopen(ICAL_URL)
-  cal = icalendar.Calendar.from_ical(g.read())
+  data=  g.read()
+  print(data)
+  cal = icalendar.Calendar.from_ical(data)
   g.close()
 
   """
