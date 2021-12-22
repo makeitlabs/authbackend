@@ -18,6 +18,7 @@ import tempfile
 import subprocess
 import datetime
 import hashlib
+import binascii
 
 
 # You must call this modules "register_pages" with main app's "create_rotues"
@@ -744,13 +745,14 @@ def api_v0_show_resource_aclhash(id):
 		users = json_load(accesslib.getAccessControlList(rid))
 		outformat = request.args.get('output','csv')
 		if outformat == 'csv':
-				digest = hashlib.md5()
+				digest = hashlib.sha224()
+				outstr = "username,key,value,allowed,hashedCard,lastAccessed"
 				for u in users:
-						outstr = "%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
+						outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
 
-						digest.update(outstr.decode("utf-8"))
-				outstr=base64.b64encode(digest.digest())
-				return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
+				digest.update(outstr.decode("utf-8"))
+				outstr=binascii.hexlify(digest.digest())
+				return outstr+"\n", 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
 
 
