@@ -694,8 +694,11 @@ def api_v1_show_resource_acl(id):
 		"""(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
 		rid = safestr(id)
 		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+		digest = hashlib.sha224()
 		output = accesslib.getAccessControlList(rid)
-		return output, 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
+		digest.update(output.decode("utf-8"))
+		hashstr=binascii.hexlify(digest.digest())
+		return output, 200, {'X-Hash-SHA224':hashstr,'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
 @blueprint.route('/v1/resources/<string:id>/endorsementAcl/<string:endorsement>', methods=['GET'])
 @api_only
@@ -730,10 +733,13 @@ def api_v0_show_resource_acl(id):
 		users = json_load(accesslib.getAccessControlList(rid))
 		outformat = request.args.get('output','csv')
 		if outformat == 'csv':
+				digest = hashlib.sha224()
 				outstr = "username,key,value,allowed,hashedCard,lastAccessed"
 				for u in users:
 						outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
-				return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
+				digest.update(outstr.decode("utf-8"))
+				hashstr=binascii.hexlify(digest.digest())
+				return outstr, 200, {'X-Hash-SHA224':hashstr,'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
 @blueprint.route('/v0/resources/<string:id>/aclhash', methods=['GET'])
 @api_only
