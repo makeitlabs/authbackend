@@ -23,8 +23,12 @@ import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response, Markup, make_response
 # NEwer login functionality
-#from werkzeug.contrib.fixers import ProxyFix
-from werkzeug.middleware import proxy_fix as ProxyFix
+
+try:
+	from werkzeug.contrib.fixers import ProxyFix
+except:
+	from werkzeug.middleware.proxy_fix import ProxyFix
+
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 #from flask_oauth import OAuth
 from flask_login import logout_user, login_user
@@ -69,6 +73,7 @@ from authlibs.api import api
 from authlibs.reports import reports 
 from authlibs.tools import tools 
 from authlibs.nodes import nodes 
+from authlibs.autoplot import autoplot 
 from authlibs.kvopts import kvopts 
 from authlibs.comments import comments 
 from authlibs.apikeys import apikeys 
@@ -580,6 +585,7 @@ with app.app_context():
     paylib.register_pages(app)
     reports.register_pages(app)
     nodes.register_pages(app)
+    autoplot.register_pages(app)
     tools.register_pages(app)
     kvopts.register_pages(app)
     comments.register_pages(app)

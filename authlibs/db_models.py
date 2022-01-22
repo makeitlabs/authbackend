@@ -8,10 +8,13 @@ from flask_login.mixins import AnonymousUserMixin
 import random, string
 import sqlalchemy
 from flask_dance.consumer.storage.sqla import SQLAlchemyStorage, OAuthConsumerMixin
+try:
+	from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
+except:
+	from flask_dance.consumer.storage.sqla import SQLAlchemyStorage, OAuthConsumerMixin
 
 
-
-defined_roles=['Admin','RATT','Finance','Useredit','HeadRM','ProStore']
+defined_roles=['Admin','RATT','Finance','Useredit','HeadRM','ProStore','LeaseMgr']
 
 db = SQLAlchemy()
 

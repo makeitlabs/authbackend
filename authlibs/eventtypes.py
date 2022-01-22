@@ -110,6 +110,10 @@ class RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED:
     id=1026
     desc='Entry denied'
 
+class RATTBE_LOGEVENT_MEMBER_LEASE_CHARGE:
+    id=1027
+    desc='Charge for Leased Space'
+
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000
     desc='Other System Event'

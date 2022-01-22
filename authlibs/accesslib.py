@@ -243,8 +243,14 @@ def quickSubscriptionCheck(member=None,member_id=None):
 def access_query(resource_id,member_id=None,tags=True):
     if tags:
       q = db.session.query(MemberTag,MemberTag.tag_ident)
+      if resource_id:
+        q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == resource_id)))
+      else:
+        q = q.outerjoin(AccessByMember, (AccessByMember.member_id == MemberTag.member_id))
     else:
       q = db.session.query(Member,"''") 
+      if resource_id and member_id:
+          q = q.join(AccessByMember, ((AccessByMember.resource_id == resource_id) & (AccessByMember.member_id == member_id)))
     q = q.add_column(case([(Subscription.plan != None , Subscription.plan ), 
         (Member.plan != None , Member.plan )], 
           else_ = "hobbyiest").label('plan'))
@@ -276,14 +282,14 @@ def access_query(resource_id,member_id=None,tags=True):
         if member_id:
             q = q.filter(MemberTag.member_id == member_id)
         if resource_id:
-            q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == resource_id)))
+            pass #q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == resource_id)))
         else:
-            q = q.outerjoin(AccessByMember, (AccessByMember.member_id == MemberTag.member_id))
+            pass # q = q.outerjoin(AccessByMember, (AccessByMember.member_id == MemberTag.member_id))
     else: # No tags
         if member_id:
             q = q.filter(Member.id == member_id)
         if resource_id and member_id:
-            q = q.join(AccessByMember, ((AccessByMember.resource_id == resource_id) & (AccessByMember.member_id == member_id)))
+            pass #q = q.join(AccessByMember, ((AccessByMember.resource_id == resource_id) & (AccessByMember.member_id == member_id)))
 
         elif resource_id:
             q = q.join(AccessByMember, (AccessByMember.resource_id == resource_id))

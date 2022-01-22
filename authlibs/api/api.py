@@ -10,12 +10,16 @@ from authlibs import payments
 from authlibs.waivers.waivers import cli_waivers,connect_waivers
 from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel,send_slack_message
 from authlibs.members.notices import send_all_notices
+
+from authlibs.autoplot.autoplot import autoplot_api
 from . import slackapi
 import base64
 import random,string
 import tempfile
 import subprocess
 import datetime
+import hashlib
+import binascii
 
 
 # You must call this modules "register_pages" with main app's "create_rotues"
@@ -691,8 +695,11 @@ def api_v1_show_resource_acl(id):
 		"""(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
 		rid = safestr(id)
 		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+		digest = hashlib.sha224()
 		output = accesslib.getAccessControlList(rid)
-		return output, 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
+		digest.update(output.decode("utf-8"))
+		hashstr=binascii.hexlify(digest.digest())
+		return output, 200, {'X-Hash-SHA224':hashstr,'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
 @blueprint.route('/v1/resources/<string:id>/endorsementAcl/<string:endorsement>', methods=['GET'])
 @api_only
@@ -727,10 +734,37 @@ def api_v0_show_resource_acl(id):
 		users = json_load(accesslib.getAccessControlList(rid))
 		outformat = request.args.get('output','csv')
 		if outformat == 'csv':
+				digest = hashlib.sha224()
 				outstr = "username,key,value,allowed,hashedCard,lastAccessed"
 				for u in users:
 						outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
-				return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
+				digest.update(outstr.decode("utf-8"))
+				hashstr=binascii.hexlify(digest.digest())
+				return outstr, 200, {'X-Hash-SHA224':hashstr,'Content-Type': 'text/plain', 'Content-Language': 'en'}
+
+@blueprint.route('/v0/resources/<string:id>/aclhash', methods=['GET'])
+@api_only
+def api_v0_show_resource_aclhash(id):
+		"""(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
+		rid = safestr(id)
+		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+		#users = _getResourceUsers(rid)
+		users = json_load(accesslib.getAccessControlList(rid))
+		outformat = request.args.get('output','csv')
+		if outformat == 'csv':
+				digest = hashlib.sha224()
+				outstr = "username,key,value,allowed,hashedCard,lastAccessed"
+				for u in users:
+						outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
+
+				digest.update(outstr.decode("utf-8"))
+				outstr=binascii.hexlify(digest.digest())
+				return outstr+"\n", 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
+
+
+
+
+
 
 @blueprint.route('/v0/resources/<string:id>/endorsementAcl/<string:endorsement>', methods=['GET'])
 @api_only
@@ -833,6 +867,12 @@ def api_cron_weekly_notices():
   else:
     logger.info("Weekly notice CRON finished")
     return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
+
+# Meant for CRON job
+@blueprint.route('/v1/autoplot/pay', methods=['GET'])
+@api_only
+def api_autoplot_pay():
+  return autoplot_api()
 
 @blueprint.route('/v1/last_tool_event', methods=['GET'])
 @api_only

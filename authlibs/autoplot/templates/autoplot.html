@@ -1,0 +1,54 @@
+{% extends "layout_bootstrap.html" %}
+<h2>Auto Plot Billing</h2>
+{% block body %}
+<div class="nodeslist">
+	<h2>Auto Plot Billing</h2>
+
+
+	<form method="POST">
+    Week to Process: <input type="date" value="{{ defdate }}" id="datepicker" name="datepicker"></input></br>
+    <input type="checkbox"  name="invoice" />Invoice <br />
+    <input type="checkbox"  name="pay" /> Collect Payment <br />
+	<input type="submit"  name="Process" />
+	</form>
+	{% if data is not none %}
+	<h3>Billing</h3>
+	<table class="table supercompact table-sm subtle-hover-table">
+		{% for d in billables[0] %}
+		<tr><td>{{ d }} </td><td>{{ billables[0][d] }}</td></tr>
+		{% endfor %}
+		{% for d in data %}
+		<tr><td>{{ d }} </td><td>{{ data[d] }}</td></tr>
+		{% endfor %}
+	</table>
+	</pre>
+	<h3>Errors</h3>
+	{% if errors %}
+		<pre style='background-color:#ffd0d0'>
+			{% for e in errors %}
+			{{ e }}
+			{% endfor %}
+		</pre>
+	{% else %}
+		<p>No Errors</p>
+	{% endif %}
+	{% if warnings %}
+		<h3>Warnings</h3>
+		<pre style='background-color:#ffffd0'>
+			{% for w in warnings %}
+			{{ w }}
+			{% endfor %}
+		</pre>
+	{% else %}
+		<p>No Warnings</p>
+	{% endif %}
+	<h3>Debug</h3>
+	<pre style='background-color:#c0e0ff'>
+		{% for d in debug %}
+		{{ d }}
+		{% endfor %}
+	</pre>
+	{% endif %}
+
+
+{% endblock %}

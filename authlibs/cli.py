@@ -10,6 +10,7 @@ from authlibs.payments import cli_updatepayments
 from authlibs.membership import cli_syncmemberpayments
 from authlibs.slackutils import cli_slacktest
 from authlibs.ubersearch import cli_ubersearch
+from autoplot.autoplot import cli_autoplot
 from authlibs.api import api
 from flask_sqlalchemy import SQLAlchemy
 from .init import GLOBAL_LOGGER_LEVEL
@@ -200,6 +201,10 @@ commands = {
 	"ubersearch":{
 		'usage':"ubersearch {searchstr} -- Try ubersearch",
 		'cmd':cli_ubersearch
+	},
+	"autoplot":{
+		'usage':"autoplot -- Autoplot Payments",
+		'cmd':cli_autoplot
 	}
 }
 
