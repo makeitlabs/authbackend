@@ -9,7 +9,7 @@ import pytz
 from datetime import datetime,date
 from flask import g,current_app
 from flask_user import current_user
-from db_models import db, AccessByMember, Member, Resource, Logs
+from .db_models import db, AccessByMember, Member, Resource, Logs
 import json
 import paho.mqtt.publish as mqtt_pub
 import logging
@@ -102,7 +102,7 @@ def accessLevelString(level,noaccess=None,user=None):
     if (level==AccessByMember.LEVEL_USER) and user is not None:
         return user
     elif level == AccessByMember.LEVEL_PENDING:
-	return "Pending"
+        return "Pending"
     elif level == AccessByMember.LEVEL_NOACCESS:
         if noaccess is not None:
             return noaccess
@@ -214,8 +214,8 @@ def send_tool_remove_lockout(toolname,node):
 def privileged_user(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-				if not current_user.is_arm() and (len(current_user.effective_roles()) == 0):
-					flash("Not authorized for this page","warning")
-					return redirect_url_for("index")
-				return f(*args, **kwargs)
+        if not current_user.is_arm() and (len(current_user.effective_roles()) == 0):
+            flash("Not authorized for this page","warning")
+            return redirect_url_for("index")
+        return f(*args, **kwargs)
     return decorated

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Config stub that all modules can share, instead of reloading..
 
-import ConfigParser
+import configparser
 import logging
 
 INIFILE = "makeit.ini"
@@ -13,7 +13,7 @@ stripe = {}
 smartwaiver = {}
 
 # What if we just build one config object, instead?
-Config = ConfigParser.ConfigParser()
+Config = configparser.ConfigParser()
 Config.read(INIFILE)
 
 if 'General' in Config.sections():

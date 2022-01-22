@@ -23,10 +23,12 @@ import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response, Markup, make_response
 # NEwer login functionality
+
 try:
 	from werkzeug.contrib.fixers import ProxyFix
 except:
 	from werkzeug.middleware.proxy_fix import ProxyFix
+
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 #from flask_oauth import OAuth
 from flask_login import logout_user, login_user
@@ -36,9 +38,9 @@ from flask_sqlalchemy import SQLAlchemy
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from contextlib import closing
 import pycurl, sys
-import ConfigParser
+#import configparser
 import xml.etree.ElementTree as ET
-from StringIO import StringIO
+#from StringIO import StringIO
 from authlibs.init import authbackend_init, get_config, createDefaultUsers
 from authlibs import cli
 from authlibs import utilities as authutil
@@ -227,7 +229,7 @@ def _addPaymentData(subs,paytype):
         bad.append(b['entry'])
     for sub in subs:
         if sub['customerid'] in bad:
-            print "BLACKLIST: IGNORING CUSTOMERID %s for %s" % (sub['customerid'],sub['userid'])
+            print ("BLACKLIST: IGNORING CUSTOMERID %s for %s" % (sub['customerid'],sub['userid']))
         else:
             users.append((sub['userid'],sub['email'],'pinpayments',sub['membertype'],sub['customerid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
     cur = get_db().cursor()
@@ -477,9 +479,9 @@ def create_routes():
 
     @app.route("/empty")
     def empty():
-       print  dir(request)
-       print  request.headers
-       print  request.referrer
+       #print  dir(request)
+       #print  request.headers
+       #print  request.referrer
        return render_template('empty.html')
 
     @app.route("/index")
@@ -536,18 +538,18 @@ def site_map(app):
     links = []
     for rule in app.url_map.iter_rules():
         # Filter out rules we can't navigate to in a browser
-        print rule
+        print (rule)
         # and rules that require parameters
 
 
 ####
-        
-parser=argparse.ArgumentParser()
-parser.add_argument("--createdb",help="Create new db if none exists",action="store_true")
-parser.add_argument("--command",help="Special command",action="store_true")
-(args,extras) = parser.parse_known_args(sys.argv[1:])
 
-app=authbackend_init(__name__)
+if __name__=="__main__":
+	parser=argparse.ArgumentParser()
+	parser.add_argument("--createdb",help="Create new db if none exists",action="store_true")
+	parser.add_argument("--command",help="Special command",action="store_true")
+	(args,extras) = parser.parse_known_args(sys.argv[1:])
+	app=authbackend_init(__name__)
 
 
 with app.app_context():

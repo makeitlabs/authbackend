@@ -8,24 +8,24 @@ from flask_user import current_user, login_required, roles_required, UserManager
 from authlibs.db_models import db, ApiKey,  Role, UserRoles, Member, Resource, AccessByMember
 from authlibs.payments import cli_updatepayments
 from authlibs.membership import cli_syncmemberpayments
+from authlibs.slackutils import cli_slacktest
 from authlibs.ubersearch import cli_ubersearch
 from autoplot.autoplot import cli_autoplot
 from authlibs.api import api
 from flask_sqlalchemy import SQLAlchemy
-from init import GLOBAL_LOGGER_LEVEL
-from slackutils import cli_slack,cli_slack_add_all_to_channels
+from .init import GLOBAL_LOGGER_LEVEL
+from .slackutils import cli_slack,cli_slack_add_all_to_channels
 import getpass
-from authlibs.prostore import prostore
-from waivers.waivers import cli_waivers_connect, cli_waivers, cli_fix_waiver_types, cli_econtacts
-from members.notices import cli_member_notices
+from .prostore import prostore
+from .waivers.waivers import cli_waivers_connect, cli_waivers, cli_fix_waiver_types, cli_econtacts
+from .members.notices import cli_member_notices
 
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(GLOBAL_LOGGER_LEVEL)
 
 def do_help(cmd=None,**kwargs):
-    print "Commands"
-    for x in sorted(commands): print "  ",commands[x]['usage']
+    for x in sorted(commands): print ("  ",commands[x]['usage'])
 
 def addadmin(cmd,**kwargs):
   admin_role = Role.query.filter(Role.name=='Admin').first()
@@ -43,12 +43,12 @@ def deleteadmin(cmd,**kwargs):
 
 def changepassword(cmd,**kwargs):
   user = Member.query.filter(Member.member.like(cmd[1])).one()
-	print "Set password for %s - %s" % (user.member,user.email)
+  print ("Set password for %s - %s" % (user.member,user.email))
   if len(cmd) <3:
       pw1=getpass.getpass("Password:")
       pw2=getpass.getpass("Reenter :")
       if pw1 != pw2:
-          print "Password mismatch"
+          print ("Password mismatch")
           return
       user.password=kwargs['um'].hash_password(pw2)
   else:
@@ -67,7 +67,7 @@ def deactivate(cmd,**kwargs):
 def changekey(cmd,**kwargs):
   user = User.query.filter(User.email==cmd[1]).first()
   user.api_key=cmd[2]
-  print "Set",user.email,user.api_key
+  print ("Set",user.email,user.api_key)
   db.session.commit()
 
 def revoke(cmd, **kwargs):
@@ -87,7 +87,7 @@ def grant(cmd, **kwargs):
 def showadmins(cmd,**kwargs):
     #for x in Role.query.join(UserRoles).join(Member).add_column(Member.member).all():
     for x in db.session.query(Member.member).outerjoin(UserRoles).outerjoin(Role).add_column(Role.name).filter(Role.id!=None).all():
-        print x
+        print (x)
   
 commands = {
 	"addadmin":{
@@ -194,6 +194,10 @@ commands = {
 		'usage':"notices -- Process member account notifications",
 		'cmd':cli_member_notices
 	},
+	"slacktest":{
+		'usage':"slacktest -- Send slack test",
+		'cmd':cli_slacktest
+	},
 	"ubersearch":{
 		'usage':"ubersearch {searchstr} -- Try ubersearch",
 		'cmd':cli_ubersearch
@@ -206,12 +210,12 @@ commands = {
 
 
 def cli_command(cmd,**kwargs):
-	if len(cmd)==0:
+  if len(cmd)==0:
     return do_help()
 
   if cmd[0] in commands:
       with kwargs['app'].app_context():
         return (commands[cmd[0]]['cmd'](cmd,**kwargs))
 	
-	do_help()
+  do_help()
 	

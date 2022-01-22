@@ -8,7 +8,7 @@ from authlibs.ubersearch import ubersearch
 from authlibs import membership
 from authlibs import payments
 from authlibs.waivers.waivers import cli_waivers,connect_waivers
-import slackapi
+#import slackapi
 import random,string
 
 def get_tool_by_name(toolname):

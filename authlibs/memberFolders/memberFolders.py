@@ -43,7 +43,7 @@ def sizeunit(val):
 @blueprint.route('/folder', methods=['GET'])
 @login_required
 def folder():
-  print "ROOT FOLDER"
+  #print ("ROOT FOLDER")
   return infolder("")
 
 @blueprint.route('/folder/', methods=['GET'])
@@ -51,7 +51,7 @@ def folder():
 @blueprint.route('/folder/<path:folder>', methods=['GET'])
 @login_required
 def infolder(folder=""):
-    print "INFOLDER",folder
+    #print ("INFOLDER",folder)
     folderPath = None
     if current_app.config['globalConfig'].Config.has_option('General','MemberFolderPath'):
       folderPath = current_app.config['globalConfig'].Config.get('General','MemberFolderPath')
@@ -73,15 +73,15 @@ def infolder(folder=""):
       if '/' in fn: next # Ain't got not time for that
       fp  = path+"/"+fn
       stat = os.stat(fp)
-      print "MODE",hex(stat.st_mode)
+      #print ("MODE",hex(stat.st_mode))
       created = datetime.datetime.fromtimestamp(stat.st_mtime)
-      print created
+      #print (created)
       (ago1,ago2,ago3) = ago.ago(created,datetime.datetime.now())
       try:
         ft = "" # TOO SLOW!! subprocess.check_output(['file','-b',fp])
       except:
         ft = "??"
-      print "File Type",ft
+      #print ("File Type",ft)
       ext = fn.split(".")
       if len(ext) > 1:
         ext = ext[-1]
@@ -105,16 +105,16 @@ def infolder(folder=""):
         'lastmod':stat.st_mtime
       })
     
-    print  files
+    #print  (files)
     top = folder.split("/")
-    print "FOLDER",folder,"TOP",top
+    #print ("FOLDER",folder,"TOP",top)
     if folder == "":
       up=None
     elif len(top)==1:
       up=""
     else:
       up = "/"+("/".join(top[:-1]))
-    print "UP",up
+    #print ("UP",up)
     return render_template('folder.html',up=up,folder=folder,member=current_user,files=files)
 
 
@@ -137,25 +137,25 @@ def download(filename):
       flash("NAS Path does not exist - Contact Administrator","danger")
       return redirect(url_for("index"))
     path = folderPath+"/"+current_user.memberFolder
-    print "GET",filename,"FROM",path
+    #print ("GET",filename,"FROM",path)
     return send_from_directory(directory=path, filename=filename)
 
 @blueprint.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload_file():
-		folder=""
-		if request.form and 'folder' in request.form:
-			folder = request.form['folder']
-			srcfolder = folder
-    print "FOLDER IS",folder
-		if folder != "":
-			if not folder.endswith("/"):
-        print "AMMENDING FOLDER"
-				folder += "/"
-		if folder.find("../") != -1 or folder.find("/..") != -1:
-			flash("Invalid Filename","warning")
+    folder=""
+    if request.form and 'folder' in request.form:
+      folder = request.form['folder']
+      srcfolder = folder
+    #print ("FOLDER IS",folder)
+    if folder != "":
+      if not folder.endswith("/"):
+        #print ("AMMENDING FOLDER")
+        folder += "/"
+    if folder.find("../") != -1 or folder.find("/..") != -1:
+      flash("Invalid Filename","warning")
       return redirect(url_for("memberFolders.folder",folder=""))
-		print "UPLOADING TO FOLDER",folder
+    #print ("UPLOADING TO FOLDER",folder)
     if request.method == 'POST':
         # check if the post request has the file part
         if 'file' not in request.files:
@@ -169,11 +169,11 @@ def upload_file():
             return redirect(url_for("memberFolders.infolder",folder=srcfolder))
         if file:
             filename = secure_filename(file.filename)
-						print "SAVE TO",filename
+            #print ("SAVE TO",filename)
             file.save("/tmp/bkg/"+ folder + filename)
-						flash("File saved","success")
+            flash("File saved","success")
             return redirect(url_for('memberFolders.infolder', folder=srcfolder))
-		flash("No file posted")
+    flash("No file posted")
     return redirect(url_for('memberFolders.infolder', folder=srcfolder))
 
 def register_pages(app):

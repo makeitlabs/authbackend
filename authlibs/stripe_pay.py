@@ -9,13 +9,13 @@ The parent module should expect to call the following two methods:
 
 """
 
-import config
+from . import config
 import stripe
 import sys
 from datetime import datetime,date
 import time
 import re
-import utilities
+from . import utilities
 
 import logging
 logger = logging.getLogger(__name__)
@@ -80,13 +80,13 @@ def getSubscriptionsJSON():
         phone = ''
         need_emails = True
         if 'plan' not in s:
-            print "ERROR - no plan in ",s['customer']
+            print ("ERROR - no plan in ",s['customer'])
             continue
         if s['plan'] is None:
-            print "NULL plan for  ",s['customer']
+            print ("NULL plan for  ",s['customer'])
             continue
         if 'id' not in s['plan']:
-            print "ERROR - no id in plan for ",s['customer']
+            print ("ERROR - no id in plan for ",s['customer'])
             continue
         plan = s['plan']['id']
 
@@ -148,7 +148,7 @@ def getSubscriptionsJSON():
             subscribers.append(sub)
             #print names,created,expires
             #print(sub)
-            print "IMPORTING",membership,email,name,expires,active
+            print ("IMPORTING",membership,email,name,expires,active)
     return subscribers
 
 

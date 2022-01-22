@@ -6,7 +6,7 @@ from authlibs.comments import comments
 from datetime import datetime
 from authlibs import ago
 from authlibs.accesslib import addQuickAccessQuery
-from notices import sendnotices
+from .notices import sendnotices
 from sqlalchemy.sql.expression import label
 
 blueprint = Blueprint("prostore", __name__, template_folder='templates', static_folder="static",url_prefix="/prostore")
@@ -76,7 +76,8 @@ def bins():
 	bins = bins.outerjoin(Subscription,Subscription.member_id == Member.id)
 
 	bins=addQuickAccessQuery(bins)
-	bins=ProBin.addBinStatusStr(bins).all()
+	bins=ProBin.addBinStatusStr(bins)
+	bins=bins.all()
 
 	locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
 	locs=locs.all()
@@ -96,7 +97,7 @@ def bin_edit(id):
 
 	if 'save_bin' in request.form:
 		# Save
-		print "BIN_EDIT",request.form
+		#print ("BIN_EDIT",request.form)
 		bin = ProBin.query.filter(ProBin.id == request.form['input_id']).one()
 		if 'member_radio' in request.form:
 			bin.member_id=Member.query.filter(Member.member == request.form['member_radio']).one().id
@@ -126,9 +127,9 @@ def bin_edit(id):
 	b=b.outerjoin(Subscription,Subscription.member_id == Member.id)
 	b=addQuickAccessQuery(b)
 	b=ProBin.addBinStatusStr(b)
-	print "QUERY",b
+	#print "QUERY",b
 	b=b.one()
-	print b
+	#print b
 
 	locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
 	locs=locs.all()
@@ -254,7 +255,7 @@ def notices():
 			bb['lastNoticeWhat'] = ""
 		# Which notices are recommented??
 		rcmd = []
-		if b.waiverCount <1: rcmd.append("NoWaiver")
+		if b.waiverCount is None or b.waiverCount <1: rcmd.append("NoWaiver")
 		if b.active != "Active": rcmd.append("Subscription")
 
 		if b.ProBin.status == ProBin.BINSTATUS_GONE:
@@ -281,8 +282,8 @@ def notices():
 # v0.8 migration
 def migrate(cmd,**kwargs):
 	for f in ('Garage','Cleanspace'):
-		for x in "ABCDEFGH" if f is 'Garage' else "AB":
-			for y in range(1,7 if f is 'Garage' else 5):
+		for x in "ABCDEFGH" if f == 'Garage' else "AB":
+			for y in range(1,7 if f == 'Garage' else 5):
 				name= "%s-%s-%s" % (f,x,y)
 				l = ProLocation()
 				l.location = name

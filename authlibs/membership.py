@@ -2,24 +2,24 @@
 #vim:tabstop=2:expandtab
 # Membership-related functions, to decouple from UI
 
-import config
-import dbutil
-import utilities
+from . import config
+from . import dbutil
+from . import utilities
 import random
 from collections import defaultdict
-import config
+from . import config
 import sys
 import argparse
-from db_models import db, Subscription, Member, Blacklist, Logs
-import ConfigParser
-import eventtypes
+from .db_models import db, Subscription, Member, Blacklist, Logs
+import configparser
+from . import eventtypes
 from datetime import datetime
 from flask import current_app
 
-from templateCommon import *
+from .templateCommon import *
 
-import google_admin as google
-from authlibs import accesslib
+from . import google_admin as google
+from . import accesslib
 
 def syncWithSubscriptions(isTest=False):
   '''Use the latest Subscription data to ensure Membership list is up to date'''
@@ -38,15 +38,15 @@ def syncWithSubscriptions(isTest=False):
   logger.debug("Create new Accounts")
   createMissingMemberAccounts(added,isTest,True)
 
-	# Canary test 
+  # Canary test 
 
-	if current_app.config['globalConfig'].Config.has_option('Payments','Canary'):
-					canary = current_app.config['globalConfig'].Config.get('Payments','Canary')
-					check = accesslib.quickSubscriptionCheck(member=canary)
-					if check == "No Subscription":
-						logger.critical("No subscription found for Adam.Shey")
-						db.session.rollback()
-						return 1
+  if current_app.config['globalConfig'].Config.has_option('Payments','Canary'):
+    canary = current_app.config['globalConfig'].Config.get('Payments','Canary')
+    check = accesslib.quickSubscriptionCheck(member=canary)
+    if check == "No Subscription":
+        logger.critical("No subscription found for Adam.Shey")
+        db.session.rollback()
+        return 1
 
   db.session.commit()
   logger.debug("New Member/Sub data Committed")
@@ -69,38 +69,38 @@ def matchMissingMembers(missing):
     ''' Return UNMACHED ones - i.e. new subs'''
     for s in missing:
         mm = Member.query.filter(Member.membership == s.membership).one_or_none()
-				if mm:
-								logger.debug("MEMBERSHIP MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
-								# If we had already done a email/name match (below) - invalidate it so we dont get dupes
-								ss= Subscription.query.filter(Subscription.member_id == mm.id).one_or_none()
-								if (ss):
-									logger.debug("-Invalidated prior sub match to - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
-									ss.member_id=None
-								s.member_id=mm.id
+        if mm:
+                logger.debug("MEMBERSHIP MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
+                # If we had already done a email/name match (below) - invalidate it so we dont get dupes
+                ss= Subscription.query.filter(Subscription.member_id == mm.id).one_or_none()
+                if (ss):
+                  logger.debug("-Invalidated prior sub match to - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
+                  ss.member_id=None
+                s.member_id=mm.id
         else:
-								q = Member.query
-								q = q.filter(Member.alt_email.ilike(s.email))
-								q = q.filter(Member.stripe_name.ilike(s.name)) # TODO BKG FIX - Depricate - use first and last names only
-								try:
-										mm = q.one_or_none()
-										if mm:
-												logger.debug("email/name MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
-												# Avoid DUPLICATE match if MEMBERSHIP MATCH already done (above)
-												ss = Subscription.query.filter(Subscription.member_id == mm.id).one_or_none()
-												if ss and ss.active=="true":
-													logger.debug("-Avoided overwrite prior sub match - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
-												else:
-													s.member_id = mm.id
-													mm.membership = s.membership
-												# We APPEAR to have a match Just update the sub record w/ existing member ID
-												# Remember - this gets committed at the VERY end when everything is DONE
-										else:
-												# No match - create new one
-												logger.debug("NO MATCH - %s %s %s" % (s.name,s.email,s.subid))
-												newMembers.append(s)
-								except:
-										mm=None
-										logger.warning("MULTIPLE MATCHES - FIX MANUALLY  - %s %s %s" % (s.name,s.email,s.subid))
+                q = Member.query
+                q = q.filter(Member.alt_email.ilike(s.email))
+                q = q.filter(Member.stripe_name.ilike(s.name)) # TODO BKG FIX - Depricate - use first and last names only
+                try:
+                    mm = q.one_or_none()
+                    if mm:
+                        logger.debug("email/name MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
+                        # Avoid DUPLICATE match if MEMBERSHIP MATCH already done (above)
+                        ss = Subscription.query.filter(Subscription.member_id == mm.id).one_or_none()
+                        if ss and ss.active=="true":
+                          logger.debug("-Avoided overwrite prior sub match - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
+                        else:
+                          s.member_id = mm.id
+                          mm.membership = s.membership
+                        # We APPEAR to have a match Just update the sub record w/ existing member ID
+                        # Remember - this gets committed at the VERY end when everything is DONE
+                    else:
+                        # No match - create new one
+                        logger.debug("NO MATCH - %s %s %s" % (s.name,s.email,s.subid))
+                        newMembers.append(s)
+                except:
+                    mm=None
+                    logger.warning("MULTIPLE MATCHES - FIX MANUALLY  - %s %s %s" % (s.name,s.email,s.subid))
 
 
     return newMembers
@@ -146,7 +146,7 @@ def addMissingMembers(missing):
     for b in bl_entries:
         ignorelist.append(b.entry)
     for p in missing:
-				logger.debug("Check add new for %s active %s expires %s" % (p.email,p.active,p.expires_date))
+        logger.debug("Check add new for %s active %s expires %s" % (p.email,p.active,p.expires_date))
         if p.subid in ignorelist:
             logger.debug("Explicitly ignoring subscription id %s" % p.subid)
             continue
@@ -292,15 +292,15 @@ def _createNewGoogleAccounts():
         users = google_admin.searchEmail(emailstr)
         if users == []:
             # TODO: Change this to logging
-            print "Member %s may need an account (%s.%s)" % (n['member'],n['firstname'],n['lastname'])
+            print ("Member %s may need an account (%s.%s)" % (n['member'],n['firstname'],n['lastname']))
             ts = time.time()
             password = "%s-%d" % (n['lastname'],ts - (len(n['email']) * 314))
-            print "Create with password %s and email to %s" % (password,n['email'])
+            print ("Create with password %s and email to %s" % (password,n['email']))
             user = google_admin.createUser(n['firstname'],n['lastname'],n['email'],password)
             google_admin.sendWelcomeEmail(user,password,n['email'])
             print("Welcome email sent")
         else:
-            print "Member appears to have an account: %s" % users
+            print ("Member appears to have an account: %s" % users)
 
 
 # Run with: python ./authserver.py --command syncmemberpayments
@@ -309,11 +309,11 @@ def cli_syncmemberpayments(cmd,**kwargs):
     args=cmd[1:]
 
     if '--help' in args:
-        print """
+        print ("""
 Options:
     --force  Force creation of Google and Slack accounts - even in a non-production server  
     --test   DO NOT create Google and Slack accounts - even in a non-production server  
-        """
+        """)
         return
 
     isTest=False

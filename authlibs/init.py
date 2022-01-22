@@ -12,13 +12,16 @@ from flask_user import current_user, login_required, roles_required, UserManager
 from flask_sqlalchemy import SQLAlchemy
 import logging
 import sys
-import ConfigParser
-from db_models import db,  Member, Role, defined_roles, ApiKey
+#import ConfigParser
+import configparser
+from .db_models import db,  Member, Role, defined_roles, ApiKey
 from datetime import datetime
+
 try:
 	from werkzeug.contrib.fixers import ProxyFix
 except:
 	from werkzeug.middleware.proxy_fix import ProxyFix
+
 from flask_dance.consumer import oauth_authorized
 from flask_dance.contrib.google import make_google_blueprint
 from flask_dance.contrib.google import  google as google_flask
@@ -50,14 +53,14 @@ logger.addHandler(ch)
 logger.addHandler(handler)
 
 
-from google_user_auth import authinit
+from .google_user_auth import authinit
 
 # Load general configuration from file
 
 def get_config():
     config={}
     defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
-    ConfigObj = ConfigParser.ConfigParser(defaults)
+    ConfigObj = configparser.ConfigParser(defaults)
     ConfigObj.read('makeit.ini')
     """
     This doesn't work for some reason???

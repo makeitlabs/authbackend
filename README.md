@@ -1,44 +1,73 @@
 # authbackend
 
-Some rough documentation as of December 2018.
-
+Some rough documentation as of January, 2021
 ## Install prerequisites
 
-(Note: Ubuntu-flavored)
+(As of Ubuntu 20.04.1) Start with only doing the stuff that you NEED to below, and only if you have problems, try depricated or questionable stuff.
 
-Consult pip.freeze file to see a dump of pip dependecies from a working system
+See pip3.freeze for reference of working config
 
-`sudo apt install libcurl4-openssl-dev libssl-dev`
-`sudo apt install sqlite3 flask python-pycurl python-httplib2 python-auth2client`
+(DEPRICATE??) `sudo apt install libcurl4-openssl-dev libssl-dev`
 
-`sudo apt install libffi-dev`
-`pip install flask-login`
-`pip install flask-user`
-`pip install flask-dance`
-`pip install stripe`
-`pip install apiclient`
-`pip install slackclient`
-`pip install --upgrade google-api-python-client`
-`pip install paho-mqtt`
-`pip install pytz`
-`pip install boto3`
-`pip install --upgrade oauth2client`
-`pip install google-oauth`
-`pip install icalendar`
-`pip install email_validator`
-`pip install python-dateutil`
-`pip install pyopenssl --no-binary :all:
-`sudo pip install sqlalchemy_utils`
+(DEPRICATE??) `sudo apt install sqlite3 flask python-pycurl python-httplib2 python-auth2client`
+
+`sudo apt install sqlite3 python3-pip python3-pycurl mosquitto net-tools`
+
+```
+pip3 install --upgrade cryptography
+pip3 install testresources
+pip3 install flask_login
+pip3 install flask_user
+pip3 install flask_dance
+pip3 install stripe
+pip3 install apiclient
+pip3 install google-api-python-client
+pip3 install paho-mqtt
+pip3 install pytz
+pip3 install boto3
+pip3 install oauth2client
+pip3 install google-oauth
+pip3 install sqlalchemy_utils
+pip3 install email_validator
+pip3 install pycurl
+pip3 install configparser
+pip3 install functools (Unclear if this actually works or not??)
+pip3 install slackclient (OLD - SHOULDN'T NEED)
+pip3 install slack_sdk 
+pip3 install coverage (If test coverage is used)
+```
 
 For Covid-19 video kiosk compliance reporting script
 `sudo apt install ffmpeg`
 
+## Quick setup
+
+Copy `makeit.ini` from your existing system. Thiss will DIFFER in production vs staging systems!
+
+Fetch databases from old system - or restore nightly backups like:
+
+```
+./restore.py 2021-02-10-db.sq3
+./restore.py 2021-02-10-logdb.sq3
+```
+...and change filenames to something to run with...
+```
+mv 2021-02-10-db.sq3 db.sq3
+mv 2021-02-10-logdb.sq3 dblog.sq3
+```
+Make sure these two databases match the `Database` and `LogDatabase` entries in `makeit.ini`
+(If you don't have a makeit.ini - you will not have required keys to fetch backups)
+
+If database is sufficiently new (i.e. subscriptions were all up-to-date) everything should be ready to go. But if you need to do anything else, like you are running a development server and won't be able to immediatley use OATH (need local login users), or you can't login because the database was old and it thinks your account is expired and you need to manual update subscrptions - read onward.
+
 ## Creating stub database
 
+(ONLY do this if you are starting from a completely clean slate and importing/migrating no old data!)
 `sqlite3 makeit.db < schema.sql`
 
 ## Set up .ini file
 
+(ONLY do this if you are starting from a completely clean slate andhave no existing `makeit.ini`)
 `cp makeit.ini.example makeit.ini`
 
 You might want to edit some things in the file before running the server. 
@@ -47,6 +76,8 @@ Make sure that if you are running a TEST server, that you set "Deployment:"
 to something other thatn "Production"
 
 ## Setup Database
+
+(This deals mostly with importing a 2018-vintage DB - or starting from a totally clean slate!)
 
 The database is normally the makeit.db. You will probably need to copy this over from somewhere (i.e. live server).
 If you don't have a "live" one to grab and use, you can create an example one with:
@@ -66,6 +97,8 @@ You can also start with a VERY minimal database with:
 Again, this is dependent on you having some extra data files for 
 old database, etc - and will vary from versons - but generaly:
 
+(First line here is to migrate a pre-2018 database, the second two CAN be used to force a payment update on migrated data. This is generally unnecessary, but sometimes helpful if you migrate and then get locked-out because data is so old your account has expired!)
+
 ```
 ./migrate_db.py --overwrite makeit.db
 python authserver.py --command updatepayments
@@ -79,6 +112,7 @@ to synchronize payment and waiver data by doing:
 
 ## More test stuff
 
+(NOTE: This populates with FAKE DATA. Don't do if you're migrating)
 You can also optionally add fake usage data for the test resource
 by running:
 
@@ -94,6 +128,8 @@ a quick regression/sanity check with:
 `test/bigtest.py`
 
 ## OAuth Stuff
+
+(This is mostly for running local test-servers)
 
 On the machine(s) you are connecting to a test deployment with,
 add the following line to your /etc/hosts:
@@ -128,6 +164,8 @@ There are a few things you generally want to do in a local debug environment:
 * Add `local.makeitlabs.com` to your `/etc/hosts` to resolve to localhost. Use that address (in we browser) to access the server. This name is whitelisted in the Oauth rules, so Oauth will be able to redirect to it (i.e. your local server)
 
 ## Fix for newer versions of Flask library
+
+(Unclear if needed for Python3/Ubunto20+ vintage)
 
 If you get a similar error to:
 ```
@@ -164,21 +202,26 @@ There are lots more - for info do:
 
 ## Other Housekeeping
 
-You will want to run `nightly.py` on some nightly cron job. It will:
+There are several scripts that need to be added as cron jobs to do things like:
 
 * Snapshot the database
 * Handle payment and waiver updates
 * Get snapshots of ACL lists - send messages to slack groups of changes since prior run
 * Back all snaps up to Amazon
-
-To help restore backups - you can use the `restore.py` helper script
+* Node monitoring
+* Covosk Compliance
 
 For an example crontab - see `crontab.txt`
 
+# Backups
 
-# Update/Deploy
+Backups should be run with `nightly.py` script in cron file
+To help restore backups - you can use the `restore.py` helper script
 
-#  Multitrain Update
+
+# Updating to latest version
+
+##  Multitrain/Python3 Update
 
 Add `MemberFoldersPath` to `[General]` section of `makeit.ini` with mount point to Member Folders
 Add `autoplot` section to `makeit.ini`
@@ -303,7 +346,7 @@ COMMIT;
 PRAGMA foreign_keys=on;
 ```
 
-# v1.0.8 Update
+## v1.0.8 Update
 ```
 sqlite3 <<dbfile>>
 ALTER TABLE resources ADD COLUMN sa_required_endorsements VARCHAR(50);
@@ -332,7 +375,10 @@ groups:write im:history im:read im:write incoming-webhook mpim:history mpim:read
 reactions:write remote_files:read remote_files:share remote_files:write team:read users:read users:read.email users:write```
 
 User token scopes:
-``` channels:write ```
+``` channels:write ``
+
+Add the following OAuth scopes:
+`identify,bot,channels:read,groups:read,im:read,mpim:read,chat:write:bot,channels:write,rtm:stream`
 
 This should ALREADY be done - just set the ADMIN_API_TOKEN to the "Authorizaiton Bot" and run Slacktest below.
 
