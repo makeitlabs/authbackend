@@ -214,7 +214,7 @@ def on_message(client,userdata,msg):
                     elif state == "restored": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_RESTORED.id
                     elif state == "shutdown": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_SHUTDOWN.id
                     else: 
-                        log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_OTHER.id
+                        log_event_type = None # TEMP for uRATT - noise - RATTBE_LOGEVENT_SYSTEM_POWER_OTHER.id
                         log_text = state
                         
                 elif sst=="issue":
@@ -363,8 +363,8 @@ if __name__ == '__main__':
       try:
               res = sc.api_call(
                 "chat.postMessage",
-                channel="#test-resource-admins",
-                text="mqtt daemon alive :tada:"
+                channel="#monitoring-security",
+                text="AuthIt Slack/MQTT daemon is on the air... :tada:"
               )
               if res['ok'] == False:
                 logger.error("Slack MQTT test message failed: %s"%res['error'])

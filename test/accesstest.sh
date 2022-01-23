@@ -1,7 +1,7 @@
 #!/bin/sh
 cd ~/authbackend_bkg
-curl  https://bkgtest:${BKGTEST_APIKEY}@${LIVE_URL}/api/v1/resources/frontdoor/acl > ~/live_doorbot_v1.acl
-curl  https://bkgtest:${BKGTEST_APIKEY}@${LIVE_URL}/api/v0/resources/frontdoor/acl > ~/live_doorbot_v0.acl
+curl  ${LIVE_URL}/api/v1/resources/frontdoor/acl > ~/live_doorbot_v1.acl
+curl  @${LIVE_URL}/api/v0/resources/frontdoor/acl > ~/live_doorbot_v0.acl
 #curl  https://bkgtest:${BKGTEST_APIKEY}@${STAGING_URL}/api/v1/resources/frontdoor/acl > ~/staging_doorbot_v1.acl
 #curl  https://bkgtest:${BKGTEST_APIKEY}@${STAGING_URL}/api/v0/resources/frontdoor/acl > ~/staging_doorbot_v0.acl
 curl  http://bkgtest:${BKGTEST_APIKEY}@127.0.0.1:5000/api/v1/resources/frontdoor/acl > ~/staging_doorbot_v1.acl
