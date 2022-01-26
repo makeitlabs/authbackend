@@ -544,20 +544,25 @@ def site_map(app):
 
 ####
 
+app=authbackend_init(__name__)
+
 if __name__=="__main__":
 	parser=argparse.ArgumentParser()
 	parser.add_argument("--createdb",help="Create new db if none exists",action="store_true")
 	parser.add_argument("--command",help="Special command",action="store_true")
 	(args,extras) = parser.parse_known_args(sys.argv[1:])
-	app=authbackend_init(__name__)
+	if (args.createdb):
+		db.create_all()
+		createDefaultUsers(app)
+	if  args.command:
+		cli.cli_command(extras,app=app,um=app.user_manager)
+		sys.exit(0)
+
 
 
 with app.app_context():
     # Extensions like Flask-SQLAlchemy now know what the "current" app
     # is while within this block. Therefore, you can now run........
-    if (args.createdb):
-        db.create_all()
-        createDefaultUsers(app)
     try:
         db.session.query("* from test_database").all()
         app.jinja_env.globals['TESTDB'] = "YES"
@@ -569,9 +574,6 @@ with app.app_context():
         app.jinja_env.globals['DEPLOYTYPE'] = app.config['globalConfig'].DeployType
     if app.config['globalConfig'].backgroundColor:
         app.jinja_env.globals['BACKGROUND_COLOR'] = app.config['globalConfig'].backgroundColor
-    if  args.command:
-        cli.cli_command(extras,app=app,um=app.user_manager)
-        sys.exit(0)
 
     # Register Pages
     
