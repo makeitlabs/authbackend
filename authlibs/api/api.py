@@ -697,7 +697,7 @@ def api_v1_show_resource_acl(id):
 		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
 		digest = hashlib.sha224()
 		output = accesslib.getAccessControlList(rid)
-		digest.update(output.decode("utf-8"))
+		digest.update(output.encode("utf-8"))
 		hashstr=binascii.hexlify(digest.digest())
 		return output, 200, {'X-Hash-SHA224':hashstr,'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
@@ -738,7 +738,7 @@ def api_v0_show_resource_acl(id):
 				outstr = "username,key,value,allowed,hashedCard,lastAccessed"
 				for u in users:
 						outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
-				digest.update(outstr.decode("utf-8"))
+				digest.update(outstr.encode("utf-8"))
 				hashstr=binascii.hexlify(digest.digest())
 				return outstr, 200, {'X-Hash-SHA224':hashstr,'Content-Type': 'text/plain', 'Content-Language': 'en'}
 

@@ -576,6 +576,7 @@ with app.app_context():
         app.jinja_env.globals['BACKGROUND_COLOR'] = app.config['globalConfig'].backgroundColor
 
     # Register Pages
+    #app.config["SQLALCHEMY_ECHO"] = True # Enabled for DB Debug
     
     create_routes()
     auth.register_pages(app)
