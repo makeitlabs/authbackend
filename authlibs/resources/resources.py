@@ -10,6 +10,7 @@ from authlibs.slackutils import send_slack_message
 import datetime
 from . import graph
 from ..google_admin import genericEmailSender
+from functools import cmp_to_key
 
 blueprint = Blueprint("resources", __name__, template_folder='templates', static_folder="static",url_prefix="/resources")
 # ----------------------------------------------------
@@ -323,6 +324,7 @@ def showuser_sort(a,b):
   if (not a['sorttime'] and b['sorttime']): return 1
   if (not a['sorttime'] and not b['sorttime']): return 0
   return int((b['sorttime'] - a['sorttime']).total_seconds())
+
 	
 @blueprint.route('/<string:resource>/list', methods=['GET'])
 def resource_showusers(resource):
@@ -370,7 +372,7 @@ def resource_showusers(resource):
           'logurl':url_for("logs.logs")+"?input_member_%s=on&input_resource_%s=on" %(x[1],res_id),
           'lockout_reason':'' if x[4] is None else x[4],'lastusedago':lu1,'usedago':lu2,'lastused':lu1})
       
-    return render_template('resource_users.html',resource=rid,accrecs=sorted(accrec,cmp=showuser_sort))
+    return render_template('resource_users.html',resource=rid,accrecs=sorted(accrec,key=cmp_to_key(showuser_sort)))
 
 #TODO: Create safestring converter to replace string; converter?
 @blueprint.route('/<string:resource>/log', methods=['GET','POST'])
