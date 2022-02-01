@@ -112,6 +112,7 @@ def on_message(client,userdata,msg):
             member=None
             memberId=None
             toolId=None
+            toolDisplay=None
             nodename=None
             nodeId=None
             resourceId=None
@@ -119,6 +120,8 @@ def on_message(client,userdata,msg):
             log_event_type=None
             log_text=None
 
+            send_slack=True
+            
             # base_topic+"/control/broadcast/acl/update"
             if topic[0]=="ratt" and topic[1]=="control" and topic[2]=="broadcast" and topic[3]=="acl" and topic[4]=="update":
                 tool_cache={}
@@ -150,22 +153,24 @@ def on_message(client,userdata,msg):
 
             if toolname and toolname in tool_cache:
                 toolId = tool_cache[toolname]['id']
+                toolDisplay = tool_cache[toolname]['displayname']
                 resourceId = tool_cache[toolname]['resource_id']
                 associated_resource = tool_cache[toolname]['data']
                 toolSlackInfoText=tool_cache[toolname]['data']['slack_info_text']
             elif toolname:
-                t = db.session.query(Tool.id,Tool.resource_id).filter(Tool.name==toolname)
+                t = db.session.query(Tool.id,Tool.resource_id,Tool.displayname).filter(Tool.name==toolname)
                 t = t.join(Resource,Resource.id == Tool.resource_id)
                 t = t.add_column(Resource.slack_chan)
                 t = t.add_column(Resource.slack_admin_chan)
                 t = t.add_column(Resource.slack_info_text)
                 t = t.one_or_none()
                 if t:
-                    tool_cache[toolname]={"id":t.id,"resource_id":t.resource_id,"data": {
+                    tool_cache[toolname]={"id":t.id,"displayname":t.displayname, "resource_id":t.resource_id,"data": {
                         'slack_chan':t.slack_chan,
                         'slack_admin_chan':t.slack_admin_chan,
                         'slack_info_text':t.slack_info_text}}
                     toolId = tool_cache[toolname]['id']
+                    toolDisplay = tool_cache[toolname]['displayname']
                     resourceId = tool_cache[toolname]['resource_id']
                     associated_resource = tool_cache[toolname]['data']
                     toolSlackInfoText=tool_cache[toolname]['data']['slack_info_text']
@@ -214,7 +219,8 @@ def on_message(client,userdata,msg):
                     elif state == "restored": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_RESTORED.id
                     elif state == "shutdown": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_SHUTDOWN.id
                     else: 
-                        log_event_type = None # TEMP for uRATT - noise - RATTBE_LOGEVENT_SYSTEM_POWER_OTHER.id
+                        log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_OTHER.id
+                        send_slack = False
                         log_text = state
                         
                 elif sst=="issue":
@@ -235,6 +241,12 @@ def on_message(client,userdata,msg):
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id
                     else:
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED.id
+                elif sst=="door_state":
+                    st = message['state'] # open, closed
+                    if st=="open":
+                        log_event_type = RATTBE_LOGEVENT_DOOR_OPENED.id
+                    elif st=="closed":
+                        log_event_type = RATTBE_LOGEVENT_DOOR_CLOSED.id
                 elif sst=="activity":
                     # member
                     active = message['active'] # Bool
@@ -242,6 +254,8 @@ def on_message(client,userdata,msg):
                         log_event_type = RATTBE_LOGEVENT_TOOL_ACTIVE.id
                     else:
                         log_event_type = RATTBE_LOGEVENT_TOOL_INACTIVE.id
+
+                    send_slack = False
                 elif sst=="state":
                     phase = message['phase'] # ENTER, ACTIVE, EXIT 
                     state = message['state'] # Text
@@ -324,22 +338,49 @@ def on_message(client,userdata,msg):
                 logevent.message = log_text
 
                 # Do slack notification
-                if log_event_type and toolname and associated_resource and associated_resource['slack_admin_chan'] and allow_slack_log:
+                if not toolDisplay:
+                    toolDisplay = toolname
+                    
+                if send_slack and log_event_type and toolDisplay and associated_resource and associated_resource['slack_admin_chan'] and allow_slack_log:
                   try:
-                    slacktext="" 
+                    slacktext=""
+                    fallback=""
+                    
                     if log_event_type in userdata['icons']: 
-                      slacktext += userdata['icons'][log_event_type]+" "
-                    if member: slacktext += "*"+member+"* "
+                      slacktext += userdata['icons'][log_event_type] + " "
+
+                    if member:
+                      slacktext += "*"+member+"* "
+                      fallback += member + " "
+                    
                     if log_event_type in userdata['events']:
-                      slacktext += "%s: %s "%  (str(toolname),userdata['events'][log_event_type])
+                      t = "%s at %s" % (userdata['events'][log_event_type].upper(), str(toolDisplay))
+                      slacktext += t
+                      fallback += t
+                      
                     else:
-                      slacktext += "%s: Event #%s" % (str(toolname),log_event_type)
-                    if log_text: slacktext += " "+log_text
+                      t = "Event #%s on %s" % (log_event_type, str(toolname))
+                      fallback += t
+
+                    if log_text:
+                      slacktext += "\n_" + log_text + "_"
+                      fallback += " " + log_text
+
+                    color='#777777'
+                    if log_event_type in userdata['colors']:
+                        color=userdata['colors'][log_event_type]
+
+                    time = "_" + datetime.now().strftime("%B %-d, %-I:%M:%S%p") + "_"
+                    atts = json.dumps([{ 'fallback': fallback, 'color': color, 'pretext': time, 'text': slacktext, 'mrkdwn_in':['text', 'pretext'] }])
+
                     res = sc.api_call(
-                      "chat.postMessage",
+                      'chat.postMessage',
                       channel=associated_resource['slack_admin_chan'],
-                      text=slacktext
+                      attachments=atts,
+                      as_user=True
                     )
+                    print(res)
+
                   except BaseException as e:
                     print "ERROR",e
                 db.session.add(logevent)
@@ -363,7 +404,7 @@ if __name__ == '__main__':
       try:
               res = sc.api_call(
                 "chat.postMessage",
-                channel="#monitoring-security",
+                channel="#team-authit-devs",
                 text="AuthIt Slack/MQTT daemon is on the air... :tada:"
               )
               if res['ok'] == False:
@@ -384,6 +425,7 @@ if __name__ == '__main__':
             callbackdata={'slack_context':sc}
             callbackdata['events']=eventtypes.get_events()
             callbackdata['icons']=eventtypes.get_event_slack_icons()
+            callbackdata['colors']=eventtypes.get_event_slack_colors()
             sub.callback(on_message, "ratt/#",userdata=callbackdata, **opts)
             sub.loop_forever()
             sub.loop_misc()
