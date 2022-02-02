@@ -148,7 +148,7 @@ def getSubscriptionsJSON():
             subscribers.append(sub)
             #print names,created,expires
             #print(sub)
-            print ("IMPORTING",membership,email,name,expires,active)
+            print ("IMPORTING",membership,email,name,expires,active,subid)
     return subscribers
 
 

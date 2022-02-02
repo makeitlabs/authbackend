@@ -120,7 +120,7 @@ def _addSubscriptionData(subs,paytype):
             logger.info("BLACKLIST: IGNORING CUSTOMERID %s for %s" % (sub['customerid'],sub['name']))
         else:
             #print "PLANS",sub['planname'],sub['plantype']
-            s = Subscription.query.filter(Subscription.membership==sub['membership']).one_or_none()
+            s = Subscription.query.filter(Subscription.membership.ilike(sub['membership'])).one_or_none()
             if not s: 
                 s=Subscription(membership=sub['membership'])
                 db.session.add(s)

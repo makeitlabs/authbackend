@@ -88,8 +88,13 @@ def matchMissingMembers(missing):
                         # Avoid DUPLICATE match if MEMBERSHIP MATCH already done (above)
                         ss = Subscription.query.filter(Subscription.member_id == mm.id).one_or_none()
                         if ss and ss.active=="true":
-                          logger.debug("-Avoided overwrite prior sub match - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
+                          logger.debug("-Avoided overwrite ACTIVE sub match - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
+                        elif ss:
+                          logger.debug("-Avoided overwrite INACTIVE prior sub match - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
+                          s.member_id = mm.id
+                          mm.membership = s.membership
                         else:
+                          logger.debug("-Avoided overwrite NOSUB prior sub match")
                           s.member_id = mm.id
                           mm.membership = s.membership
                         # We APPEAR to have a match Just update the sub record w/ existing member ID

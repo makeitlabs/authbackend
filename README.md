@@ -353,6 +353,8 @@ ALTER TABLE resources ADD COLUMN sa_required_endorsements VARCHAR(50);
 ALTER TABLE resources ADD COLUMN sa_endorsements VARCHAR(50);
 ```
 
+*** BUT ALSO: Check and delete duplicate Subscription Records!!
+
 ### Fix wsgl config
 
 Verify that `authserver.wsgi` is set for your appopriate deploy! (See `authserver.wsgi.EXAMPLE` for example)
