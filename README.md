@@ -344,6 +344,7 @@ insert into roles (id,name) values (7,"LeaseMgr");
 
 COMMIT;
 PRAGMA foreign_keys=on;
+###  delete from  subscriptions where member_id = 412; (Delete only one SUB for him!!)
 ```
 
 ## v1.0.8 Update
