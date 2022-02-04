@@ -121,6 +121,7 @@ def on_message(client,userdata,msg):
             log_text=None
 
             send_slack=True
+            send_slack_log_text=True
             
             # base_topic+"/control/broadcast/acl/update"
             if topic[0]=="ratt" and topic[1]=="control" and topic[2]=="broadcast" and topic[3]=="acl" and topic[4]=="update":
@@ -213,7 +214,27 @@ def on_message(client,userdata,msg):
                   n.last_update=datetime.utcnow()
                   db.session.commit()
             elif subt=="system":
-                if sst=="power":
+                if sst=="boot":
+                    log_event_type = RATTBE_LOGEVENT_SYSTEM_BOOT.id
+                    reset_reasons = {
+                        "power_on" : "Powered On",
+                        "ext" : "External Reset",
+                        "sw" : "Software Reset",
+                        "panic" : "Panic",
+                        "int_wdt" : "Interrupt Watchdog Reset",
+                        "task_wdt" : "Task Watchdog Reset",
+                        "deep_sleep" : "Wake from Deep Sleep",
+                        "brownout" : "Power Brownout Reset",
+                        "sdio" : "SDIO Reset",
+                        "unknown" : "Unknown Reset" }
+
+                    reason = message['reset_reason']
+                    if reason in reset_reasons:
+                        reason = reset_reasons[reason]
+
+                    log_text = reason + ' (' + message['fw_name'] + ' firmware ' + message['fw_version'] + ' ' + message['fw_date'] + ' ' + message['fw_time'] + ')'
+                    
+                elif sst=="power":
                     state = message['state']  # lost | restored | shutdown
                     if state == "lost": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_LOST.id
                     elif state == "restored": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_RESTORED.id
@@ -236,7 +257,8 @@ def on_message(client,userdata,msg):
                 elif sst=="access":
                     if 'error' in message and message['error'] == True:
                         log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
-                        log_text = message['errorExt']
+                        log_text = message['errorText'] + ' ' + message['errorExt']
+                        send_slack_log_text = False
                     elif message['allowed']:
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id
                     else:
@@ -362,7 +384,7 @@ def on_message(client,userdata,msg):
                       t = "Event #%s on %s" % (log_event_type, str(toolname))
                       fallback += t
 
-                    if log_text:
+                    if send_slack_log_text and log_text:
                       slacktext += "\n_" + log_text + "_"
                       fallback += " " + log_text
 

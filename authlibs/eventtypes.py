@@ -150,7 +150,10 @@ class RATTBE_LOGEVENT_SYSTEM_POWER_OTHER:
     desc='Other Power Event'
     slack_icon=':lightning:'
 
-
+class RATTBE_LOGEVENT_SYSTEM_BOOT:
+    id=2006
+    desc='System Boot'
+    slack_icon=':up:'
 
 class RATTBE_LOGEVENT_TOOL_OTHER:
     id=3000
