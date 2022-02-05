@@ -253,7 +253,8 @@ class RATTBE_LOGEVENT_TOOL_ACL_UPDATED:
 class RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB:
     id=3018
     desc="Unknown RFID"
-
+    slack_icon=":no_entry_sign:"
+    
 class RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED:
     id=4000
     desc='Resource access granted'

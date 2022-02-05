@@ -295,33 +295,29 @@ def on_message(client,userdata,msg):
                     else:
                         log_event_type = RATTBE_LOGEVENT_TOOL_POWEROFF.id
                 elif sst=="login":
-                    # member
-                    usedPassword = False
-                    if 'usedPassword' in message: usedPassword = message['usedPassword']
-                    allowed = message['allowed'] # Bool
-
-                    if allowed and usedPassword:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN_COMBO.id
-                    elif not allowed and usedPassword:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_COMBO_FAILED.id
-                        if toolSlackInfoText and memberSlackId:
-                          send_slack_message(memberSlackId,toolSlackInfoText)
-                    elif allowed and not usedPassword:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN.id
-                    elif not allowed and not usedPassword:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_PROHIBITED.id
-                        if toolSlackInfoText and memberSlackId:
-                          send_slack_message(memberSlackId,toolSlackInfoText)
-                    if 'error' in message:
-                        error = message['error'] # Bool
+                    if 'error' in message and message['error'] == True:
+                        log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
+                        log_text = message['errorText']
+                        send_slack_log_text = False
                     else:
-                        error = False
-                    if 'errorText' in message:
-                        errorText = message['errorText'] # text
-                    else:
-                        errorText=None
+                        # member
+                        usedPassword = False
+                        if 'usedPassword' in message: usedPassword = message['usedPassword']
+                        allowed = message['allowed'] # Bool
 
-                    log_text = errorText
+                        if allowed and usedPassword:
+                            log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN_COMBO.id
+                        elif not allowed and usedPassword:
+                            log_event_type = RATTBE_LOGEVENT_TOOL_COMBO_FAILED.id
+                            if toolSlackInfoText and memberSlackId:
+                                send_slack_message(memberSlackId,toolSlackInfoText)
+                        elif allowed and not usedPassword:
+                            log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN.id
+                        elif not allowed and not usedPassword:
+                            log_event_type = RATTBE_LOGEVENT_TOOL_PROHIBITED.id
+                            if toolSlackInfoText and memberSlackId:
+                                send_slack_message(memberSlackId,toolSlackInfoText)
+
 
                 elif sst=="logout":
                     print "LOGOUT"
