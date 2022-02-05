@@ -366,50 +366,108 @@ def on_message(client,userdata,msg):
                 if send_slack and log_event_type and toolDisplay and associated_resource and associated_resource['slack_admin_chan'] and allow_slack_log:
                   try:
                     slacktext=""
-                    fallback=""
+                    icon = ""
                     
                     if log_event_type in userdata['icons']: 
-                      slacktext += userdata['icons'][log_event_type] + " "
+                      icon = userdata['icons'][log_event_type]
 
                     if member:
                       slacktext += "*"+member+"* "
-                      fallback += member + " "
                     
                     if log_event_type in userdata['events']:
-                      t = "%s at %s" % (userdata['events'][log_event_type].upper(), str(toolDisplay))
+                      if member:
+                          t = "was %s at %s" % (userdata['events'][log_event_type].lower(), str(toolDisplay))
+                      else:
+                          t = "*%s* at %s" % (userdata['events'][log_event_type].upper(), str(toolDisplay))
                       slacktext += t
-                      fallback += t
                       
                     else:
                       t = "Event #%s on %s" % (log_event_type, str(toolname))
-                      fallback += t
 
                     if send_slack_log_text and log_text:
                       slacktext += "\n_" + log_text + "_"
-                      fallback += " " + log_text
 
                     color='#777777'
                     if log_event_type in userdata['colors']:
                         color=userdata['colors'][log_event_type]
 
                     time = "_" + datetime.now().strftime("%B %-d, %-I:%M:%S%p") + "_"
-                    atts = json.dumps([{ 'fallback': fallback, 'color': color, 'pretext': time, 'text': slacktext, 'mrkdwn_in':['text', 'pretext'] }])
 
-                    res = sc.api_call(
-                      'chat.postMessage',
-                      channel=associated_resource['slack_admin_chan'],
-                      attachments=atts,
-                      as_user=True
-                    )
-                    print(res)
+                    chan = associated_resource['slack_admin_chan']
 
+                    block = {'type': 'context', 'elements': [{'type':'mrkdwn', 'text':icon + ' ' + time}, {'type': 'mrkdwn', 'text': slacktext } ] }
+                    
+                    blocks = []
+
+                    if chan in userdata['msg_track'] and len(userdata['msg_track'][chan]['blocks']) < 15:
+                        mts = userdata['msg_track'][chan]['mts']
+                        chan_id = userdata['msg_track'][chan]['chan_id']
+                        blocks = userdata['msg_track'][chan]['blocks']
+                        blocks.append(block)
+
+                        bks = blocks[:]
+                        if len(bks) + 1 < 15:
+                            bks.append({'type':'context', 'elements':[{'type':'mrkdwn','text':'Last updated ' + time}]})
+                        
+                        res = sc.api_call(
+                            'chat.update',
+                            channel=chan_id,
+                            ts = mts,
+                            blocks=json.dumps(bks),
+                            as_user=True
+                        )
+
+                        if res['ok']:
+                            userdata['msg_track'][chan]['blocks'] = blocks
+                            logger.warn('update msg_track=%s' % userdata['msg_track'])
+                        else:
+                            del userdata['msg_track'][chan]
+                            blocks = []
+                            blocks.append(block)
+
+                            res = sc.api_call(
+                                'chat.postMessage',
+                                channel=chan,
+                                blocks=json.dumps(blocks),
+                                as_user=True
+                            )
+                            if res['ok']:
+                                userdata['msg_track'][chan] = {}
+                                userdata['msg_track'][chan]['mts'] = res['message']['ts']
+                                userdata['msg_track'][chan]['chan_id'] = res['channel']
+                                userdata['msg_track'][chan]['blocks'] = blocks
+                                
+
+                        
+                    else:
+                        blocks.append(block)
+
+                        res = sc.api_call(
+                            'chat.postMessage',
+                            channel=chan,
+                            blocks=json.dumps(blocks),
+                            as_user=True
+                        )
+                        
+                        if res['ok']:
+                            userdata['msg_track'][chan] = {}
+                            userdata['msg_track'][chan]['mts'] = res['message']['ts']
+                            userdata['msg_track'][chan]['chan_id'] = res['channel']
+                            userdata['msg_track'][chan]['blocks'] = blocks
+
+                            
                   except BaseException as e:
-                    print "ERROR",e
+                    logger.error("ERROR=%s" % e)
+
                 db.session.add(logevent)
                 db.session.commit()
+                #logger.warn('user_data_set start')
+                #client.user_data_set(userdata)
+                #logger.warn('user_data_set end')
+                
     except BaseException as e:
-        print "LOG ERROR",e,"PAYLOAD",msg.payload
-        print "NOW4"
+        logger.error("LOG ERROR=%s PAYLOAD=%s" %(e,msg.payload))
+
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser()
@@ -448,6 +506,8 @@ if __name__ == '__main__':
             callbackdata['events']=eventtypes.get_events()
             callbackdata['icons']=eventtypes.get_event_slack_icons()
             callbackdata['colors']=eventtypes.get_event_slack_colors()
+            callbackdata['msg_track'] = {}
+            
             sub.callback(on_message, "ratt/#",userdata=callbackdata, **opts)
             sub.loop_forever()
             sub.loop_misc()

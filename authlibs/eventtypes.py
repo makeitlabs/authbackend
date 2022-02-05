@@ -104,22 +104,26 @@ class RATTBE_LOGEVENT_MEMBER_KIOSK_FAILED:
 
 class RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED:
     id=1025
-    desc='Entry allowed'
+    desc='Allowed Entry'
+    slack_icon=':white_check_mark:'
     slack_color='#00aa00'
 
 class RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED:
     id=1026
-    desc='Entry denied'
+    desc='Denied Entry'
+    slack_icon=':no_entry:'
     slack_color='#aa0000'
 
 class RATTBE_LOGEVENT_DOOR_OPENED:
     id=1027
     desc='Door Opened'
+    slack_icon=':arrow_forward:'
     slack_color='#777777'
 
 class RATTBE_LOGEVENT_DOOR_CLOSED:
     id=1028
     desc='Door Closed'
+    slack_icon=':arrow_backward:'
     slack_color='#777777'
 
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
@@ -216,13 +220,13 @@ class RATTBE_LOGEVENT_TOOL_LOGIN_COMBO:
 
 class RATTBE_LOGEVENT_TOOL_PROHIBITED:
     id=3012
-    desc="Access Denied"
+    desc="Denied Access"
     slack_icon=":no_entry:"
     slack_color="#aa0000"
 
 class RATTBE_LOGEVENT_TOOL_LOGIN:
     id=3013
-    desc="Access Allowed"
+    desc="Allowed Access"
     slack_icon=":arrow_right:"
     slack_color="#00aa00"
 
