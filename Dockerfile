@@ -37,9 +37,16 @@ RUN apt-get install -y libssl-dev libcurl4-openssl-dev python3-dev
 
 RUN pip3 install pycurl
 
-FROM pycurl
+FROM pycurl as ical
 run pip3 install icalendar
 
+FROM ical  as sqlite3
+
+RUN apt-get update
+RUN apt-get install -y sqlite3
+RUN apt-get install -y bash
+
+FROM sqlite3
 COPY . . 
 
 ENTRYPOINT ["python3"]
