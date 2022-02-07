@@ -91,6 +91,9 @@ def send_slack_message(towho,message):
         text=message
         )
 
+def convert_into_uppercase(a):
+    return a.group(1) + a.group(2).upper()
+    
 # The callback for when a PUBLISH message is received from the server.
 # 2019-01-11 17:09:01.736307
 #def on_message(msg):
@@ -149,7 +152,7 @@ def on_message(client,userdata,msg):
             sst=topic[5]
             member=None
             if 'toolId' in message: toolId=message['toolId']
-            if 'nodeId' in message: toolId=message['noolId']
+            if 'nodeId' in message: nodeId=message['nodeId']
             if 'toolname' in message: toolname=message['toolname']
             if 'nodename' in message: nodename=message['noolname']
             if 'member' in message: member=message['member']
@@ -313,6 +316,7 @@ def on_message(client,userdata,msg):
                         log_event_type = RATTBE_LOGEVENT_TOOL_POWERON.id
                     else:
                         log_event_type = RATTBE_LOGEVENT_TOOL_POWEROFF.id
+
                 elif sst=="login":
                     if 'error' in message and message['error'] == True:
                         log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
@@ -341,13 +345,21 @@ def on_message(client,userdata,msg):
 
 
                 elif sst=="logout":
-                    print "LOGOUT"
                     log_event_type = RATTBE_LOGEVENT_TOOL_LOGOUT.id
                     reason = message['reason']
                     enabledSecs = message['enabledSecs']
                     activeSecs = message['activeSecs']
                     idleSecs = message['idleSecs']
 
+                    reasons = {
+                        "explicit" : "Logged out",
+                        "timeout" : "Timed out",
+                        "toolpower" : "Tool power turned off"
+                    }
+
+                    if reason in reasons:
+                        reason = reasons[reason]
+                    
                     log_text = "enabled for {0}, active for {1} - {2}".format(
                         seconds_to_timespan(enabledSecs),
                         seconds_to_timespan(activeSecs),
@@ -390,7 +402,9 @@ def on_message(client,userdata,msg):
                       icon = userdata['icons'][log_event_type]
 
                     if member:
-                      slacktext += "*"+member+"* "
+                      m = re.sub("(^|\s)(\S)", convert_into_uppercase, member.replace(".", " "))
+                      slacktext += "*" + m + "* "
+                        
                     
                     if log_event_type in userdata['events']:
                       if member:
@@ -413,7 +427,7 @@ def on_message(client,userdata,msg):
 
                     blocks = [{'type': 'context', 'elements': [{'type':'mrkdwn', 'text':icon + ' ' + time}, {'type': 'mrkdwn', 'text': slacktext } ] }]
 
-                    if send_slack_admin:
+                    if send_slack_admin and associated_resource['slack_admin_chan']:
                         res = sc.api_call(
                             'chat.postMessage',
                             channel=associated_resource['slack_admin_chan'],
@@ -424,7 +438,7 @@ def on_message(client,userdata,msg):
                         if not res['ok']:
                             logger.error("error doing postMessage to admin chan")
 
-                    if send_slack_public:
+                    if send_slack_public and associated_resource['slack_public_chan']:
                         res = sc.api_call(
                             'chat.postMessage',
                             channel=associated_resource['slack_public_chan'],
