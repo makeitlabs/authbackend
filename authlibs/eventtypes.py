@@ -159,6 +159,11 @@ class RATTBE_LOGEVENT_SYSTEM_BOOT:
     desc='System Boot'
     slack_icon=':up:'
 
+class RATTBE_LOGEVENT_SYSTEM_OTA:
+    id=2007
+    desc="OTA Firmware Update"
+    slack_icon=':floppy_disk:'
+    
 class RATTBE_LOGEVENT_TOOL_OTHER:
     id=3000
     desc='Other Tool Event'

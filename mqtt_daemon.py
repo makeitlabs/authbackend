@@ -122,6 +122,8 @@ def on_message(client,userdata,msg):
 
             send_slack=True
             send_slack_log_text=True
+            send_slack_public=False
+            send_slack_admin=True
             
             # base_topic+"/control/broadcast/acl/update"
             if topic[0]=="ratt" and topic[1]=="control" and topic[2]=="broadcast" and topic[3]=="acl" and topic[4]=="update":
@@ -167,7 +169,7 @@ def on_message(client,userdata,msg):
                 t = t.one_or_none()
                 if t:
                     tool_cache[toolname]={"id":t.id,"displayname":t.displayname, "resource_id":t.resource_id,"data": {
-                        'slack_chan':t.slack_chan,
+                        'slack_public_chan':t.slack_chan,
                         'slack_admin_chan':t.slack_admin_chan,
                         'slack_info_text':t.slack_info_text}}
                     toolId = tool_cache[toolname]['id']
@@ -243,17 +245,28 @@ def on_message(client,userdata,msg):
                         log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_OTHER.id
                         send_slack = False
                         log_text = state
-                        
+
+                elif sst=="ota_status":
+                    status = message['status']
+                    progress = int(message['progress'])
+
+                    if (status == "downloading" and progress == 1) or status != "downloading":
+                        log_event_type = RATTBE_LOGEVENT_SYSTEM_OTA.id
+                        log_text = status.upper()
+                    
                 elif sst=="issue":
                     issue = message['issue'] # Text
                     log_event_type = RATTBE_LOGEVENT_TOOL_ISSUE.id
                     log_text = issue
+                    send_slack_public = True
+
             elif subt=="personality":
                 if sst=="safety":
                     # member
                     reason = message['reason'] # Failure reason text
                     log_event_type = RATTBE_LOGEVENT_TOOL_SAFETY.id
                     log_text = reason
+
                 elif sst=="access":
                     if 'error' in message and message['error'] == True:
                         log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
@@ -263,12 +276,16 @@ def on_message(client,userdata,msg):
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id
                     else:
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED.id
+
+                    send_slack_public = True
+                    
                 elif sst=="door_state":
                     st = message['state'] # open, closed
                     if st=="open":
                         log_event_type = RATTBE_LOGEVENT_DOOR_OPENED.id
                     elif st=="closed":
                         log_event_type = RATTBE_LOGEVENT_DOOR_CLOSED.id
+
                 elif sst=="activity":
                     # member
                     active = message['active'] # Bool
@@ -288,6 +305,8 @@ def on_message(client,userdata,msg):
                     elif state=="unlocked": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED.id
                     else: log_event_type=RATTBE_LOGEVENT_TOOL_LOCKOUT_OTHER.id
                     log_text = reason
+                    send_slack_public = True
+                    
                 elif sst=="power":
                     powered = message['powered'].lower() == "True" # True or False
                     if powered:
@@ -318,6 +337,8 @@ def on_message(client,userdata,msg):
                             if toolSlackInfoText and memberSlackId:
                                 send_slack_message(memberSlackId,toolSlackInfoText)
 
+                        send_slack_public = True
+
 
                 elif sst=="logout":
                     print "LOGOUT"
@@ -327,11 +348,10 @@ def on_message(client,userdata,msg):
                     activeSecs = message['activeSecs']
                     idleSecs = message['idleSecs']
 
-                    log_text = "enabled {0} active {1} idle {2} - {3}".format(
+                    log_text = "enabled for {0}, active for {1} - {2}".format(
                         seconds_to_timespan(enabledSecs),
                         seconds_to_timespan(activeSecs),
-                        seconds_to_timespan(idleSecs),
-                        reason)
+                        reason.upper())
                     usage= UsageLog()
                     usage.member_id = memberId
                     usage.tool_id = toolId
@@ -343,6 +363,8 @@ def on_message(client,userdata,msg):
                     usage.time_logged = datetime.utcnow()
                     db.session.add(usage)
                     db.session.commit()
+
+                    send_slack_public = True
 
             if log_event_type:
                 logevent = Logs()
@@ -389,67 +411,29 @@ def on_message(client,userdata,msg):
 
                     time = "_" + datetime.now().strftime("%B %-d, %-I:%M:%S%p") + "_"
 
-                    chan = associated_resource['slack_admin_chan']
+                    blocks = [{'type': 'context', 'elements': [{'type':'mrkdwn', 'text':icon + ' ' + time}, {'type': 'mrkdwn', 'text': slacktext } ] }]
 
-                    block = {'type': 'context', 'elements': [{'type':'mrkdwn', 'text':icon + ' ' + time}, {'type': 'mrkdwn', 'text': slacktext } ] }
-                    
-                    blocks = []
-
-                    if chan in userdata['msg_track'] and len(userdata['msg_track'][chan]['blocks']) < 15:
-                        mts = userdata['msg_track'][chan]['mts']
-                        chan_id = userdata['msg_track'][chan]['chan_id']
-                        blocks = userdata['msg_track'][chan]['blocks']
-                        blocks.append(block)
-
-                        bks = blocks[:]
-                        if len(bks) + 1 < 15:
-                            bks.append({'type':'context', 'elements':[{'type':'mrkdwn','text':'Last updated ' + time}]})
-                        
-                        res = sc.api_call(
-                            'chat.update',
-                            channel=chan_id,
-                            ts = mts,
-                            blocks=json.dumps(bks),
-                            as_user=True
-                        )
-
-                        if res['ok']:
-                            userdata['msg_track'][chan]['blocks'] = blocks
-                            logger.warn('update msg_track=%s' % userdata['msg_track'])
-                        else:
-                            del userdata['msg_track'][chan]
-                            blocks = []
-                            blocks.append(block)
-
-                            res = sc.api_call(
-                                'chat.postMessage',
-                                channel=chan,
-                                blocks=json.dumps(blocks),
-                                as_user=True
-                            )
-                            if res['ok']:
-                                userdata['msg_track'][chan] = {}
-                                userdata['msg_track'][chan]['mts'] = res['message']['ts']
-                                userdata['msg_track'][chan]['chan_id'] = res['channel']
-                                userdata['msg_track'][chan]['blocks'] = blocks
-                                
-
-                        
-                    else:
-                        blocks.append(block)
-
+                    if send_slack_admin:
                         res = sc.api_call(
                             'chat.postMessage',
-                            channel=chan,
+                            channel=associated_resource['slack_admin_chan'],
                             blocks=json.dumps(blocks),
                             as_user=True
                         )
                         
-                        if res['ok']:
-                            userdata['msg_track'][chan] = {}
-                            userdata['msg_track'][chan]['mts'] = res['message']['ts']
-                            userdata['msg_track'][chan]['chan_id'] = res['channel']
-                            userdata['msg_track'][chan]['blocks'] = blocks
+                        if not res['ok']:
+                            logger.error("error doing postMessage to admin chan")
+
+                    if send_slack_public:
+                        res = sc.api_call(
+                            'chat.postMessage',
+                            channel=associated_resource['slack_public_chan'],
+                            blocks=json.dumps(blocks),
+                            as_user=True
+                        )
+                        
+                        if not res['ok']:
+                            logger.error("error doing postMessage to public chan")
 
                             
                   except BaseException as e:
