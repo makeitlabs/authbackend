@@ -221,23 +221,29 @@ def on_message(client,userdata,msg):
             elif subt=="system":
                 if sst=="boot":
                     log_event_type = RATTBE_LOGEVENT_SYSTEM_BOOT.id
-                    reset_reasons = {
-                        "power_on" : "Powered On",
-                        "ext" : "External Reset",
-                        "sw" : "Software Reset",
-                        "panic" : "Panic",
-                        "int_wdt" : "Interrupt Watchdog Reset",
-                        "task_wdt" : "Task Watchdog Reset",
-                        "deep_sleep" : "Wake from Deep Sleep",
-                        "brownout" : "Power Brownout Reset",
-                        "sdio" : "SDIO Reset",
-                        "unknown" : "Unknown Reset" }
 
-                    reason = message['reset_reason']
-                    if reason in reset_reasons:
-                        reason = reset_reasons[reason]
+                    fw_name = message['fw_name']
 
-                    log_text = reason + ' (' + message['fw_name'] + ' firmware ' + message['fw_version'] + ' ' + message['fw_date'] + ' ' + message['fw_time'] + ')'
+                    if fw_name=='ratt':
+                        log_text = 'Application Started (' + fw_name + ' firmware ' + message['fw_version'] + ' mender artifact ' + message['mender_artifact'] + ')'
+                    elif fw_name=='uratt':
+                        reset_reasons = {
+                            "power_on" : "Powered On",
+                            "ext" : "External Reset",
+                            "sw" : "Software Reset",
+                            "panic" : "Panic",
+                            "int_wdt" : "Interrupt Watchdog Reset",
+                            "task_wdt" : "Task Watchdog Reset",
+                            "deep_sleep" : "Wake from Deep Sleep",
+                            "brownout" : "Power Brownout Reset",
+                            "sdio" : "SDIO Reset",
+                            "unknown" : "Unknown Reset" }
+
+                        reason = message['reset_reason']
+                        if reason in reset_reasons:
+                            reason = reset_reasons[reason]
+
+                        log_text = reason + ' (' + message['fw_name'] + ' firmware ' + message['fw_version'] + ' ' + message['fw_date'] + ' ' + message['fw_time'] + ')'
                     
                 elif sst=="power":
                     state = message['state']  # lost | restored | shutdown
@@ -274,7 +280,7 @@ def on_message(client,userdata,msg):
                     if 'error' in message and message['error'] == True:
                         log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
                         log_text = message['errorText'] + ' ' + message['errorExt']
-                        send_slack_log_text = False
+                        send_slack = False
                     elif message['allowed']:
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id
                     else:
@@ -321,7 +327,7 @@ def on_message(client,userdata,msg):
                     if 'error' in message and message['error'] == True:
                         log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
                         log_text = message['errorText']
-                        send_slack_log_text = False
+                        send_slack = False
                     else:
                         # member
                         usedPassword = False
@@ -353,8 +359,11 @@ def on_message(client,userdata,msg):
 
                     reasons = {
                         "explicit" : "Logged out",
+                        "forced" : "Forced log out",
                         "timeout" : "Timed out",
-                        "toolpower" : "Tool power turned off"
+                        "toolpower" : "Tool power turned off",
+                        "emergencystop" : "Emergency Stop detected",
+                        "other" : "Other logout reason" 
                     }
 
                     if reason in reasons:
