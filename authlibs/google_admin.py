@@ -19,8 +19,12 @@ import json
 
 from httplib2 import Http
 from oauth2client.service_account import ServiceAccountCredentials
-from apiclient import discovery
-from apiclient import errors
+try:
+    from apiclient import discovery
+    from apiclient import errors
+except:
+    from googleapiclient import discovery
+    from googleapiclient import errors
 from email.mime.text import MIMEText
 import base64
 

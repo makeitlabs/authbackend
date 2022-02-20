@@ -29,11 +29,13 @@ pip3 install oauth2client
 pip3 install google-oauth
 pip3 install sqlalchemy_utils
 pip3 install email_validator
+sudo apt install libcurl4-openssl-dev libssl-dev # Often needed for pycurl below
 pip3 install pycurl
 pip3 install configparser
 pip3 install functools (Unclear if this actually works or not??)
 pip3 install slackclient (OLD - SHOULDN'T NEED)
 pip3 install slack_sdk 
+pip3 install icalendar
 pip3 install coverage (If test coverage is used)
 ```
 
