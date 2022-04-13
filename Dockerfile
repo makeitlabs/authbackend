@@ -1,4 +1,11 @@
 # sudo docker build -t authbackend .
+
+# To run flask debugger
+# sudo docker run --rm -it  --entrypoint /bin/bash authbackend
+
+# To run w/ gunicorn proxy (and a proxy path)
+# docker run -it  -p 5000:5000   --env AUTHIT_PROXY_PATH=authit authbackend
+
 FROM python:3.8-slim-buster as flaskbase
 
 MAINTAINER Brad Goodman "brad@bradgoodman.com"
@@ -24,6 +31,7 @@ RUN pip3 install sqlalchemy_utils
 RUN pip3 install email_validator
 #RUN pip3 install pycurl
 RUN pip3 install configparser
+RUN pip3 install gunicorn
 #RUN pip3 install functools 
 #RUN pip3 install slackclient (OLD - SHOULDN'T NEED)
 
@@ -49,6 +57,6 @@ RUN apt-get install -y bash
 FROM sqlite3
 COPY . . 
 
-ENTRYPOINT ["python3"]
+ENTRYPOINT ["/bin/bash"]
 
-CMD [ "authserver.py" ]
+CMD [ "dockerentry.sh" ]

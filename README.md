@@ -1,6 +1,24 @@
 # authbackend
 
 Some rough documentation as of January, 2021
+
+## Dockers
+
+To run or build Docker, Containers or Kubernentes, see the `Dockerfile`
+
+To Build:
+`sudo docker build -t authbackend .`
+
+To run flask debugger:
+`sudo docker run --rm -it  --entrypoint /bin/bash authbackend`
+
+To run w/ gunicorn proxy (and a proxy path):
+`docker run -it  -p 5000:5000   --env AUTHIT_PROXY_PATH=authit authbackend`
+
+As of this writing - it doesn't do anything to properly setup database or `makeit.ini` files
+(I think it will run a developer-staging setup as-is). This means you need to restore and load
+databases and `makeit.ini` from backups to work in production
+
 ## Install prerequisites
 
 (As of Ubuntu 20.04.1) Start with only doing the stuff that you NEED to below, and only if you have problems, try depricated or questionable stuff.
