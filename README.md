@@ -1,8 +1,8 @@
 # authbackend
 
-Some rough documentation as of January, 2021
+Some rough documentation as of April, 2022
 
-## Dockers
+# Running via. Docker/Container Images
 
 To run or build Docker, Containers or Kubernentes, see the `Dockerfile`
 
@@ -15,11 +15,45 @@ To run flask debugger:
 To run w/ gunicorn proxy (and a proxy path):
 `docker run -it  -p 5000:5000   --env AUTHIT_PROXY_PATH=authit authbackend`
 
+You probably want to create an external persistant volume to hold `makeit.ini` and log/db files.
+
+`AUTHIT_INI` environmental variable should be set to a path of `makeit.ini` (external volume)
+note that the `makeit.ini` file must also contain proper paths to database and log files!
+
 As of this writing - it doesn't do anything to properly setup database or `makeit.ini` files
 (I think it will run a developer-staging setup as-is). This means you need to restore and load
 databases and `makeit.ini` from backups to work in production
 
+Add a persistant volume to docker like:
+`docker run --rm -it -v authitdata_devel:/opt/authit`
+
+Set up a Persistant Volume like:
+`docker volume create authitdata_devel`
+
+Then inspect persitant volume to find out where it's path is on your filesystem. Place the `makeit.ini`, `db` and `logdb` files in the persistent volume
+
+Modify the `makeit.ini` file to point to the aforemented databases. Note that the Persitant Volume will mount to `/opt/makeit` - so make sure that is the "root" of the path you use - i.e. `/opt/makeit/db.sq3`
+
+Run as below. Note that you will need to specify:
+- Port mapping (Gnuicorn and Flask will run as port 5000) - map this to outside the docker
+- You need to specify a `AUTHIT_PROXY_PATH` if you want to run behind a proxy. This shall be the base path part of the URL. For example, if you wan to run as `http://makeit.com/staging` - then the `AUTHIT_PROXY_PATH` must be `staging`. If you do NOT specify an `AUTHIT_PROXY_PATH`, it will run with Flask debugger (instead of Gunicorn - i.e. you cannot proxy) and you will have to just connect to it with the raw port, above.
+- The `AUTHIT_INI` environmental varabile has to be set to the path inside the docker for the `makeit.ini` file.
+
+If you don't know where to get the database(s) from - use the "restore.py" script with the S3 keys in the `makeit.ini` file to download old backups of them from AWS.
+
+Debug  example:
+`docker run --rm -it -p 5000:5000 -v authit-devel:/opt/makeit --env=AUTHIT_PROXY_PATH=dev --env=AUTHIT_INI=/opt/makeit/makeit.ini  --entrypoint /bin/bash authbackend`
+This would run as http://node:5000/dev
+
+Runtime example:
+`docker run --rm -it -p 5000:5000 -v authit-devel:/opt/makeit --env=AUTHIT_PROXY_PATH=dev --env=AUTHIT_INI=/opt/makeit/makeit.ini  authbackend`
+
+
+# Non-containerized stuff
+
 ## Install prerequisites
+
+See `versions.txt` for known-good package versions
 
 (As of Ubuntu 20.04.1) Start with only doing the stuff that you NEED to below, and only if you have problems, try depricated or questionable stuff.
 

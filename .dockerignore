@@ -1,3 +1,6 @@
 *.docker
 **/*~
+*.db
+*.ini
+*db.sq3
 

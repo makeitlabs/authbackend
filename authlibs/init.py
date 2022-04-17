@@ -11,7 +11,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app 
 from flask_sqlalchemy import SQLAlchemy
 import logging
-import sys
+import sys,os
 #import ConfigParser
 import configparser
 from .db_models import db,  Member, Role, defined_roles, ApiKey
@@ -58,10 +58,13 @@ from .google_user_auth import authinit
 # Load general configuration from file
 
 def get_config():
+    inifile='makeit.ini'
+    if 'AUTHIT_INI' in os.environ:
+      inifile = os.environ['AUTHIT_INI']
     config={}
     defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
     ConfigObj = configparser.ConfigParser(defaults)
-    ConfigObj.read('makeit.ini')
+    ConfigObj.read(inifile)
     """
     This doesn't work for some reason???
     for s in ConfigObj.sections():
