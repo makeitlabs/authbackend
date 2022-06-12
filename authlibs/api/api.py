@@ -86,10 +86,10 @@ def api_only(f):
 def localhost_only(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if request.environ['REMOTE_ADDR'] != '127.0.0.1':
-            return Response(
-            'Access via localhost only', 403,
-            {'Content-Type': 'text/plain'})
+        #if request.environ['REMOTE_ADDR'] != '127.0.0.1':
+        #    return Response(
+        #    'Access via localhost only', 403,
+        #    {'Content-Type': 'text/plain'})
         return f(*args, **kwargs)
     return decorated
 

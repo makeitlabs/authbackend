@@ -436,7 +436,8 @@ def on_message(client,userdata,msg):
 
                     blocks = [{'type': 'context', 'elements': [{'type':'mrkdwn', 'text':icon + ' ' + time}, {'type': 'mrkdwn', 'text': slacktext } ] }]
 
-                    if send_slack_admin and associated_resource['slack_admin_chan']:
+                    # TODO FIEME This should be "send_slack_admin" - but Ham wanted only "public" messagse on their "admin" channel??
+                    if send_slack_public and associated_resource['slack_admin_chan']:
                         res = sc.api_call(
                             'chat.postMessage',
                             channel=associated_resource['slack_admin_chan'],
@@ -447,6 +448,7 @@ def on_message(client,userdata,msg):
                         if not res['ok']:
                             logger.error("error doing postMessage to admin chan")
 
+                    """
                     if send_slack_public and associated_resource['slack_public_chan']:
                         res = sc.api_call(
                             'chat.postMessage',
@@ -457,6 +459,7 @@ def on_message(client,userdata,msg):
                         
                         if not res['ok']:
                             logger.error("error doing postMessage to public chan")
+                    """
 
                             
                   except BaseException as e:

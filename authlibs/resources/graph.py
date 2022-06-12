@@ -135,7 +135,7 @@ def weekUsers(id):
 @blueprint.route('/v1/monthUsers/<string:id>', methods=['GET'])
 @login_required
 def monthUsers(id):
-	return userWindowReport(id,28)
+	return userWindowReport(id,31)
 
 def userWindowReport(id,days):
 	"""(Controller) Display information about a given resource"""

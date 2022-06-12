@@ -193,7 +193,7 @@ def member_show(id):
 	 access = {}
 	 mid = authutil._safestr(id)
 	 member=db.session.query(Member,Subscription)
-	 member = member.outerjoin(Subscription).outerjoin(Waiver).filter(Member.member==mid)
+	 member = member.join(Subscription).outerjoin(Waiver).filter(Member.member==mid)
 	 res = member.one_or_none()
 
 	 if (not current_user.privs('Useredit')) and res[0].member != current_user.member:
