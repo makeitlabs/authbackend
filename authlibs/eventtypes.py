@@ -259,6 +259,16 @@ class RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB:
     id=3018
     desc="Unknown RFID"
     slack_icon=":no_entry_sign:"
+
+class RATTBE_LOGEVENT_VENDING_SUCCESS:
+    id=3019
+    desc="Vending Purchase"
+    slack_icon=":money_with_wings:"
+
+class RATTBE_LOGEVENT_VENDING_FAILED:
+    id=3020
+    desc="Vending Failure"
+    slack_icon=":bangbang:"
     
 class RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED:
     id=4000

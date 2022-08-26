@@ -11,6 +11,7 @@ from authlibs.waivers.waivers import cli_waivers,connect_waivers
 from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel,send_slack_message
 from authlibs.members.notices import send_all_notices
 import slackapi
+import stripe
 import base64
 import random,string
 import tempfile
@@ -907,3 +908,36 @@ def member_api_getaccess(email):
     #print m
     result = {'status':'success','level':m[1]}
 	return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+# Query like: http://test:test@127.0.0.1:5000/api/v1/getaccess/myemail@makeitlabs.com?resource=resource-users
+@blueprint.route("/v1/vending/<string:member>/<int:amount>", methods = ['GET'])
+@api_only
+def vendig_api_charge(member,amount):
+  m = Member.query.filter(Member.member==member)
+  m = m.join(Subscription,Subscription.member_id == Member.id)
+  m = m.add_column(Subscription.customerid)
+  m = m.one_or_none()
+  dollarAmt = float(amount)/100.0
+  if not m:
+    result = {'status':'error','description':'No Member'}
+  elif (dollarAmt <= 0) or (dollarAmt >= 100):
+    result = {'status':'error','description':'Invalid price'}
+  else:
+    try:
+      stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
+      invoiceItem = stripe.InvoiceItem.create(customer=m.customerid, amount=dollarAmt,currency="USD",description="Vending Machine")
+
+      invoice = stripe.Invoice.create(
+        customer=m.customerid,
+        collection_method="charge_automatically",
+      )
+
+      finalize=stripe.Invoice.finalize_invoice(invoice)
+      result = {'status':'success','member':m.Member.member,'customer':m.customerid}
+      authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_SUCCESS.id,message="${0:0.2f}".format(dollarAmt),member_id=m.Member.id,commit=0)
+    except BaseException as e:
+      result = {'status':'error','description':'Stripe Error'}
+      logger.warning("Strip error for {0}: {1}".format(m.Member.member,str(e)))
+      authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_FAILED.id,message="${0:0.2f}".format(dollarAmt),member_id=m.Member.id,commit=0)
+  db.session.commit()
+  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)

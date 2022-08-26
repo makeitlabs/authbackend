@@ -446,7 +446,7 @@ def on_message(client,userdata,msg):
                         )
                         
                         if not res['ok']:
-                            logger.error("error doing postMessage to admin chan")
+                            logger.error("error doing postMessage to \"%s\" admin chan: %s" % (associated_resource['slack_admin_chan'],res))
 
                     """
                     if send_slack_public and associated_resource['slack_public_chan']:
