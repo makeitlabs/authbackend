@@ -937,7 +937,7 @@ def vendig_api_charge(member,amount):
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_SUCCESS.id,message="${0:0.2f}".format(dollarAmt),member_id=m.Member.id,commit=0)
     except BaseException as e:
       result = {'status':'error','description':'Stripe Error'}
-      logger.warning("Strip error for {0}: {1}".format(m.Member.member,str(e)))
+      logger.warning("Stripe error for {0} {1}".format(m.Member.member,str(e)))
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_FAILED.id,message="${0:0.2f}".format(dollarAmt),member_id=m.Member.id,commit=0)
   db.session.commit()
   return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
