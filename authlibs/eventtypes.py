@@ -104,11 +104,27 @@ class RATTBE_LOGEVENT_MEMBER_KIOSK_FAILED:
 
 class RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED:
     id=1025
-    desc='Entry allowed'
+    desc='Allowed Entry'
+    slack_icon=':white_check_mark:'
+    slack_color='#00aa00'
 
 class RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED:
     id=1026
-    desc='Entry denied'
+    desc='Denied Entry'
+    slack_icon=':no_entry:'
+    slack_color='#aa0000'
+
+class RATTBE_LOGEVENT_DOOR_OPENED:
+    id=1027
+    desc='Door Opened'
+    slack_icon=':arrow_forward:'
+    slack_color='#777777'
+
+class RATTBE_LOGEVENT_DOOR_CLOSED:
+    id=1028
+    desc='Door Closed'
+    slack_icon=':arrow_backward:'
+    slack_color='#777777'
 
 class RATTBE_LOGEVENT_MEMBER_LEASE_CHARGE:
     id=1027
@@ -142,8 +158,16 @@ class RATTBE_LOGEVENT_SYSTEM_POWER_OTHER:
     desc='Other Power Event'
     slack_icon=':lightning:'
 
+class RATTBE_LOGEVENT_SYSTEM_BOOT:
+    id=2006
+    desc='System Boot'
+    slack_icon=':up:'
 
-
+class RATTBE_LOGEVENT_SYSTEM_OTA:
+    id=2007
+    desc="OTA Firmware Update"
+    slack_icon=':floppy_disk:'
+    
 class RATTBE_LOGEVENT_TOOL_OTHER:
     id=3000
     desc='Other Tool Event'
@@ -201,25 +225,29 @@ class RATTBE_LOGEVENT_TOOL_LOGIN_COMBO:
     id=3011
     desc="Login (via. combo/passcode)"
     slack_icon=":arrow_right:"
+    slack_color="#00aa00"
 
 class RATTBE_LOGEVENT_TOOL_PROHIBITED:
     id=3012
-    desc="Access Denied"
+    desc="Denied Access"
     slack_icon=":no_entry:"
+    slack_color="#aa0000"
 
 class RATTBE_LOGEVENT_TOOL_LOGIN:
     id=3013
-    desc="Logged in"
+    desc="Allowed Access"
     slack_icon=":arrow_right:"
+    slack_color="#00aa00"
 
 class RATTBE_LOGEVENT_TOOL_COMBO_FAILED:
     id=3014
     desc="Incorrect Passcode attempt"
     slack_icon=":no_entry:"
+    slack_color="#aa0000"
 
 class RATTBE_LOGEVENT_TOOL_LOGOUT:
     id=3015
-    desc="Logged-out"
+    desc="Done"
     slack_icon=":arrow_left:"
 
 class RATTBE_LOGEVENT_TOOL_MAINTENANCE_DONE:
@@ -233,8 +261,19 @@ class RATTBE_LOGEVENT_TOOL_ACL_UPDATED:
 
 class RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB:
     id=3018
-    desc="Unregognized key fob"
+    desc="Unknown RFID"
+    slack_icon=":no_entry_sign:"
 
+class RATTBE_LOGEVENT_VENDING_SUCCESS:
+    id=3019
+    desc="Vending Purchase"
+    slack_icon=":money_with_wings:"
+
+class RATTBE_LOGEVENT_VENDING_FAILED:
+    id=3020
+    desc="Vending Failure"
+    slack_icon=":bangbang:"
+    
 class RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED:
     id=4000
     desc='Resource access granted'
@@ -292,9 +331,20 @@ def get_event_slack_icons():
     icons={}
     for (name,cl) in inspect.getmembers(sys.modules[__name__], inspect.isclass):
         if hasattr(cl,"slack_icon"):
-           icons[cl.id]=cl.slack_icon
+            icons[cl.id]=cl.slack_icon
+
     return icons
+
+def get_event_slack_colors():
+    colors={}
+    for (name,cl) in inspect.getmembers(sys.modules[__name__], inspect.isclass):
+        if hasattr(cl,"slack_color"):
+            colors[cl.id]=cl.slack_color
+
+    return colors
 				
+
+
 def get_events():
     events_by_id={}
     for (name,cl) in inspect.getmembers(sys.modules[__name__], inspect.isclass):

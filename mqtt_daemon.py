@@ -438,6 +438,8 @@ def on_message(client,userdata,msg):
                     # TODO FIEME This should be "send_slack_admin" - but Ham wanted only "public" messagse on their "admin" channel??
                     if send_slack_public and associated_resource['slack_admin_chan']:
                         res = sc.chat_postMessage(
+                        res = sc.api_call(
+                            'chat.postMessage',
                             channel=associated_resource['slack_admin_chan'],
                             blocks=json.dumps(blocks),
                             as_user=True
