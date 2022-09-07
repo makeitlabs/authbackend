@@ -47,7 +47,7 @@ print ( "DONE")
 
 Config = init.get_config()
 slack_token = Config.get('Slack','BOT_API_TOKEN')
-print ( "API TOKEN",slack_token)
+print ( "BOT API TOKEN",slack_token)
 #sc = SlackClient(slack_token)
 rtmclient = RTMClient(token=slack_token)
 #rtmclient.setPresence(presence="auto")

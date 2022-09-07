@@ -416,8 +416,11 @@ Verify that `authserver.wsgi` is set for your appopriate deploy! (See `authserve
 
 In `makeit.ini` set a defualt door lockout message with `LockoutMessage` in the `General` section. This should not be present for normal deployments, but might want to say `Covid-19 Training Required` if appropriate.
 
+# Slack
 
-### If you care about getting Slack training invites working:
+Get Slack working - make sure the credentails below are set up in `makeit.ini` and run `./slacktest.py`. It should *PASS*!
+If not - you probably have permissions/scope problems, below.
+
 
 Slack permissions changed - so you might want to go into slack API and regenerate permissions for the API user. You need to have bunch of new permisions to allow training bot to add people to channels, including:
 
@@ -454,6 +457,15 @@ You can add API stuff here: https://api.slack.com/apps
 `BOT_API_TOKEN` - This is the one above which requires all the "granular scopes" to do stuff. It is used most often to send messages to channels, from the MQTT Daemon, and other stuff in the backend. the `slacktest.py` mostly uses this. Go to "OAuth & Permissions" and use the "Bot User OAuth Access Token" provided.
 
 `ADMIN_API_TOKEN` - This is used by the slackdaemon `toolauthslack` for the Tool Authorization Slack robot. This uses an "RTM" connection in Slack. This means it must be created as a "Classic App" - i.e. it cannot have "granular scopes". I think it only needs a "bot" scope. *Do Not* let Slack trick you into converting this into a "new style" app with Granular Scopes or it will not work! If "RTM Connect" fails - it means this token is not correct. Once you create a classic app - go to "OAuth Tokens" and use the "Bot User OAuth Access Token" from this.
+
+`ADMIN_API_TOKEN` seems to need the following scopes:
+`bot`
+`chat:write:bot`
+`incoming-webhook`
+`channels:read`
+`groups:read`
+`mpim:read`
+`channels:write`
 
 # systemctl setup
 We generally use systemctl to create services to make sure these two are always running:

@@ -3,8 +3,8 @@
 
 import configparser
 import logging
+import os
 
-INIFILE = "makeit.ini"
 
 general = {}
 payments = {}
@@ -14,7 +14,10 @@ smartwaiver = {}
 
 # What if we just build one config object, instead?
 Config = configparser.ConfigParser()
-Config.read(INIFILE)
+inifile='makeit.ini'
+if 'AUTHIT_INI' in os.environ:
+  inifile = os.environ['AUTHIT_INI']
+Config.read(inifile)
 
 if 'General' in Config.sections():
     for o in Config.options('General'):

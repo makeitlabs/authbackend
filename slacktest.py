@@ -63,6 +63,7 @@ if __name__ == '__main__':
         #  print "RTM Connection Failed"
         #  sys.exit(1)
         rtmclient = RTMClient(token=bot_api_token)
+        print ("RTM CLient using token ",bot_api_token)
 
         print ("BOT API TOKEN",bot_api_token)
         res = bot.api_call(
@@ -73,6 +74,7 @@ if __name__ == '__main__':
           }
         )
         sc = SlackClient(admin_api_token)
+        print ("Using token",admin_api_token)
         res = bot.chat_postMessage(
           channel="U03126YLY",
           text="Admin Test Message2"
@@ -107,9 +109,9 @@ if __name__ == '__main__':
         res = sc.conversations_join(
         channel="CTN7EK3A9"
         )
-        res = sc.conversations_join(
-        channel="C014U9VPH16"
-        )
+        #res = sc.conversations_join(
+        #channel="C014U9VPH16"
+        #)
         print (res)
 
         try:
