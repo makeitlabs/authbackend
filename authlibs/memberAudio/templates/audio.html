@@ -10,7 +10,10 @@
   <h3>Member Audio for {{ member.firstname }} {{ member.lastname}} </h3>
 
   
-  <a href="get">Listen to Current</a>
+  {% if hascurrent %}
+  <p><a href="get">Listen to Current</a></p>
+  <p><a href="delete">Delete Current</a></p>
+  {% endif %}
   <p>Upload a file for your member entrance audio. 7 Seconds maximum. A number of audio and vido file formats are supported. (Try one - it'll tell you if it worked). Clips will be truncated to 7 seconds. Be advised: Vulgar, offensive or inappropriate audio may lead to removal or revocation of Entry Audio privileges.</p>
   <form method="post" enctype="multipart/form-data" action="{{ url_for("memberAudio.upload_file") }}">
     <input type="hidden" name="folder" value="{{ folder }}">

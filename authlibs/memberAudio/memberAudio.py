@@ -45,7 +45,9 @@ def audio():
     if not folderPath:
       flash("MemberAudio path not configured in INI file","danger")
       return redirect(url_for("index"))
-    return render_template('audio.html',member=current_user)
+    fn = os.path.join(folderPath,current_user.member).encode('utf=8')
+    hascurrent =  os.path.exists(fn+".pcm")
+    return render_template('audio.html',member=current_user,hascurrent=hascurrent)
 
 
 @login_required
@@ -79,6 +81,30 @@ def getAudio():
                 mimetype='audio/wav',
                 status=200
             )
+
+@login_required
+@blueprint.route('/delete', methods=['GET'])
+def deleteAudio():
+    s = Subscription.query.filter(current_user.id == Subscription.member_id).one_or_none()
+    if (s.plan != "pro"):
+      flash("MemberAudio is only availble to Pro members")
+      return redirect(url_for("index"))
+    folderPath = None
+    if current_app.config['globalConfig'].Config.has_option('General','MemberAudioPath'):
+      folderPath = current_app.config['globalConfig'].Config.get('General','MemberAudioPath')
+    if not folderPath:
+      flash("MemberAudio path not configured in INI file","danger")
+      return redirect(url_for("index"))
+
+    fn = os.path.join(folderPath,current_user.member).encode('utf=8')
+    if not os.path.exists(fn+".pcm"):
+      flash("No audio has been uploaded","danger")
+      return redirect(url_for("index"))
+
+    os.remove(fn+".pcm")
+    flash("Deleted")
+    return redirect(url_for("index"))
+
 
 @blueprint.route('/upload', methods=['GET', 'POST'])
 @login_required
