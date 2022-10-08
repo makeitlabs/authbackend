@@ -150,6 +150,12 @@ def get_raw_menu():
                     'url':url_for('members.lookup_tag'),
                     'title':"Tag Lookup",
                     'alt':"Search for RFID Tag"
+            },
+            {
+                    'url':url_for('memberAudio.audio'),
+                    'title':"Entrance Audio",
+                    'img':url_for("static",filename="audioIcon.png"),
+                    'alt':"Entrance Audio Music"
             }
     ]
 

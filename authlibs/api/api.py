@@ -917,6 +917,13 @@ def vendig_api_charge(member,amount):
   m = m.join(Subscription,Subscription.member_id == Member.id)
   m = m.add_column(Subscription.customerid)
   m = m.one_or_none()
+
+
+  # REMOVE THESE TWO LINES! THEY MAKE ALL PAYMENTS UNCONDITIONALLY WORK! BOMB TODO FIXME
+  result = {'status':'success','member':m.Member.member,'customer':m.customerid}
+  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+
   dollarAmt = float(amount)/100.0
   if not m:
     result = {'status':'error','description':'No Member'}

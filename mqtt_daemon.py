@@ -17,6 +17,7 @@ from flask_sqlalchemy import SQLAlchemy
 from authlibs import utilities as authutil
 from slackclient import SlackClient
 import json
+import subprocess
 import ConfigParser,sys,os
 import paho.mqtt.client as mqtt
 import paho.mqtt.subscribe as sub
@@ -49,6 +50,9 @@ logger.addHandler(handler)
 Config = ConfigParser.ConfigParser({})
 Config.read('makeit.ini')
 slack_token = Config.get('Slack','BOT_API_TOKEN')
+
+# This is to remember last time user was announced via door entry audio
+lastMemberAccess = {}
 
 def get_mqtt_opts(app):
   Config = ConfigParser.ConfigParser({})
@@ -283,6 +287,13 @@ def on_message(client,userdata,msg):
                         send_slack = False
                     elif message['allowed']:
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id
+                        if resourceId == 1:
+                            if memberId not in lastMemberAccess or ((datetime.now() - lastMemberAccess[memberId]).total_seconds() > (3600*3)):
+                                print "DOOR ENTRY FOR",memberId
+                                lastMemberAccess[memberId] = datetime.now()
+                                subprocess.Popen(
+                                    ["/var/www/authbackend-ng/doorentry",str(memberId)], shell=False, stdin=None, stdout=None, stderr=None,
+                                    close_fds=True)
                     else:
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED.id
 
