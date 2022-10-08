@@ -72,6 +72,7 @@ from authlibs.reports import reports
 from authlibs.tools import tools 
 from authlibs.nodes import nodes 
 from authlibs.autoplot import autoplot 
+from authlibs.memberAudio import memberAudio 
 from authlibs.kvopts import kvopts 
 from authlibs.comments import comments 
 from authlibs.apikeys import apikeys 
@@ -592,6 +593,7 @@ with app.app_context():
     training.register_pages(app)
     belog.register_pages(app)
     memberFolders.register_pages(app)
+    memberAudio.register_pages(app)
     slackutils.create_routes(app)
     g.main_menu = main_menu
     app.config['main_menu'] = main_menu
