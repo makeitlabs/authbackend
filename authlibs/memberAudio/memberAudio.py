@@ -47,7 +47,7 @@ def audio():
       return redirect(url_for("index"))
     fn = os.path.join(folderPath,current_user.member).encode('utf=8')
     hascurrent =  os.path.exists(fn+".pcm")
-    return render_template('audio.html',member=current_user,hascurrent=hascurrent)
+    return render_template('audio.html',member=current_user,hascurrent=hascurrent,nickname=current_user.nickname)
 
 
 @login_required
@@ -105,6 +105,18 @@ def deleteAudio():
     flash("Deleted")
     return redirect(url_for("index"))
 
+@blueprint.route('/setNickname', methods=['POST'])
+@login_required
+def setNickname():
+    s = Subscription.query.filter(current_user.id == Subscription.member_id).one_or_none()
+    if (s.plan != "pro"):
+      flash("MemberAudio is only availble to Pro members")
+      return redirect(url_for("index"))
+    if 'nickname' in request.form:
+        current_user.nickname = request.form['nickname'].strip()
+        db.session.commit()
+        flash("Nickname changed")
+    return redirect(url_for("memberAudio.audio"))
 
 @blueprint.route('/upload', methods=['GET', 'POST'])
 @login_required

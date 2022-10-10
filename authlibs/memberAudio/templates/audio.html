@@ -6,7 +6,7 @@
 <div class="body"> <!-- BASE contrainer -->
 
 		
-<div class="container"> {# Outer container #}
+<div class="my-2 container"> {# Outer container #}
   <h3>Member Audio for {{ member.firstname }} {{ member.lastname}} </h3>
 
   
@@ -23,6 +23,14 @@
     <input type=file name=file>
     <input type=submit value=Upload>
    </form>
+</div>
+
+<div class="my-2 container">
+  <h3>Nickname</h3>
+  <form method="post" enctype="multipart/form-data" action="{{ url_for("memberAudio.setNickname") }}">
+  Your Current Nickname: <input type="input" name="nickname" value="{{ nickname }}">
+  <input type=submit value=Change>
+  </form>
 </div>
 
 {% endblock %}
