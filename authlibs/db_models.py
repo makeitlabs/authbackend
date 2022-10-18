@@ -58,6 +58,7 @@ class Member(db.Model,UserMixin):
     access_enabled = db.Column(db.Integer(),default=0) # Defaults to "0" for new member - Waiver will make this non-zero - means no access
     access_reason = db.Column(db.String(50)) # If access_enabled is nonzero - access_reason will be a MANUAL reason for no access (empty means waiver-block)
     active = db.Column(db.Integer()) # Applies to membership AND GUI login (flask-user) set ONLY by program logic
+    balance = db.Column(db.Integer()) # Vending balance in CENTS!!!
     nickname = db.Column(db.String(50))
     stripe_name = db.Column(db.String(50))
     time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())

@@ -31,7 +31,7 @@ def nodes():
 		nodes.append({'id':x.id,'name':x.name,'mac':x.mac,'when':a[0],'ago':a[1],'strength':x.strength,'when_acl':acl[0],'ago_acl':acl[1]})
 	access = {}
 	resources=Resource.query.all()
-	return render_template('nodes.html',nodes=nodes,editable=True,node={},resources=resources)
+	return render_template('nodes.html',nodes=sorted(nodes,key=lambda x:x['name']),editable=True,node={},resources=resources)
 
 @blueprint.route('/', methods=['POST'])
 @login_required

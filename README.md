@@ -178,7 +178,6 @@ For an example crontab - see `crontab.txt`
 
 # Update/Deploy
 
-#  Multitrain Update
 
 Add `MemberFoldersPath` to `[General]` section of `makeit.ini` with mount point to Member Folders
 Add `autoplot` section to `makeit.ini`
@@ -298,6 +297,7 @@ CREATE TABLE tempauth (
 
 ALTER TABLE members ADD COLUMN memberFolder VARCHAR(255);
 insert into roles (id,name) values (7,"LeaseMgr");
+ALTER TABLE members ADD COLUMN balance INTEGER;
 
 COMMIT;
 PRAGMA foreign_keys=on;

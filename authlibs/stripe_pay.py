@@ -54,6 +54,7 @@ def getSubscriptions(status=None):
 
 def reportError(s):
     print("ERROR: %s" % s)
+    logger.error("Stripe Error: %s" %s)
 
 def getSubscriptionsJSON():
     '''Get a payment system independent JSON structure with subscription data'''

@@ -78,18 +78,22 @@ if __name__ == '__main__':
           print "NEXT CUROSR IS",next_cursor
           
         # fake-resource-users
+	print "TEST JOIN"
         res = sc.api_call(
         "conversations.join",
         channel="CTN7EK3A9"
         )
-        res = sc.api_call(
+	print "TEST JOIN2"
+        res = sc1.api_call(
         "conversations.join",
-        channel="C014U9VPH16"
+        channel="CTN7EK3A9"
         )
-        print res
+        print "JOIN2",res
 
-        res = sc.api_call(
+	print "TEST INVITE"
+        res = sc1.api_call(
         "conversations.invite",
         channel="CTN7EK3A9",
         users="U03126YLY"
         )
+	print "TEST INVITE",res

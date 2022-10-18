@@ -45,9 +45,78 @@ def audio():
     if not folderPath:
       flash("MemberAudio path not configured in INI file","danger")
       return redirect(url_for("index"))
-    return render_template('audio.html',member=current_user)
+    fn = os.path.join(folderPath,current_user.member).encode('utf=8')
+    hascurrent =  os.path.exists(fn+".pcm")
+    return render_template('audio.html',member=current_user,hascurrent=hascurrent,nickname=current_user.nickname)
 
 
+@login_required
+@blueprint.route('/get', methods=['GET'])
+def getAudio():
+    s = Subscription.query.filter(current_user.id == Subscription.member_id).one_or_none()
+    if (s.plan != "pro"):
+      flash("MemberAudio is only availble to Pro members")
+      return redirect(url_for("index"))
+    folderPath = None
+    if current_app.config['globalConfig'].Config.has_option('General','MemberAudioPath'):
+      folderPath = current_app.config['globalConfig'].Config.get('General','MemberAudioPath')
+    if not folderPath:
+      flash("MemberAudio path not configured in INI file","danger")
+      return redirect(url_for("index"))
+
+    fn = os.path.join(folderPath,current_user.member).encode('utf=8')
+    if not os.path.exists(fn+".pcm"):
+      flash("No audio has been uploaded","danger")
+      return redirect(url_for("index"))
+
+    #  ffmpeg -f s16le -ar 16000 -ac 1 -i /var/www/memberAudio/Bradley.Goodman.pcm -f wav pipe:1
+    try:
+        wavdata=subprocess.check_output(['ffmpeg','-f','s16le','-ar','16000','-ac','1','-i',fn+'.pcm','-f','wav','pipe:1'])
+    except:
+      flash("Error decoding stored audio","danger")
+      return redirect(url_for("index"))
+
+    return Response(
+                response=wavdata,
+                mimetype='audio/wav',
+                status=200
+            )
+
+@login_required
+@blueprint.route('/delete', methods=['GET'])
+def deleteAudio():
+    s = Subscription.query.filter(current_user.id == Subscription.member_id).one_or_none()
+    if (s.plan != "pro"):
+      flash("MemberAudio is only availble to Pro members")
+      return redirect(url_for("index"))
+    folderPath = None
+    if current_app.config['globalConfig'].Config.has_option('General','MemberAudioPath'):
+      folderPath = current_app.config['globalConfig'].Config.get('General','MemberAudioPath')
+    if not folderPath:
+      flash("MemberAudio path not configured in INI file","danger")
+      return redirect(url_for("index"))
+
+    fn = os.path.join(folderPath,current_user.member).encode('utf=8')
+    if not os.path.exists(fn+".pcm"):
+      flash("No audio has been uploaded","danger")
+      return redirect(url_for("index"))
+
+    os.remove(fn+".pcm")
+    flash("Deleted")
+    return redirect(url_for("index"))
+
+@blueprint.route('/setNickname', methods=['POST'])
+@login_required
+def setNickname():
+    s = Subscription.query.filter(current_user.id == Subscription.member_id).one_or_none()
+    if (s.plan != "pro"):
+      flash("MemberAudio is only availble to Pro members")
+      return redirect(url_for("index"))
+    if 'nickname' in request.form:
+        current_user.nickname = request.form['nickname'].strip()
+        db.session.commit()
+        flash("Nickname changed")
+    return redirect(url_for("memberAudio.audio"))
 
 @blueprint.route('/upload', methods=['GET', 'POST'])
 @login_required

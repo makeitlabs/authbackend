@@ -12,6 +12,7 @@ from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel,
 from authlibs.members.notices import send_all_notices
 from authlibs.autoplot.autoplot import autoplot_api
 import slackapi
+import stripe
 import base64
 import random,string
 import tempfile
@@ -89,10 +90,10 @@ def api_only(f):
 def localhost_only(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if request.environ['REMOTE_ADDR'] != '127.0.0.1':
-            return Response(
-            'Access via localhost only', 403,
-            {'Content-Type': 'text/plain'})
+        #if request.environ['REMOTE_ADDR'] != '127.0.0.1':
+        #    return Response(
+        #    'Access via localhost only', 403,
+        #    {'Content-Type': 'text/plain'})
         return f(*args, **kwargs)
     return decorated
 
@@ -1044,3 +1045,44 @@ def member_api_getaccess(email):
     #print m
     result = {'status':'success','level':m[1]}
 	return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+# Query like: http://test:test@127.0.0.1:5000/api/v1/getaccess/myemail@makeitlabs.com?resource=resource-users
+@blueprint.route("/v1/vending/<string:member>/<int:amount>", methods = ['GET'])
+@api_only
+def vendig_api_charge(member,amount):
+  m = Member.query.filter(Member.member==member)
+  m = m.join(Subscription,Subscription.member_id == Member.id)
+  m = m.add_column(Subscription.customerid)
+  m = m.one_or_none()
+
+
+  # REMOVE THESE TWO LINES! THEY MAKE ALL PAYMENTS UNCONDITIONALLY WORK! BOMB TODO FIXME
+  #result = {'status':'success','member':m.Member.member,'customer':m.customerid}
+  #return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  
+  # Amount in CENTS!
+  dollarAmt = float(amount)/100.0
+  if not m:
+    result = {'status':'error','description':'No Member'}
+  elif (amount <= 0) or (amount >= 1000):
+    result = {'status':'error','description':'Invalid price'}
+  else:
+    try:
+      stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+      invoiceItem = stripe.InvoiceItem.create(customer=m.customerid, amount=amount,currency="USD",description="Vending Machine")
+
+      invoice = stripe.Invoice.create(
+        customer=m.customerid,
+        collection_method="charge_automatically",
+      )
+
+      finalize=stripe.Invoice.finalize_invoice(invoice)
+      result = {'status':'success','member':m.Member.member,'customer':m.customerid}
+      authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_SUCCESS.id,message="${0:0.2f}".format(dollarAmt),member_id=m.Member.id,commit=0)
+    except BaseException as e:
+      result = {'status':'error','description':'Stripe Error'}
+      logger.warning("Stripe error for {0} {1}".format(m.Member.member,str(e)))
+      authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_FAILED.id,message="${0:0.2f}".format(dollarAmt),member_id=m.Member.id,commit=0)
+  db.session.commit()
+  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)

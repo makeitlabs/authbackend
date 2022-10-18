@@ -6,16 +6,31 @@
 <div class="body"> <!-- BASE contrainer -->
 
 		
-<div class="container"> {# Outer container #}
+<div class="my-2 container"> {# Outer container #}
   <h3>Member Audio for {{ member.firstname }} {{ member.lastname}} </h3>
 
   
+  {% if hascurrent %}
+  <h3>Current Audio</h3>
+  <audio controls>
+  <source src="{{ url_for("memberAudio.getAudio") }}" />
+</audio>
+  <p><a href="{{ url_for("memberAudio.deleteAudio") }}">Delete Current</a></p>
+  {% endif %}
   <p>Upload a file for your member entrance audio. 7 Seconds maximum. A number of audio and vido file formats are supported. (Try one - it'll tell you if it worked). Clips will be truncated to 7 seconds. Be advised: Vulgar, offensive or inappropriate audio may lead to removal or revocation of Entry Audio privileges.</p>
   <form method="post" enctype="multipart/form-data" action="{{ url_for("memberAudio.upload_file") }}">
     <input type="hidden" name="folder" value="{{ folder }}">
     <input type=file name=file>
     <input type=submit value=Upload>
    </form>
+</div>
+
+<div class="my-2 container">
+  <h3>Nickname</h3>
+  <form method="post" enctype="multipart/form-data" action="{{ url_for("memberAudio.setNickname") }}">
+  Your Current Nickname: <input type="input" name="nickname" value="{{ nickname }}">
+  <input type=submit value=Change>
+  </form>
 </div>
 
 {% endblock %}
