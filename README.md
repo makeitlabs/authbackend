@@ -170,6 +170,12 @@ For an example crontab - see `crontab.txt`
 
 # Update/Deploy
 
+# HOTFIX - member balances
+
+```
+ALTER TABLE members ADD COLUMN balance INTEGER;
+```
+
 # v1.0.7 Update
 ```
 sqlite3 <<dbfile>>

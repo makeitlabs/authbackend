@@ -920,19 +920,20 @@ def vendig_api_charge(member,amount):
 
 
   # REMOVE THESE TWO LINES! THEY MAKE ALL PAYMENTS UNCONDITIONALLY WORK! BOMB TODO FIXME
-  result = {'status':'success','member':m.Member.member,'customer':m.customerid}
-  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  #result = {'status':'success','member':m.Member.member,'customer':m.customerid}
+  #return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
-
+  
+  # Amount in CENTS!
   dollarAmt = float(amount)/100.0
   if not m:
     result = {'status':'error','description':'No Member'}
-  elif (dollarAmt <= 0) or (dollarAmt >= 100):
+  elif (amount <= 0) or (amount >= 1000):
     result = {'status':'error','description':'Invalid price'}
   else:
     try:
-      stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
-      invoiceItem = stripe.InvoiceItem.create(customer=m.customerid, amount=dollarAmt,currency="USD",description="Vending Machine")
+      stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+      invoiceItem = stripe.InvoiceItem.create(customer=m.customerid, amount=amount,currency="USD",description="Vending Machine")
 
       invoice = stripe.Invoice.create(
         customer=m.customerid,
