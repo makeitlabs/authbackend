@@ -320,6 +320,9 @@ def member_show(id):
 
 			
 		 groupmembers=[]
+                 bal = member.balance
+                 if bal is None: bal=0
+                 vendingBalance="${0:1.2f}".format(float(bal)/100.0)
 		 if subscription:
 		   groupmembers=Subscription.query.filter(Subscription.subid == subscription.subid).filter(Subscription.id != subscription.id)
 		   groupmembers=groupmembers.join(Member,Member.id == Subscription.member_id)
@@ -330,7 +333,7 @@ def member_show(id):
 
 
 		 tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
-		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta,page="view",tags=tags,groupmembers=groupmembers,waivers=waivers)
+		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta,page="view",tags=tags,groupmembers=groupmembers,waivers=waivers,vendingBalance=vendingBalance)
 	 else:
 		flash("Member not found",'warning')
 		return redirect(url_for("members.members"))

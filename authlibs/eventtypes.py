@@ -267,12 +267,17 @@ class RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB:
 class RATTBE_LOGEVENT_VENDING_SUCCESS:
     id=3019
     desc="Vending Purchase"
-    slack_icon=":money_with_wings:"
+    slack_icon=":cookie:"
 
 class RATTBE_LOGEVENT_VENDING_FAILED:
     id=3020
     desc="Vending Failure"
     slack_icon=":bangbang:"
+
+class RATTBE_LOGEVENT_VENDING_ADDBALANCE:
+    id=3021
+    desc="Add Balance"
+    slack_icon=":moneybag:"
     
 class RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED:
     id=4000

@@ -1,5 +1,3 @@
-# vim:tabstop=2:shiftwidth=2:expandtab
-
 from ..templateCommon import *
 
 from authlibs import accesslib
@@ -123,80 +121,80 @@ def check_api_access(username,password):
 @blueprint.route('/v1/reloadacl', methods=['GET'])
 @api_only
 def api_v1_reloadacl():
-		authutil.kick_backend()
-		return json_dump({'status':'success'}), 200, {'Content-type': 'application/json'}
+    authutil.kick_backend()
+    return json_dump({'status':'success'}), 200, {'Content-type': 'application/json'}
 
 @blueprint.route('/test/localhost', methods=['GET'])
 @localhost_only
 def test_localhost():
-		return "Success", 200, {'Content-type': 'text/plain'}
+    return "Success", 200, {'Content-type': 'text/plain'}
 
 @blueprint.route('/v1/whoami', methods=['GET'])
 @api_only
 def whoami():
-		return json_dump("You have a valid API key %s" % g.apikey, 200, {'Content-type': 'text/plain'})
+    return json_dump("You have a valid API key %s" % g.apikey, 200, {'Content-type': 'text/plain'})
 
 @blueprint.route('/v1/node/<string:node>/config', methods=['GET'])
 @api_only
 def api_v1_nodeconfig(node):
-		result = {'status':'success'}
-		n = Node.query.filter(Node.name == node).one_or_none()
-		if not n:
-			result['status']='error'
-			result['message']='Node not found'
-			return json_dump(result, 200, {'Content-type': 'text/plain'})
+    result = {'status':'success'}
+    n = Node.query.filter(Node.name == node).one_or_none()
+    if not n:
+      result['status']='error'
+      result['message']='Node not found'
+      return json_dump(result, 200, {'Content-type': 'text/plain'})
 
-		result['mac']=n.mac
-		result['name']=n.name
+    result['mac']=n.mac
+    result['name']=n.name
 
-		kv = KVopt.query.add_column(NodeConfig.value).outerjoin(NodeConfig,((NodeConfig.node_id == n.id) & (NodeConfig.key_id == KVopt.id))).all()
-		result['params']={}
-		for (k,v) in kv:
-			#print "KEy %s Value %s Default %s"%(k.keyname,v,k.default)
-			sp = k.keyname.split(".")
-			val=""
-			if v: 
-				val = v
-			else:
-				val = k.default
-			if val is None: val=""
-			if k.kind.lower() == "boolean":
-				if not v:
-					val = False
-				elif v.lower() in ('on','yes','true','1'):
-					val=True
-				else:
-					val=False
-			elif k.kind.lower() == "integer":
-				try:
-					val=int(v)
-				except:
-					val=0
-			
-			i = result['params']
-			for kk in sp[:-1]:
-				if kk not in i:
-					i[kk]={}
-				i=i[kk]
-				
-			i[sp[-1]]=val
+    kv = KVopt.query.add_column(NodeConfig.value).outerjoin(NodeConfig,((NodeConfig.node_id == n.id) & (NodeConfig.key_id == KVopt.id))).all()
+    result['params']={}
+    for (k,v) in kv:
+      #print "KEy %s Value %s Default %s"%(k.keyname,v,k.default)
+      sp = k.keyname.split(".")
+      val=""
+      if v: 
+        val = v
+      else:
+        val = k.default
+      if val is None: val=""
+      if k.kind.lower() == "boolean":
+        if not v:
+          val = False
+        elif v.lower() in ('on','yes','true','1'):
+          val=True
+        else:
+          val=False
+      elif k.kind.lower() == "integer":
+        try:
+          val=int(v)
+        except:
+          val=0
+      
+      i = result['params']
+      for kk in sp[:-1]:
+        if kk not in i:
+          i[kk]={}
+        i=i[kk]
+        
+      i[sp[-1]]=val
 
-		result['tools']=[]
-		tools= Tool.query.add_columns(Resource.name).add_column(Resource.id)
-		tools = tools.filter(Tool.node_id==n.id).join(Resource,Resource.id==Tool.resource_id)
-		tools = tools.all()
-		for x in tools:
-			(t,resname,rid) =x
-			tl={}
-			tl['name']=t.name
-			tl['resource_id']=rid
-			tl['resource']=resname
-			tl['id']=t.id
-			tl['lockout']=t.lockout
-			result['tools'].append(tl)
+    result['tools']=[]
+    tools= Tool.query.add_columns(Resource.name).add_column(Resource.id)
+    tools = tools.filter(Tool.node_id==n.id).join(Resource,Resource.id==Tool.resource_id)
+    tools = tools.all()
+    for x in tools:
+      (t,resname,rid) =x
+      tl={}
+      tl['name']=t.name
+      tl['resource_id']=rid
+      tl['resource']=resname
+      tl['id']=t.id
+      tl['lockout']=t.lockout
+      result['tools'].append(tl)
 
-		#print json_dump(result,indent=2)
-		return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    #print json_dump(result,indent=2)
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
 @blueprint.route('/v1/slack/admin/<string:slackid>',methods=['POST'])
 @api_only
@@ -329,7 +327,7 @@ def api_member_search_handler(searchstr):
 @blueprint.route('/v1/kiosklog', methods=['OPTIONS'])
 #@api_only
 def api_v1_kiosklog_options():
-		return "", 200, {
+    return "", 200, {
                         'Access-Control-Allow-Origin':'https://plachenko.github.io',
                         'Access-Control-Allow-Headers':'Content-Type,Authorization',
                         'Access-Control-Allow-Credentials':'true',
@@ -343,25 +341,25 @@ def api_v1_tempauth():
   print "REQUEST",request
   print "DATA",data
   if not data:
-		return json_dump({'result':'failure','reason':'Not JSON request'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+    return json_dump({'result':'failure','reason':'Not JSON request'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
   tag = None
   resource = None
   if 'fobid' not in data:
-		return json_dump({'result':'failure','reason':'No Fob ID specified'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+    return json_dump({'result':'failure','reason':'No Fob ID specified'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
   if 'resource' not in data:
-		return json_dump({'result':'failure','reason':'No resource specified'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+    return json_dump({'result':'failure','reason':'No resource specified'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
   print "FINDING RAW FOB",data['fobid']
   tag = MemberTag.query.filter(MemberTag.tag_ident == data['fobid']).one_or_none()
 
   if tag is None:
-		return json_dump({'result':'failure','reason':'Fob not found'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+    return json_dump({'result':'failure','reason':'Fob not found'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
   resource = Resource.query.filter(Resource.name == data['resource']).one_or_none()
   if resource is None:
-		return json_dump({'result':'failure','reason':'Resource not found'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+    return json_dump({'result':'failure','reason':'Resource not found'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
   
 
   ta = TempAuth.query.filter((TempAuth.member_id == tag.member_id) & (TempAuth.resource_id == resource.id)).all()
@@ -386,9 +384,9 @@ def api_v1_tempauth():
   print ta
 
   if not ta:
-		return json_dump({'result':'failure','reason':'No Access'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+    return json_dump({'result':'failure','reason':'No Access'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
-	return json_dump({'result':'success','reason':'Access Allowed'}), 200, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+  return json_dump({'result':'success','reason':'Access Allowed'}), 200, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
 @blueprint.route('/v1/kiosklog', methods=['POST'])
 @api_only
@@ -397,10 +395,10 @@ def api_v1_kiosklog():
   #print "REQUEST",request
   #print "DATA",data
   if not data:
-		return json_dump({'result':'failure','reason':'Not JSON request'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+    return json_dump({'result':'failure','reason':'Not JSON request'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
   
   if 'user' not in data or 'event' not in data:
-		return json_dump({'result':'failure','reason':'Field missing'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+    return json_dump({'result':'failure','reason':'Field missing'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
   
   imagename=""
@@ -425,7 +423,7 @@ def api_v1_kiosklog():
       pass
   m = Member.query.filter(Member.member==data['user']).one_or_none()
   if not m:
-		return json_dump({'result':'failure','reason':'Member not found'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+    return json_dump({'result':'failure','reason':'Member not found'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
   e=None
   icon=""
@@ -439,7 +437,7 @@ def api_v1_kiosklog():
     e = eventtypes.RATTBE_LOGEVENT_MEMBER_KIOSK_FAILED.id
     icon = ":bangbang:"
   else:
-		return json_dump({'result':'failure','reason':'Bad event type'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
+    return json_dump({'result':'failure','reason':'Bad event type'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
   authutil.log(e,member_id=m.id,message=imagename,commit=0)
   db.session.commit()
@@ -484,17 +482,17 @@ def api_v1_kiosklog():
 def api_v1_authorize():
   data=request.get_json()
   if not data:
-		return json_dump({'result':'failure','reason':'Not JSON request'}), 400, {'Content-type': 'application/json'}
+    return json_dump({'result':'failure','reason':'Not JSON request'}), 400, {'Content-type': 'application/json'}
   if 'slack_id' not in data:
-		return json_dump({'result':'failure','reason':'Slack user not specified'}), 400, {'Content-type': 'application/json'}
+    return json_dump({'result':'failure','reason':'Slack user not specified'}), 400, {'Content-type': 'application/json'}
   user = data['slack_id']
   
   admin = Member.query.filter(Member.slack == user).all()
   if not admin or len(admin)==0:
-		return json_dump({'result':'failure','reason':'Slack user unknown'}), 400, {'Content-type': 'application/json'}
+    return json_dump({'result':'failure','reason':'Slack user unknown'}), 400, {'Content-type': 'application/json'}
 
   if len(admin)>1:
-		return json_dump({'result':'failure','reason':'Multiple slack admin ids found'}), 400, {'Content-type': 'application/json'}
+    return json_dump({'result':'failure','reason':'Multiple slack admin ids found'}), 400, {'Content-type': 'application/json'}
 
   
   for rid in data['resources']:
@@ -548,65 +546,65 @@ def api_v1_authorize():
 @blueprint.route('/v1/mac/<string:mac>/config', methods=['GET'])
 @api_only
 def api_v1_macconfig(mac):
-		n = Node.query.filter(Node.mac == mac).one_or_none()
-		result = {'status':'success'}
-		if not n:
-			result['status']='error'
-			result['message']='Node not found'
-			return json_dump(result, 200, {'Content-type': 'text/plain'})
-		return api_v1_nodeconfig(n.name)
-	
+    n = Node.query.filter(Node.mac == mac).one_or_none()
+    result = {'status':'success'}
+    if not n:
+      result['status']='error'
+      result['message']='Node not found'
+      return json_dump(result, 200, {'Content-type': 'text/plain'})
+    return api_v1_nodeconfig(n.name)
+  
 
 @blueprint.route('/v3/test', methods=['GET'])
 @login_required
 def api_v3_test():
-		return("Hello world")
+    return("Hello world")
 
 # NOTE this requires LOGIN (not API) access because it
 # is used by javascript to dynamically find members
 @blueprint.route('/v1/members', methods=['GET'])
 @login_required
 def api_v1_members():
-		"""(API) Return a list of all members. either in CSV or JSON"""
-		sqlstr = "select m.member,m.plan,m.updated_date,s.expires_date from members m inner join subscriptions s on lower(s.name)=lower(m.stripe_name) and s.email=m.alt_email"
-		outformat = request.args.get('output','json')
-		filters = {}
-		filters['active'] = safestr(request.args.get('active',''))
-		filters['access_enabled'] = safestr(request.args.get('enabled',''))
-		filters['expired'] = safestr(request.args.get('expired',''))
-		filters['plan'] = safestr(request.args.get('plan',''))
-		fstring = ""
-		if len(filters) > 0:
-				fstrings = []
-				for f in filters:
-						if f == 'active' or f == 'access_enabled':
-								if filters[f] == "true" or filters[f] == "false":
-										fstrings.append("%s='%s'" % (f,filters[f]))
-						if f == 'expired':
-								if filters[f] == 'true':
-										fstrings.append("p.expires_date < Datetime('now')")
-								if filters[f] == 'false':
-										fstrings.append("p.expires_date >= Datetime('now')")
-						if f == 'plan':
-								if filters[f] in ('pro','hobbyist'):
-										fstrings.append("m.plan='%s'" % filters[f])
-				if len(fstrings) > 0:
-						fstring = ' AND '.join(fstrings)
-						sqlstr = sqlstr + " where " + fstring
-		members = query_db(sqlstr)
-		output = ""
-		jsonarr = []
-		for m in members:
-				if outformat == 'csv':
-						output = output + "%s,%s,%s,%s\n" % (m['member'],m['plan'],m['updated_date'],m['expires_date'])
-				elif outformat == 'json':
-						jsonarr.append({'member':m['member'],'plan':m['plan'], 'updated_date': m['updated_date'], 'expires_date': m['expires_date']})
-		if outformat == 'csv':
-				ctype = "text/plain; charset=utf-8"
-		elif outformat == 'json':
-				ctype = "application/json"
-				output = json_dump(jsonarr)
-		return output, 200, {'Content-Type': '%s' % ctype, 'Content-Language': 'en'}
+    """(API) Return a list of all members. either in CSV or JSON"""
+    sqlstr = "select m.member,m.plan,m.updated_date,s.expires_date from members m inner join subscriptions s on lower(s.name)=lower(m.stripe_name) and s.email=m.alt_email"
+    outformat = request.args.get('output','json')
+    filters = {}
+    filters['active'] = safestr(request.args.get('active',''))
+    filters['access_enabled'] = safestr(request.args.get('enabled',''))
+    filters['expired'] = safestr(request.args.get('expired',''))
+    filters['plan'] = safestr(request.args.get('plan',''))
+    fstring = ""
+    if len(filters) > 0:
+        fstrings = []
+        for f in filters:
+            if f == 'active' or f == 'access_enabled':
+                if filters[f] == "true" or filters[f] == "false":
+                    fstrings.append("%s='%s'" % (f,filters[f]))
+            if f == 'expired':
+                if filters[f] == 'true':
+                    fstrings.append("p.expires_date < Datetime('now')")
+                if filters[f] == 'false':
+                    fstrings.append("p.expires_date >= Datetime('now')")
+            if f == 'plan':
+                if filters[f] in ('pro','hobbyist'):
+                    fstrings.append("m.plan='%s'" % filters[f])
+        if len(fstrings) > 0:
+            fstring = ' AND '.join(fstrings)
+            sqlstr = sqlstr + " where " + fstring
+    members = query_db(sqlstr)
+    output = ""
+    jsonarr = []
+    for m in members:
+        if outformat == 'csv':
+            output = output + "%s,%s,%s,%s\n" % (m['member'],m['plan'],m['updated_date'],m['expires_date'])
+        elif outformat == 'json':
+            jsonarr.append({'member':m['member'],'plan':m['plan'], 'updated_date': m['updated_date'], 'expires_date': m['expires_date']})
+    if outformat == 'csv':
+        ctype = "text/plain; charset=utf-8"
+    elif outformat == 'json':
+        ctype = "application/json"
+        output = json_dump(jsonarr)
+    return output, 200, {'Content-Type': '%s' % ctype, 'Content-Language': 'en'}
 
 @blueprint.route('/v1/members/<string:id>', methods=['GET'])
 @api_only
@@ -652,7 +650,7 @@ def api_v1_get_resources():
 @blueprint.route('/v1/resources/<string:id>/fob/<int:fob>', methods=['OPTIONS'])
 #@api_only
 def api_v1_show_resource_fob_options(id,fob):
-		return "", 200, {
+    return "", 200, {
                         'Access-Control-Allow-Origin':'https://plachenko.github.io',
                         'Access-Control-Allow-Headers':'Content-Type,Authorization',
                         'Access-Control-Allow-Credentials':'true',
@@ -662,10 +660,10 @@ def api_v1_show_resource_fob_options(id,fob):
 @blueprint.route('/v1/resources/<string:id>/fob/<int:fob>', methods=['GET'])
 @api_only
 def api_v1_show_resource_fob(id,fob):
-		"""(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
-		rid = safestr(id)
-		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
-		output = accesslib.getAccessControlList(rid)
+    """(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
+    rid = safestr(id)
+    # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+    output = accesslib.getAccessControlList(rid)
     for x in json.loads(output):
       if int(x['raw_tag_id']) == fob:
         #w = Logs.query.order_by(Logs.time_reported.desc()).limit(1).one_or_none()
@@ -677,12 +675,12 @@ def api_v1_show_resource_fob(id,fob):
             if t: 
                 x['lastkiosk']=str(t.time_reported)
         return json.dumps(x), 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
-		return "{\"status\":\"Fob not found\"}", 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+    return "{\"status\":\"Fob not found\"}", 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
 @blueprint.route('/v1/resources/<string:id>/acl', methods=['OPTIONS'])
 #@api_only
 def api_v1_show_resource_acl_options(id):
-		return "", 200, {
+    return "", 200, {
                         'Access-Control-Allow-Origin':'https://plachenko.github.io',
                         'Access-Control-Allow-Headers':'Content-Type,Authorization',
                         'Access-Control-Allow-Credentials':'true',
@@ -692,22 +690,22 @@ def api_v1_show_resource_acl_options(id):
 @blueprint.route('/v1/resources/<string:id>/acl', methods=['GET'])
 @api_only
 def api_v1_show_resource_acl(id):
-		"""(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
-		rid = safestr(id)
-		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
-		digest = hashlib.sha224()
-		output = accesslib.getAccessControlList(rid)
-		digest.update(output.decode("utf-8"))
-		hashstr=binascii.hexlify(digest.digest())
-		return output, 200, {'X-Hash-SHA224':hashstr,'Content-Type': 'text/plain', 'Content-Language': 'en'}
+    """(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
+    rid = safestr(id)
+    # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+    digest = hashlib.sha224()
+    output = accesslib.getAccessControlList(rid)
+    digest.update(output.decode("utf-8"))
+    hashstr=binascii.hexlify(digest.digest())
+    return output, 200, {'X-Hash-SHA224':hashstr,'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
 @blueprint.route('/v1/resources/<string:id>/endorsementAcl/<string:endorsement>', methods=['GET'])
 @api_only
 def api_v1_show_resource_endorsement_acl(id,endorsement):
-		"""(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
-		rid = safestr(id)
-		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
-		orig = json.loads(accesslib.getAccessControlList(rid))
+    """(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
+    rid = safestr(id)
+    # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+    orig = json.loads(accesslib.getAccessControlList(rid))
     output = []
     for x in orig:
       if 'endorsements' in x:
@@ -716,7 +714,7 @@ def api_v1_show_resource_endorsement_acl(id,endorsement):
           output.append(x)
     
     output = json.dumps(output,indent=2)
-		return output, 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
+    return output, 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
 
 @blueprint.route('/ubersearch/<string:ss>',methods=['GET'])
 @login_required
@@ -727,39 +725,39 @@ def ubersearch_handler(ss):
 @blueprint.route('/v0/resources/<string:id>/acl', methods=['GET'])
 @api_only
 def api_v0_show_resource_acl(id):
-		"""(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
-		rid = safestr(id)
-		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
-		#users = _getResourceUsers(rid)
-		users = json_load(accesslib.getAccessControlList(rid))
-		outformat = request.args.get('output','csv')
-		if outformat == 'csv':
-				digest = hashlib.sha224()
-				outstr = "username,key,value,allowed,hashedCard,lastAccessed"
-				for u in users:
-						outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
-				digest.update(outstr.decode("utf-8"))
-				hashstr=binascii.hexlify(digest.digest())
-				return outstr, 200, {'X-Hash-SHA224':hashstr,'Content-Type': 'text/plain', 'Content-Language': 'en'}
+    """(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
+    rid = safestr(id)
+    # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+    #users = _getResourceUsers(rid)
+    users = json_load(accesslib.getAccessControlList(rid))
+    outformat = request.args.get('output','csv')
+    if outformat == 'csv':
+        digest = hashlib.sha224()
+        outstr = "username,key,value,allowed,hashedCard,lastAccessed"
+        for u in users:
+            outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
+        digest.update(outstr.decode("utf-8"))
+        hashstr=binascii.hexlify(digest.digest())
+        return outstr, 200, {'X-Hash-SHA224':hashstr,'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
 @blueprint.route('/v0/resources/<string:id>/aclhash', methods=['GET'])
 @api_only
 def api_v0_show_resource_aclhash(id):
-		"""(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
-		rid = safestr(id)
-		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
-		#users = _getResourceUsers(rid)
-		users = json_load(accesslib.getAccessControlList(rid))
-		outformat = request.args.get('output','csv')
-		if outformat == 'csv':
-				digest = hashlib.sha224()
-				outstr = "username,key,value,allowed,hashedCard,lastAccessed"
-				for u in users:
-						outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
+    """(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
+    rid = safestr(id)
+    # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+    #users = _getResourceUsers(rid)
+    users = json_load(accesslib.getAccessControlList(rid))
+    outformat = request.args.get('output','csv')
+    if outformat == 'csv':
+        digest = hashlib.sha224()
+        outstr = "username,key,value,allowed,hashedCard,lastAccessed"
+        for u in users:
+            outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
 
-				digest.update(outstr.decode("utf-8"))
-				outstr=binascii.hexlify(digest.digest())
-				return outstr+"\n", 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
+        digest.update(outstr.decode("utf-8"))
+        outstr=binascii.hexlify(digest.digest())
+        return outstr+"\n", 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
 
 
@@ -769,20 +767,20 @@ def api_v0_show_resource_aclhash(id):
 @blueprint.route('/v0/resources/<string:id>/endorsementAcl/<string:endorsement>', methods=['GET'])
 @api_only
 def api_v0_show_resource_endorsement_acl(id,endorsement):
-		"""(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
-		rid = safestr(id)
-		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
-		#users = _getResourceUsers(rid)
-		users = json_load(accesslib.getAccessControlList(rid))
-		outformat = request.args.get('output','csv')
-		if outformat == 'csv':
-				outstr = "username,key,value,allowed,hashedCard,lastAccessed"
-				for u in users:
+    """(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
+    rid = safestr(id)
+    # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+    #users = _getResourceUsers(rid)
+    users = json_load(accesslib.getAccessControlList(rid))
+    outformat = request.args.get('output','csv')
+    if outformat == 'csv':
+        outstr = "username,key,value,allowed,hashedCard,lastAccessed"
+        for u in users:
           if 'endorsements' in u:
             e = u['endorsements'].strip().split()
             if endorsement in e:
               outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
-				return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
+        return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
 @blueprint.route('/v1/payments/update', methods=['GET'])
 @api_only
@@ -804,12 +802,12 @@ def api_v1_payments_update():
 @blueprint.route('/v1/test', methods=['GET'])
 @api_only
 def api_test():
-		host_addr = str.split(request.environ['HTTP_HOST'],':')
-		str1 = pprint.pformat(request.environ,depth=5)
-		if request.environ['REMOTE_ADDR'] == host_addr[0]:
-				return "Yay, right host"
-		else:
-				return "Boo, wrong host"
+    host_addr = str.split(request.environ['HTTP_HOST'],':')
+    str1 = pprint.pformat(request.environ,depth=5)
+    if request.environ['REMOTE_ADDR'] == host_addr[0]:
+        return "Yay, right host"
+    else:
+        return "Boo, wrong host"
 
 @blueprint.route('/v1/healthcheck', methods=['GET'])
 @api_only
@@ -966,20 +964,20 @@ def cli_listapikeys(cmd,**kwargs):
 
 # Placeholder to test stuff
 def cli_querytest(cmd,**kwargs):
-	door = Resource.query.filter(Resource.name=="frontdoor").one()
-	doorid = door.id
-	memberquery = Member.query
-	if len(cmd) >= 2:
-		memberquery = Member.query.filter(Member.member.ilike("%"+cmd[1]+"%"))
-	for member in memberquery.all():
-		#acc= accesslib.access_query(doorid,member_id=member.id,tags=False).one_or_none()
-		acc= accesslib.access_query(doorid,member_id=member.id,tags=False).first()
-		if acc: 
-			acc=accesslib.accessQueryToDict(acc)
-			(warning,allowed)=accesslib.determineAccess(acc,"DENIED",door)
-			print member.member,allowed,warning
-		else:
-			print member.member,"NODOORACCESS"
+  door = Resource.query.filter(Resource.name=="frontdoor").one()
+  doorid = door.id
+  memberquery = Member.query
+  if len(cmd) >= 2:
+    memberquery = Member.query.filter(Member.member.ilike("%"+cmd[1]+"%"))
+  for member in memberquery.all():
+    #acc= accesslib.access_query(doorid,member_id=member.id,tags=False).one_or_none()
+    acc= accesslib.access_query(doorid,member_id=member.id,tags=False).first()
+    if acc: 
+      acc=accesslib.accessQueryToDict(acc)
+      (warning,allowed)=accesslib.determineAccess(acc,"DENIED",door)
+      print member.member,allowed,warning
+    else:
+      print member.member,"NODOORACCESS"
 
 
 # Placeholder to test stuff
@@ -987,21 +985,21 @@ def cli_cron(cmd,**kwargs):
   api_cron_nightly()
 
 def register_pages(app):
-	app.register_blueprint(blueprint)
+  app.register_blueprint(blueprint)
 
 # Like: curl 'http://test:test@127.0.0.1:5000/api/v1/setaccess/user@makeitlabs.com?resource=fake-resource-users&slack=CID1234'
 @blueprint.route('/v1/setaccess/<string:email>', methods = ['GET'])
 @api_only
 def member_api_setaccess(email):
-	resource = request.args.get('resource','')
-	slack = request.args.get('slack','')
-	result = {'status':'success'}
+  resource = request.args.get('resource','')
+  slack = request.args.get('slack','')
+  result = {'status':'success'}
 
-	m = Member.query.filter(Member.email.ilike(email))
-	m = m.join(Resource,(AccessByMember.resource_id == Resource.id) & (Resource.name == resource))
-	m = m.join(AccessByMember,AccessByMember.member_id == Member.id)
-	m = m.add_column(AccessByMember.level)
-	m = m.one_or_none()
+  m = Member.query.filter(Member.email.ilike(email))
+  m = m.join(Resource,(AccessByMember.resource_id == Resource.id) & (Resource.name == resource))
+  m = m.join(AccessByMember,AccessByMember.member_id == Member.id)
+  m = m.add_column(AccessByMember.level)
+  m = m.one_or_none()
 
   if m:
     # Record already exists
@@ -1026,26 +1024,28 @@ def member_api_setaccess(email):
       if m.slack and slack != "":
         add_user_to_channel(slack,m.slack)
   
-	return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
 # Query like: http://test:test@127.0.0.1:5000/api/v1/getaccess/myemail@makeitlabs.com?resource=resource-users
 @blueprint.route("/v1/getaccess/<string:email>", methods = ['GET'])
 @api_only
 def member_api_getaccess(email):
-	resource = request.args.get('resource','')
+  resource = request.args.get('resource','')
   #print "FIND ",email,resource
-	m = Member.query.filter(Member.email.ilike(email))
-	m = m.join(Resource,(AccessByMember.resource_id == Resource.id) & (Resource.name == resource))
-	m = m.join(AccessByMember,AccessByMember.member_id == Member.id)
-	m = m.add_column(AccessByMember.level)
-	m = m.one_or_none()
+  m = Member.query.filter(Member.email.ilike(email))
+  m = m.join(Resource,(AccessByMember.resource_id == Resource.id) & (Resource.name == resource))
+  m = m.join(AccessByMember,AccessByMember.member_id == Member.id)
+  m = m.add_column(AccessByMember.level)
+  m = m.one_or_none()
   if not m:
     result = {'status':'error','description':'Not Found'}
   else:
     #print m
     result = {'status':'success','level':m[1]}
-	return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
+## ORIGINAL Vending - draws charges DIRECTLY from Stripe
+## DO NOT CHANGE!!
 # Query like: http://test:test@127.0.0.1:5000/api/v1/getaccess/myemail@makeitlabs.com?resource=resource-users
 @blueprint.route("/v1/vending/<string:member>/<int:amount>", methods = ['GET'])
 @api_only
@@ -1077,7 +1077,7 @@ def vendig_api_charge(member,amount):
         collection_method="charge_automatically",
       )
 
-      finalize=stripe.Invoice.finalize_invoice(invoice)
+      finalize=stripe.Invoice.finalize_invoice(invoice,auto_advance=True)
       result = {'status':'success','member':m.Member.member,'customer':m.customerid}
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_SUCCESS.id,message="${0:0.2f}".format(dollarAmt),member_id=m.Member.id,commit=0)
     except BaseException as e:
@@ -1085,4 +1085,168 @@ def vendig_api_charge(member,amount):
       logger.warning("Stripe error for {0} {1}".format(m.Member.member,str(e)))
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_FAILED.id,message="${0:0.2f}".format(dollarAmt),member_id=m.Member.id,commit=0)
   db.session.commit()
+  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+
+# Just query
+@blueprint.route("/v2/vending/queryBalance/<string:member>", methods = ['GET'])
+@api_only
+def vendig_api_getBalance(member):
+  m = Member.query.filter(Member.member==member)
+  m = m.one_or_none()
+
+
+  if not m:
+    result = {'status':'error','description':'No Member'}
+  else:
+    bal = m.balance
+    if bal is None:
+       bal = 0
+    result = {'status':'success','balance':bal}
+  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+
+  
+#  curl -H 'Content-Type: application/json'  -d '{"amount": 100, "prevBalance":300}' ${STAGING_URL}/api/v2/vending/chargeAccount/Bradley.Goodman
+@blueprint.route("/v2/vending/chargeAccount/<string:member>", methods = ['POST'])
+@api_only
+def vendig_api_chargeAccount(member):
+  m = Member.query.filter(Member.member==member)
+  m = m.join(Subscription,Subscription.member_id == Member.id)
+  m = m.add_column(Subscription.customerid)
+  m = m.one_or_none()
+
+  if m is None:
+    logger.error("Payment charge No Member")
+    result = {'status':'error','description':'No Member??'}
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  data=request.get_json()
+  if data is None:
+    logger.error("Payment charge non JSON payload")
+    result = {'status':'error','description':'Bad Request'}
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  if 'amount' not in data or 'prevBalance' not in data:
+    logger.error("Payment charge request malformed fields")
+    result = {'status':'error','description':'Bad Request'}
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  if m.Member.balance != data['prevBalance']:
+    logger.error("Balance did not match previous")
+    result = {'status':'error','description':'Please try again'}
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+
+  # Amount in CENTS!
+  dollarAmt = float(data['amount'])/100.0
+  if not m:
+    result = {'status':'error','description':'No Member'}
+  elif (data['amount'] <= 0) or (data['amount'] >= 1000):
+    result = {'status':'error','description':'Invalid price'}
+  elif m.Member.balance is None or data['amount'] > m.Member.balance:
+    result = {'status':'error','description':'Low Balance'}
+  else:
+    if m.Member.balance is None:
+      m.Member.balance = data['amount']
+    else:
+      m.Member.balance -= data['amount']
+    vendstr = "OldBal: ${0:0.2f} Purchase: ${1:0.2f} NewBal: ${2:0.2f}".format(
+          data['prevBalance']/100.0,data['amount']/100.0,m.Member.balance/100.0)
+    authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_SUCCESS.id,message=vendstr,member_id=m.Member.id,commit=0)
+    db.session.commit()
+    result = {'status':'success','member':m.Member.member,'customer':m.customerid}
+  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+
+#  curl -H 'Content-Type: application/json'  -d '{"addAmount": 100, "totalCharge":300, "prevBalance":200, "serviceFee":30,"purchaseAmt":100, "newBalance":400}'
+@blueprint.route("/v2/vending/reupBalance/<string:member>", methods = ['POST'])
+@api_only
+def vendig_api_ReupBalance(member):
+  m = Member.query.filter(Member.member==member)
+  m = m.join(Subscription,Subscription.member_id == Member.id)
+  m = m.add_column(Subscription.customerid)
+  m = m.one_or_none()
+
+  result = {'status':'error','description':'Bad Request'}
+  if m is None:
+    logger.error("Payment reup No Member")
+    result = {'status':'error','description':'No Member??'}
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  data=request.get_json()
+  if data is None:
+    logger.error("Payment reup non JSON payload")
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  # We are going to REDUNDANTLY check all of the charge information approved by the user on the front-end
+  for v in ('addAmount','totalCharge','prevBalance','serviceFee','purchaseAmt','newBalance'):
+    if v not in data:
+      logger.error("Payment reup missing "+v)
+      return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  if (data['totalCharge'] != data['addAmount'] + data['serviceFee']):
+    logger.error("Reup totalCharge was incorrect")
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  if (data['newBalance'] != data['prevBalance'] + data['addAmount'] - data['purchaseAmt']):
+    logger.error("Reup newBalance was incorrect")
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  if m.Member.balance != data['prevBalance']:
+    logger.error("Balance did not match previous")
+    result = {'status':'error','description':'Please try again'}
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  # Amount in CENTS!
+  if not m:
+    result = {'status':'error','description':'No Member'}
+  elif (data['addAmount'] <= 0) or (data['addAmount'] > 1000):
+    result = {'status':'error','description':'Invalid price'}
+  else:
+
+    """
+    # --------- REMOVE THESE LINES! THEY MAKE ALL PAYMENTS UNCONDITIONALLY WORK! BOMB TODO FIXME
+    result = {'status':'success','member':m.Member.member,'customer':m.customerid}
+    authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_ADDBALANCE.id,message="${0:0.2f}".format(data['addAmount']/100.0),member_id=m.Member.id,commit=0)
+    if m.Member.balance is None:
+      m.Member.balance = data['addAmount']
+    else:
+      m.Member.balance += data['addAmount']
+    db.session.commit()
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    # --------- END REMOVE LINES
+    """
+    cid = m.customerid
+    cid = 'cus_MN5oo9gAnx3Vtn' # BOMB TODO FIXME!!!
+
+
+    try:
+      stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+      invoiceItem = stripe.InvoiceItem.create(customer=cid, amount=data['addAmount'],currency="USD",description="Vending Machine")
+      vendstr = "OldBal: ${0:0.2f} Add: ${1:0.2f} Purchase: ${2:0.2f} Fee: ${3:0.2f} NewBal: ${4:0.2f}".format(
+            data['prevBalance']/100.0,data['addAmount']/100.0,data['purchaseAmt']/100.0,data['serviceFee']/100.0,data['newBalance']/100.0)
+
+      invoice = stripe.Invoice.create(
+        customer=cid,
+        #collection_method="charge_automatically",
+      )
+
+      finalize=stripe.Invoice.finalize_invoice(invoice)
+      if (finalize['status'] != 'open'):
+        result = {'error':'success','description':"Stripe Error"}
+        logger.warning("Stripe fainalize error for {0} status is {1}".format(m.Member.member,finalize['status']))
+      else:
+        pay = stripe.Invoice.pay(invoice)
+        if (pay['status'] != 'paid'):
+          result = {'error':'success','description':"Payment Declined"}
+          logger.warning("Stripe Payment error for {0} status is {1}".format(m.Member.member,pay['status']))
+      result = {'status':'success','member':m.Member.member,'customer':cid}
+      authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_ADDBALANCE.id,message=vendstr,member_id=m.Member.id,commit=0)
+      m.Member.balance = data['newBalance']
+    except BaseException as e:
+      result = {'status':'error','description':'Payment Error'}
+      logger.warning("Stripe error for {0} {1}".format(m.Member.member,str(e)))
+      authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_FAILED.id,message=vendstr,member_id=m.Member.id,commit=0)
+    db.session.commit()
   return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
