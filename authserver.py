@@ -79,6 +79,7 @@ from authlibs.apikeys import apikeys
 from authlibs.belog import belog
 from authlibs.training import training
 from authlibs.prostore import prostore
+from authlibs.vending import vending
 
     
 
@@ -592,6 +593,7 @@ with app.app_context():
     prostore.register_pages(app)
     training.register_pages(app)
     belog.register_pages(app)
+    vending.register_pages(app)
     memberFolders.register_pages(app)
     memberAudio.register_pages(app)
     slackutils.create_routes(app)

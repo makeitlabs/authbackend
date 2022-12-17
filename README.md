@@ -183,6 +183,30 @@ Add `MemberFoldersPath` to `[General]` section of `makeit.ini` with mount point 
 Add `autoplot` section to `makeit.ini`
 `sudo pip install icalendar`
 
+## Log DB
+
+```
+CREATE TABLE vendinglog (
+	id INTEGER NOT NULL, 
+	member_id INTEGER NOT NULL, 
+	invoice VARCHAR(100), 
+	product VARCHAR(100), 
+	comment VARCHAR(100), 
+	doneby INTEGER, 
+  oldBalance INTEGER,
+  addAmount INTEGER,
+  purchaseAmount INTEGER,
+  surcharge INTEGER,
+  totalCharge INTEGER,
+  newBalance INTEGER,
+	time_logged DATETIME DEFAULT CURRENT_TIMESTAMP, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE, 
+	FOREIGN KEY(doneby) REFERENCES members (id) ON DELETE CASCADE
+);
+```
+
+## Main DB
 ```
 PRAGMA foreign_keys=off;
 BEGIN TRANSACTION;

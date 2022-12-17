@@ -44,6 +44,7 @@ TokenTEST: sk_test_1234
 Token: sk_live_1234
 # Token for Vending machine transactions only
 VendingToken: sk_live_1234
+VendingProduct: prod_1234
 
 [Smartwaiver]
 Apikey: abcd

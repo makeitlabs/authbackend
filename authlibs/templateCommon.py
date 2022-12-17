@@ -16,7 +16,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response,Blueprint, Markup
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, \
+from db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, VendingLogs, \
     Logs, ApiKey, Tool, KVopt, Node, NodeConfig, Blacklist, accessLevelToString, UsageLog, MaintSched, ProBin, ProLocation, QuizQuestion, Training, TempAuth
 from functools import wraps
 import dateutil.tz

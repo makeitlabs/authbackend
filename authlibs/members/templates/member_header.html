@@ -11,6 +11,7 @@
 			<button onclick='location.href="{{ url_for("members.member_tags",id=rec.id) }}";'  type="button" class="btn btn-{% if page!="tags" %}outline-{% endif %}info">Tags</button>
 		{% endif %}
 		<button onclick='location.href="{{ url_for("members.member_setaccess",id=rec.id) }}";'  type="button" class="btn btn-{% if page!="access" %}outline-{% endif %}info">Access</button>
+		<button onclick='location.href="{{ url_for("vending.vendingUser",id=rec.member) }}";'  type="button" class="btn btn-outline-info">Vending</button>
 		<button onclick='location.href="{{ url_for("logs.logs",memberid=rec.id) }}";'  type="button" class="btn btn-outline-info">Log</button>
 	</div>
 	<div class="container m-0 mb-3 p-0">
