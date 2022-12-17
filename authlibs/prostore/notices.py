@@ -54,7 +54,7 @@ def sendnotices(bin_id,notices):
 	bin = ProBin.query.filter(ProBin.id == bin_id)
 	bin = bin.outerjoin(ProLocation).add_column(ProLocation.location).one()
 	member = Member.query.filter(Member.id == bin.ProBin.member_id).one()
-	print member.member,member.email,member.alt_email,no,bin.location,bin.ProBin.name
+	print (member.member,member.email,member.alt_email,no,bin.location,bin.ProBin.name)
 	text=notice_header
 	text += "\n"
 	for n in no:
@@ -70,10 +70,10 @@ def sendnotices(bin_id,notices):
 
 	text=text.format(firstname=member.firstname,lastname=member.lastname,email=member.email,location=bin.location)
 
-	print "SEND TO",member.email,member.alt_email
-	print text
-	print
-	print
+	print ("SEND TO",member.email,member.alt_email)
+	print (text)
+	print ("")
+	print ("")
 	try:
 		genericEmailSender("info@makeitlabs.com",member.email,"Your MakeIt Labs Pro-Storage Bin",text)
 		genericEmailSender("info@makeitlabs.com",member.alt_email,"Your MakeIt Labs Pro-Storage Bin",text)

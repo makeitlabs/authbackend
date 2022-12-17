@@ -1,7 +1,7 @@
 # vim:tabstop=2:shiftwidth=2:expandtab
-from templateCommon import *
+from .templateCommon import *
 
-from accesslib import addQuickAccessQuery
+from .accesslib import addQuickAccessQuery
 
 
 def ubersearch(searchstr,only=None,membertypes=None):
@@ -57,4 +57,4 @@ def ubersearch(searchstr,only=None,membertypes=None):
 
 def cli_ubersearch(cmd,**kwargs):
 	for x in  ubersearch(cmd[1]):
-			print "%s %s %s" %(x['title'],x['in'],x['url'])
+			print ("%s %s %s" %(x['title'],x['in'],x['url']))

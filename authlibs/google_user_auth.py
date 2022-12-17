@@ -1,19 +1,17 @@
 # vim:tabstop=2:shiftwidth=2:expandtab
 from flask import Blueprint, redirect, url_for, session, flash, g
 from flask_dance.contrib.google import make_google_blueprint, google
-try:
-	from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
-except:
-	from flask_dance.consumer.storage.sqla import SQLAlchemyStorage as SQLAlchemyBackend
-	from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
+
+from flask_dance.consumer.storage.sqla import SQLAlchemyStorage, OAuthConsumerMixin
+
 from flask_login import current_user, login_user, logout_user
 from flask_dance.consumer import oauth_authorized
 from sqlalchemy.orm.exc import NoResultFound
 from oauthlib.oauth2.rfc6749.errors import InvalidClientIdError
-from db_models import db, Member, OAuth, AnonymousMember, Role, UserRoles, AccessByMember
+from .db_models import db, Member, OAuth, AnonymousMember, Role, UserRoles, AccessByMember
 from flask_login import LoginManager
 from flask_user import UserManager
-from accesslib import quickSubscriptionCheck
+from .accesslib import quickSubscriptionCheck
 
 # Set-up Python module logging
 import logging
@@ -46,7 +44,7 @@ def authinit(app):
         offline=True
         )
 
-    google_blueprint.backend = SQLAlchemyBackend(OAuth, db.session,
+    google_blueprint.backend = SQLAlchemyStorage(OAuth, db.session,
                                                  user=current_user,
                                                  user_required=True)
 

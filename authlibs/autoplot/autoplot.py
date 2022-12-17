@@ -7,7 +7,8 @@ from datetime import datetime
 from authlibs import ago
 from ..google_admin import genericEmailSender
 
-import crunchauto
+#import .crunchauto
+from .crunchauto import crunch_calendar
 
 blueprint = Blueprint("autoplot", __name__, template_folder='templates', static_folder="static",url_prefix="/autoplot")
 
@@ -17,7 +18,7 @@ def sendemails(subject="MIL Lease Update",text="(No Body)"):
   lms = Member.query.join(UserRoles,(Member.id == UserRoles.member_id))
   lms = lms.join(Role,(Role.id == UserRoles.role_id) & (Role.name=="LeaseMgr"))
   for x in lms.all():
-    print x.member,x.email
+    #print (x.member,x.email)
     try:
       genericEmailSender("info@makeitlabs.com",x.email,subject,text)
     except BaseException as e:
@@ -33,8 +34,8 @@ def autoplot_logic(rundate=None,process_payment=False,process_invoice=False,debu
   if (len(errors) == 0) and len(billables) ==1:
       mem = Member.query.filter(func.lower(Member.member)==func.lower(billables[0]['member'].replace("@makeitlabs.com",''))).one_or_none()
       if mem:
-          print billables[0]['member']
-          print mem.stripe_name
+          #print (billables[0]['member'])
+          #print (mem.stripe_name)
           sub = Subscription.query.filter(Subscription.member_id == mem.id).one_or_none()
           if sub:
               data['Stripe ID']=sub.customerid
@@ -72,8 +73,8 @@ def autoplot_logic(rundate=None,process_payment=False,process_invoice=False,debu
         debug += pay_debug
         data['pay_status']=pay_status
         if pay_status == 'paid' or pay_status == 'already_paid_stripe':
-          print "CURRENT_APP",type(current_app)
-          print "CURRENT_APP",current_app.extensions
+          #print "CURRENT_APP",type(current_app)
+          #print "CURRENT_APP",current_app.extensions
           authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_LEASE_CHARGE.id,member_id=mem.id,message=data['lease-id'],commit=0)
           db.session.commit()
   # Send Emails
@@ -102,9 +103,9 @@ def autoplot_logic(rundate=None,process_payment=False,process_invoice=False,debu
     for x in debug:
       text += x+"\n"
   sendemails(subject,text)
-  print "SUBJECT:",subject
-  print "TEXT:"
-  print text
+  #print "SUBJECT:",subject
+  #print "TEXT:"
+  #print text
   return (errors,warnings,debug,data,billables) 
 
 
@@ -126,21 +127,21 @@ def autoplot():
     return render_template('autoplot.html',data=None,defdate=rundate)
 
 def cli_autoplot(cmd,**kwargs):
-    print "AUTOPLOT",cmd
+    print ("AUTOPLOT",cmd)
     rundate=None
     if len(cmd)  >=2:
         rundate=cmd[1]
     (errors,warnings,debug,data,billables) = autoplot_logic(rundate=rundate)
-    print "**ERRORS"
-    print errors
-    print "**WARNINGS"
-    print warnings
-    print "**DEBUG"
-    print debug
-    print "**DATA"
-    print data
-    print "**BILLABLES"
-    print billables
+    print ("**ERRORS")
+    print (errors)
+    print ("**WARNINGS")
+    print (warnings)
+    print ("**DEBUG")
+    print (debug)
+    print ("**DATA")
+    print (data)
+    print ("**BILLABLES")
+    print (billables)
 
 
 def autoplot_api():
