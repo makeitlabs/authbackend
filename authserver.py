@@ -73,6 +73,7 @@ from authlibs.api import api
 from authlibs.reports import reports 
 from authlibs.tools import tools 
 from authlibs.nodes import nodes 
+from authlibs.memberAudio import memberAudio 
 from authlibs.autoplot import autoplot 
 from authlibs.kvopts import kvopts 
 from authlibs.comments import comments 
@@ -596,6 +597,7 @@ with app.app_context():
     prostore.register_pages(app)
     training.register_pages(app)
     belog.register_pages(app)
+    memberAudio.register_pages(app)
     memberFolders.register_pages(app)
     slackutils.create_routes(app)
     g.main_menu = main_menu

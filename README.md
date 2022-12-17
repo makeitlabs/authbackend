@@ -281,6 +281,15 @@ Add `MemberFoldersPath` to `[General]` section of `makeit.ini` with mount point 
 Add `autoplot` section to `makeit.ini`
 `sudo pip install icalendar`
 
+
+# HOTFIX - member balances
+
+```
+ALTER TABLE members ADD COLUMN balance INTEGER;
+```
+
+# v1.0.7 Update
+
 ```
 PRAGMA foreign_keys=off;
 BEGIN TRANSACTION;
