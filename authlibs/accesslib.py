@@ -13,7 +13,7 @@ from datetime import timedelta,datetime
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, ApiKey, Node, NodeConfig, KVopt, Tool
+from .db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, ApiKey, Node, NodeConfig, KVopt, Tool
 from functools import wraps
 import json
 from authlibs import eventtypes
@@ -24,7 +24,7 @@ import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
 logger = logging.getLogger(__name__)
 logger.setLevel(GLOBAL_LOGGER_LEVEL)
-from sqlalchemy import case, DateTime
+from sqlalchemy import case, DateTime, literal_column, column
 from sqlalchemy.sql.expression import null as sql_null
 
 
@@ -244,19 +244,28 @@ def access_query(resource_id,member_id=None,tags=True):
     if tags:
       q = db.session.query(MemberTag,MemberTag.tag_ident)
       if resource_id:
-        q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == resource_id)))
+        print ("JOIN NEG 1")
+        q = q.select_from(MemberTag).outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == resource_id)))
+        #q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) ))
+        #q = q.filter(AccessByMember.resource_id == resource_id)
       else:
+        print ("JOIN NEG 2")
         q = q.outerjoin(AccessByMember, (AccessByMember.member_id == MemberTag.member_id))
     else:
-      q = db.session.query(Member,"''") 
+      #q = db.session.query(Member,literal_column("''")) 
+      q = db.session.query(Member,Member.id == member_id)
       if resource_id and member_id:
-          q = q.join(AccessByMember, ((AccessByMember.resource_id == resource_id) & (AccessByMember.member_id == member_id)))
+          print ("JOIN ONE")
+          q = q.join(AccessByMember, ((AccessByMember.resource_id == resource_id) & (AccessByMember.member_id == Member.id)))
+          print (q)
     q = q.add_column(case([(Subscription.plan != None , Subscription.plan ), 
         (Member.plan != None , Member.plan )], 
           else_ = "hobbyiest").label('plan'))
     q = q.add_columns(Member.nickname,Member.access_enabled,Member.access_reason)
-    q = q.add_column(case([(AccessByMember.resource_id !=  None, 'allowed')], else_ = 'denied').label('allowed'))
     # TODO Disable user it no subscription at all??? Only with other "plantype" logic to figure out "free" memberships
+
+    q = q.add_column(case([(AccessByMember.resource_id !=  None, 'allowed')], else_ = 'denied').label('allowed'))
+    #q = q.add_column(column("TEST"))
     q = q.add_column(case([((Subscription.expires_date < db.func.DateTime('now','-14 days')), 'true')], else_ = 'false').label('past_due'))
     q = q.add_column(case([(((Subscription.expires_date < db.func.DateTime('now')) & (Subscription.expires_date > db.func.DateTime('now','-13 days'))), 'true')], else_ = 'false').label('grace_period'))
     q = q.add_column(case([(Subscription.expires_date < db.func.DateTime('now','+2 days'), 'true')], else_ = 'false').label('expires_soon'))
@@ -278,28 +287,41 @@ def access_query(resource_id,member_id=None,tags=True):
     q = q.add_column(AccessByMember.permissions)
 
     if (tags):
+        print ("JOIN TWO")
         q = q.outerjoin(Member,Member.id == MemberTag.member_id)
         if member_id:
+            print ("JOIN 2-0")
             q = q.filter(MemberTag.member_id == member_id)
         if resource_id:
-            pass #q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == resource_id)))
+            print ("JOIN 2-1")
+            #q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == resource_id)))
+            #q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id)))
+            pass
+            #q = q.filter (AccessByMember.resource_id == resource_id)
         else:
+            print ("JOIN 2-2")
             pass # q = q.outerjoin(AccessByMember, (AccessByMember.member_id == MemberTag.member_id))
     else: # No tags
         if member_id:
             q = q.filter(Member.id == member_id)
         if resource_id and member_id:
+            print ("JOIN 2-3")
             pass #q = q.join(AccessByMember, ((AccessByMember.resource_id == resource_id) & (AccessByMember.member_id == member_id)))
 
         elif resource_id:
+            print ("JOIN THREE")
             q = q.join(AccessByMember, (AccessByMember.resource_id == resource_id))
         elif member_id:
+            print ("JOIN FOUR")
             q = q.outerjoin(AccessByMember, (AccessByMember.member_id == member_id))
 
+    print ("JOIN FIVE")
     q = q.outerjoin(Subscription, Subscription.member_id == Member.id)
     if (tags):
+      print ("JOIN SIX")
       q = q.group_by(MemberTag.tag_ident)
 
+    print ("BIGQUERY",str(q))
     return q
     
 # Does this user have the ability to do ANY kind of authorization in the system?

@@ -8,8 +8,9 @@ from authlibs import payments
 from authlibs.waivers.waivers import cli_waivers,connect_waivers
 from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel,send_slack_message
 from authlibs.members.notices import send_all_notices
+
 from authlibs.autoplot.autoplot import autoplot_api
-import slackapi
+from . import slackapi
 import stripe
 import base64
 import random,string
@@ -49,7 +50,7 @@ def api_only(f):
     def decorated(*args, **kwargs):
         auth = request.authorization
         if not auth:
-            print "NOT AUTH"
+            print ("NOT AUTH")
             return error_401()
         a = check_api_access(auth.username, auth.password)
         if not a:
@@ -338,8 +339,8 @@ def api_v1_kiosklog_options():
 @api_only
 def api_v1_tempauth():
   data=request.get_json()
-  print "REQUEST",request
-  print "DATA",data
+  #print ("REQUEST",request)
+  #print ("DATA",data)
   if not data:
     return json_dump({'result':'failure','reason':'Not JSON request'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
@@ -351,7 +352,7 @@ def api_v1_tempauth():
   if 'resource' not in data:
     return json_dump({'result':'failure','reason':'No resource specified'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
 
-  print "FINDING RAW FOB",data['fobid']
+  #print "FINDING RAW FOB",data['fobid']
   tag = MemberTag.query.filter(MemberTag.tag_ident == data['fobid']).one_or_none()
 
   if tag is None:
@@ -364,7 +365,7 @@ def api_v1_tempauth():
 
   ta = TempAuth.query.filter((TempAuth.member_id == tag.member_id) & (TempAuth.resource_id == resource.id)).all()
 
-  print "QUERIED",ta,"Member",tag.member_id,"RESOURCE",resource.id,ta
+  #print "QUERIED",ta,"Member",tag.member_id,"RESOURCE",resource.id,ta
   if ta:
     ta = ta[0]
     if ta.expires < datetime.datetime.now():
@@ -381,7 +382,7 @@ def api_v1_tempauth():
       db.session.delete(ta)
     db.session.commit()
     
-  print ta
+  #print ta
 
   if not ta:
     return json_dump({'result':'failure','reason':'No Access'}), 400, {'Access-Control-Allow-Origin':'*','Content-type': 'application/json'}
@@ -419,7 +420,7 @@ def api_v1_kiosklog():
       imagecode = imagename.split("/")[-1].replace(".jpg","")
       imagename = "kioskimages:"+imagename.split("/")[-1].replace(".jpg","")
     except BaseException as e:
-      print e
+      print (e)
       pass
   m = Member.query.filter(Member.member==data['user']).one_or_none()
   if not m:
@@ -553,7 +554,6 @@ def api_v1_macconfig(mac):
       result['message']='Node not found'
       return json_dump(result, 200, {'Content-type': 'text/plain'})
     return api_v1_nodeconfig(n.name)
-  
 
 @blueprint.route('/v3/test', methods=['GET'])
 @login_required
@@ -690,14 +690,14 @@ def api_v1_show_resource_acl_options(id):
 @blueprint.route('/v1/resources/<string:id>/acl', methods=['GET'])
 @api_only
 def api_v1_show_resource_acl(id):
-    """(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
-    rid = safestr(id)
-    # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
-    digest = hashlib.sha224()
-    output = accesslib.getAccessControlList(rid)
-    digest.update(output.decode("utf-8"))
-    hashstr=binascii.hexlify(digest.digest())
-    return output, 200, {'X-Hash-SHA224':hashstr,'Content-Type': 'text/plain', 'Content-Language': 'en'}
+		"""(API) Return a list of all tags, their associazted users, and whether they are allowed at this resource"""
+		rid = safestr(id)
+		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+		digest = hashlib.sha224()
+		output = accesslib.getAccessControlList(rid)
+		digest.update(output.encode("utf-8"))
+		hashstr=binascii.hexlify(digest.digest())
+		return output, 200, {'X-Hash-SHA224':hashstr,'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
 @blueprint.route('/v1/resources/<string:id>/endorsementAcl/<string:endorsement>', methods=['GET'])
 @api_only
@@ -725,20 +725,20 @@ def ubersearch_handler(ss):
 @blueprint.route('/v0/resources/<string:id>/acl', methods=['GET'])
 @api_only
 def api_v0_show_resource_acl(id):
-    """(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
-    rid = safestr(id)
-    # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
-    #users = _getResourceUsers(rid)
-    users = json_load(accesslib.getAccessControlList(rid))
-    outformat = request.args.get('output','csv')
-    if outformat == 'csv':
-        digest = hashlib.sha224()
-        outstr = "username,key,value,allowed,hashedCard,lastAccessed"
-        for u in users:
-            outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
-        digest.update(outstr.decode("utf-8"))
-        hashstr=binascii.hexlify(digest.digest())
-        return outstr, 200, {'X-Hash-SHA224':hashstr,'Content-Type': 'text/plain', 'Content-Language': 'en'}
+		"""(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
+		rid = safestr(id)
+		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+		#users = _getResourceUsers(rid)
+		users = json_load(accesslib.getAccessControlList(rid))
+		outformat = request.args.get('output','csv')
+		if outformat == 'csv':
+				digest = hashlib.sha224()
+				outstr = "username,key,value,allowed,hashedCard,lastAccessed"
+				for u in users:
+						outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
+				digest.update(outstr.encode("utf-8"))
+				hashstr=binascii.hexlify(digest.digest())
+				return outstr, 200, {'X-Hash-SHA224':hashstr,'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
 @blueprint.route('/v0/resources/<string:id>/aclhash', methods=['GET'])
 @api_only
@@ -933,13 +933,13 @@ def api_toollog():
 #####
 
 def cli_addapikey(cmd,**kwargs):
-  print "CMD IS",cmd
+  #print ("CMD IS",cmd)
   apikey = ApiKey(username=cmd[1],name=cmd[2])
   if (len(cmd) >=4):
     apikey.password=cmd[3]
   else:
     apikey.password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(12))
-    print "API Key is",apikey.password
+    #print ("API Key is",apikey.password)
   apikey.password = current_app.user_manager.hash_password( apikey.password)
   db.session.add(apikey)
   db.session.commit()
@@ -960,7 +960,7 @@ def cli_changeapikey(cmd,**kwargs):
 def cli_listapikeys(cmd,**kwargs):
   apikey = ApiKey.query.all()
   for x in apikey:
-      print "Name:",x.name,"Username:",x.username
+      print ("Name:",x.name,"Username:",x.username)
 
 # Placeholder to test stuff
 def cli_querytest(cmd,**kwargs):
@@ -975,9 +975,9 @@ def cli_querytest(cmd,**kwargs):
     if acc: 
       acc=accesslib.accessQueryToDict(acc)
       (warning,allowed)=accesslib.determineAccess(acc,"DENIED",door)
-      print member.member,allowed,warning
+      print (member.member,allowed,warning)
     else:
-      print member.member,"NODOORACCESS"
+      print (member.member,"NODOORACCESS")
 
 
 # Placeholder to test stuff
@@ -1024,7 +1024,7 @@ def member_api_setaccess(email):
       if m.slack and slack != "":
         add_user_to_channel(slack,m.slack)
   
-  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  return (json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2))
 
 # Query like: http://test:test@127.0.0.1:5000/api/v1/getaccess/myemail@makeitlabs.com?resource=resource-users
 @blueprint.route("/v1/getaccess/<string:email>", methods = ['GET'])

@@ -132,17 +132,20 @@ def upload_file():
       flash("MemberAudio path not configured in INI file","danger")
       return redirect(url_for("index"))
 
+    if request.method != 'POST':
+        flash('No audio file uploaded')
+        return redirect(url_for("memberAudio.audio"))
     if request.method == 'POST':
         # check if the post request has the file part
         if 'file' not in request.files:
-            flash('No file part')
-            return redirect(url_for("memberAudio.audio",folder=srcfolder))
+            flash('No audio file uploaded')
+            return redirect(url_for("memberAudio.audio"))
         f= request.files['file']
         # if user does not select file, browser also
         # submit an empty part without filename
         if f.filename == '':
             flash('No selected file')
-            return redirect(url_for("memberAudio.audio",folder=srcfolder))
+            return redirect(url_for("memberAudio.audio"))
         if f:
             fn = os.path.join(folderPath,current_user.member).encode('utf=8')
             #fn = os.path.join(folderPath,f.filename)
@@ -158,7 +161,7 @@ def upload_file():
                 pass
             return redirect(url_for('memberAudio.audio'))
     flash("No file posted")
-    return redirect(url_for('memberAudio.audio', folder=srcfolder))
+    return redirect(url_for('memberAudio.audio'))
 
 def register_pages(app):
 	app.register_blueprint(blueprint)

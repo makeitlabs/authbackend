@@ -99,24 +99,23 @@ def apikeys_update(apikey):
 @blueprint.route('/<string:apikey>/delete', methods=['POST'])
 @roles_required(['Admin','RATT'])
 def apikey_delete(apikey):
-		"""(Controller) Delete a apikey. Shocking."""
-                r = ApiKey.query.filter(ApiKey.id == apikey).one()
-                db.session.delete(r)
-                db.session.commit()
-		flash("ApiKey deleted.")
-		return redirect(url_for('apikeys.apikeys'))
+    """(Controller) Delete a apikey. Shocking."""
+    r = ApiKey.query.filter(ApiKey.id == apikey).one()
+    db.session.delete(r)
+    db.session.commit()
+    flash("ApiKey deleted.")
+    return redirect(url_for('apikeys.apikeys'))
 
 @blueprint.route('/<string:apikey>/list', methods=['GET'])
 @roles_required(['Admin','RATT'])
 def apikey_showusers(apikey):
-		"""(Controller) Display users who are authorized to use this apikey"""
-		tid = (apikey)
-		authusers = db.session.query(AccessByMember.id,AccessByMember.member_id,Member.member)
-		authusers = authusers.outerjoin(Member,AccessByMember.member_id == Member.id)
-		authusers = authusers.filter(AccessByMember.apikey_id == db.session.query(ApiKey.id).filter(ApiKey.name == rid))
-		authusers = authusers.all()
-		return render_template('apikey_users.html',apikey=rid,users=authusers)
-
+    """(Controller) Display users who are authorized to use this apikey"""
+    tid = (apikey)
+    authusers = db.session.query(AccessByMember.id,AccessByMember.member_id,Member.member)
+    authusers = authusers.outerjoin(Member,AccessByMember.member_id == Member.id)
+    authusers = authusers.filter(AccessByMember.apikey_id == db.session.query(ApiKey.id).filter(ApiKey.name == rid))
+    authusers = authusers.all()
+    return render_template('apikey_users.html',apikey=rid,users=authusers)
 
 def _get_apikeys():
 	return ApiKey.query.all()

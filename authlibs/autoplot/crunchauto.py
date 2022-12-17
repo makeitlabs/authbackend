@@ -50,12 +50,12 @@ def crunch_calendar(rundate=None):
   dow = now.weekday() # 0=Monday
   dow = (dow+1) %7  #0=Sunday
   weeknum = int(now.strftime("%U")) 
-  print "weeknum",weeknum,"Weekday",weekday[dow],"DOW",dow
+  #print "weeknum",weeknum,"Weekday",weekday[dow],"DOW",dow
   weekstart = (now - datetime.timedelta(days=dow))
   weekstart = weekstart.replace(hour=0,minute=0,second=0,microsecond=0)
   weekend = weekstart + datetime.timedelta(days=7)
   weekend = weekend - datetime.timedelta(seconds=1)
-  print "WEEKSTART",weekstart,"through",weekend
+  #print "WEEKSTART",weekstart,"through",weekend
   errors=[]
   warnings=[]
   billables=[]
@@ -78,7 +78,7 @@ def crunch_calendar(rundate=None):
       #print(component.get('dtstamp'))
       summary={'errors':[],'warnings':[]}
       if component.name != 'VEVENT':
-        print "NOT A VEVENT!!!",component.name
+        print ("NOT A VEVENT!!!",component.name)
       else:
         #print "VEVENT",component
         billable=False
@@ -105,18 +105,18 @@ def crunch_calendar(rundate=None):
         weeks=1
         if 'RRULE' in component and 'COUNT' in component['RRULE'] and 'FREQ' in component['RRULE']: 
            rrule=component['RRULE']
-           print "RRULE",calstart.strftime("%b-%d %H:%M ")+component['SUMMARY'],
-           print rrule['COUNT'][0],rrule['FREQ'][0]
+           #print "RRULE",calstart.strftime("%b-%d %H:%M ")+component['SUMMARY'],
+           #print rrule['COUNT'][0],rrule['FREQ'][0]
            if rrule['FREQ'][0]== "WEEKLY":
              weeks = rrule['COUNT'][0]
 
         for weekno in range(0,weeks):
           short = calstart.strftime("%b-%d %H:%M ")+component['SUMMARY']
           if (calstart <= weekend) and (weekstart < calend):
-            print "THISWEEK calendar",calstart,calend
-            print "THISWEEK curweel",weekstart,weekend
-            print "PROCESS",short
-            print "WEEK IN SERIES",weekno
+            #print "THISWEEK calendar",calstart,calend
+            #print "THISWEEK curweel",weekstart,weekend
+            #print "PROCESS",short
+            #print "WEEK IN SERIES",weekno
             if 'ATTENDEE' not in component: 
               summary['errors'].append("No Attendees")
             else:
@@ -138,7 +138,7 @@ def crunch_calendar(rundate=None):
                 print 
                 """
             hrs=(calend-calstart).total_seconds()/3600
-            print "*** CURRENT!!! {0} Hours total".format(hrs)
+            #print "*** CURRENT!!! {0} Hours total".format(hrs)
             if (hrs <= 24): 
               summary['warnings'].append("Partial day entry - NOT BILLING")
             elif (hrs <= 167):
@@ -153,7 +153,7 @@ def crunch_calendar(rundate=None):
                   summary['errors'].append("Non-MIL email: "+str(members[0]))
                 else:
                   billable=True
-                  print "*** BILLABLE"
+                  #print "*** BILLABLE"
                   event['summary']=short
                   event['member']=members[0]
               #if component['SUMMARY'].strip().lower().startswith("rental"):
@@ -208,15 +208,15 @@ def do_payment(customer,price,leaseid,description,test=False,pay=False):
   #print stripe.Customer.list(limit=99)
 
   debug.append("Process Payment customer {0} Price {1} leaseid {2}".format(customer,price,leaseid))
-  print "Process Payment customer {0} Price {1} leaseid {2}".format(customer,price,leaseid)
+  #print "Process Payment customer {0} Price {1} leaseid {2}".format(customer,price,leaseid)
   debug.append("Description: {0}".format(description))
-  print "Description: {0}".format(description)
+  #print "Description: {0}".format(description)
 
   """
   """
-  print """
+  print ("""
   ** GET EXISTING INVOICE ITEM
-  """
+  """)
 
   # Get existing outstanding items in Stripe to invoice
   lastItem=None
@@ -229,13 +229,13 @@ def do_payment(customer,price,leaseid,description,test=False,pay=False):
         starting_after=lastItem
         )
 
-      print "EXISTING ITEMS"
-      print ii
+      #print "EXISTING ITEMS"
+      #print ii
       if ii:
           for d in ii['data']:
               lastItem=d['id']
               if 'metadata' in d:
-                  print "Metadata ",d['metadata']
+                  #print "Metadata ",d['metadata']
                   if 'X-MIL-lease-id' in d['metadata']:
                     pendingleases[d['metadata']['X-MIL-lease-id']] = { 'invoice':d['invoice'],'invoiceitem':d['id']}
                     warnings.append("Lease already pending: "+d['metadata']['X-MIL-lease-id']+" in invoice "+str(d['invoice']))
@@ -243,13 +243,13 @@ def do_payment(customer,price,leaseid,description,test=False,pay=False):
                     warnings.append("No metadata in item")
       if not ii['has_more']: break
  
-  print "PENDING LEASES",pendingleases
+  #print "PENDING LEASES",pendingleases
   
   # If our new entry is not here - create item in stripe
   if leaseid not in pendingleases:
-      print """
+      print ("""
       ** ADD INVOICE ITEM
-      """
+      """)
       
       ii= stripe.InvoiceItem.create(
         #customer="cus_J0mrDmtpzbfYOk", # Stripe Test Customer
@@ -268,9 +268,9 @@ def do_payment(customer,price,leaseid,description,test=False,pay=False):
 
   # If we have not created an invoice with this item in it - do so
   if leaseid not in pendingleases or pendingleases[leaseid]['invoice'] is None:
-      print """
+      print ("""
       ** INVOICE
-      """
+      """)
       inv = stripe.Invoice.create(
         customer=customer,
         description=description,
@@ -290,30 +290,30 @@ def do_payment(customer,price,leaseid,description,test=False,pay=False):
     status="already_invoiced"
     warnings.append("Using existing Invoice {0} for lease {1}".format(pendingleases[leaseid]['invoice'],leaseid))
     # We have a current lease - let's look at it!
-    print "INSPECT INVOICE"
-    print "***"
+    print ("INSPECT INVOICE")
+    print ("***")
     inv = stripe.Invoice.retrieve(pendingleases[leaseid]['invoice'])
 
-  print json.dumps(inv,indent=2)
+  print (json.dumps(inv,indent=2))
 
   # If unpaied - pay it!
  
   if inv['paid'] == True and inv['status']=='paid':
     debug.append("Already paid")
-    print "** Aleady Paid!"
+    #print "** Aleady Paid!"
     status="already_paid_stripe"
   elif pay:
-    print "** Paying!"
+    #print "** Paying!"
     debug.append("Paying")
     try:
       #stripe.Invoice.pay(inv['id'])
       stripe.Invoice.pay(inv)
       debug.append("Payment Done")
-      print "** Paid!"
+      #print "** Paid!"
       status="paid"
     except BaseException as e:
       errors.append("Payment failed on invoice {0}: {1}".format(inv['id'],e))
-      print "** Payment failed!"
+      print ("** Payment failed!")
       status="payment_failed"
 
   

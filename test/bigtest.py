@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys,re,os,urllib2,urllib,requests
+import sys,re,os,urllib,requests
 skip_pages="""/api/v1/payments/update
 /google_login/google/authorized
 /api/v1/reloadacl
@@ -242,7 +242,7 @@ BASE="http://127.0.0.1:5000"
 query_args = { 'username':'admin', 'password':'admin' }
 req = requests.Session()
 r = req.post(BASE+"/login/check",data=query_args)
-print "LOGIN",r.status_code
+print ("LOGIN",r.status_code)
 if r.status_code != 200:
 	raise BaseException("Admin login failed")
 
@@ -251,7 +251,7 @@ for x in (basic+noprivs_mustfail).split("\n"):
 	if x[0]=="#": continue
 	url = BASE+x
 	r = req.get(url)
-	print url,r.status_code
+	print (url,r.status_code)
 	if r.status_code != 200:
 		raise BaseException ("%s code %s (Needed 200)" %(url,r.status_code))
 	err = finderror(url,r)
@@ -264,7 +264,7 @@ for x in mustfail.split("\n"):
 	url = BASE+x
 	r = req.get(url)
 	err = finderror(url,r)
-	print url,r.status_code,err
+	print (url,r.status_code,err)
 	if not err:
 		raise BaseException ("%s did not flash error" %(url))
 
@@ -275,14 +275,14 @@ for x in internal_err.split("\n"):
 	r = req.get(url)
 	if r.status_code != 500:
 		raise BaseException ("%s did not return 500" %(url))
-	print url,r.status_code
+	print (url,r.status_code)
 
 # Check without privs
 
 query_args = { 'username':'noprivs', 'password':'noprivs' }
 req = requests.Session()
 r = req.post(BASE+"/login/check",data=query_args)
-print "LOGIN",r.status_code
+print ("LOGIN",r.status_code)
 for x in noprivs_mustfail.split("\n"):
 	if x=="": continue
 	if x[0]=="#": continue
@@ -292,7 +292,7 @@ for x in noprivs_mustfail.split("\n"):
 		raise BaseException ("%s internal error" %url)
 	if not err:
 		raise BaseException ("%s did not flash error" %(url))
-	print url,r.status_code,err
+	print (url,r.status_code,err)
 
 # Do API tests - WITHOUT login
 req = requests.Session()
@@ -302,7 +302,7 @@ for x in api_tests:
 	if 'access' not in x or x['access'] != "any":
 					if r.status_code < 400 :
 						raise BaseException ("%s API Should have failed auth, but got %d" % (url,r.status_code))
-	print url,r.status_code
+	print (url,r.status_code)
 
 # Do API tests - WITH login
 req = requests.Session()
@@ -311,7 +311,7 @@ for x in api_tests:
 	r = req.get(url, auth=('testkey', 'testkey'))
 	if r.status_code != 200:
 		raise BaseException ("%s API failed %d" % (url,r.status_code))
-	print url,r.status_code
+	print (url,r.status_code)
 
 # Let's get granular w/ V0 ACL checking...
 
@@ -328,7 +328,7 @@ for x in  r.text.split("\n"):
 	elif sp[3] == "denied": denied +=1
 	else: other +=1
 
-print "V0 frontdoor allowed",allowed,"denied",denied,"other",other
+print ("V0 frontdoor allowed",allowed,"denied",denied,"other",other)
 if ((allowed > 370) or (allowed < 270) or (other > 0)):
 	raise BaseException("V0 ACL doesn't seem to have returned good values")
 
@@ -348,9 +348,9 @@ for x in rec:
 	elif x['allowed'] == "false": denied+=1
 	elif x['allowed'] == "denied": denied+=1
 	else: 
-		print "Got odd V1 frontdoor ACL value for %s: %s" %(x['member'],x['allowed'])
+		print ("Got odd V1 frontdoor ACL value for %s: %s" %(x['member'],x['allowed']))
 		other +=1
 	
-print "V1 frontdoor allowed",allowed,"denied",denied,"other",other
+print ("V1 frontdoor allowed",allowed,"denied",denied,"other",other)
 if ((allowed > 370) or (allowed < 270) or (other > 0)):
 	raise BaseException("V1 ACL doesn't seem to have returned good values")
