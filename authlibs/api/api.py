@@ -1,5 +1,3 @@
-# vim:tabstop=2:shiftwidth=2:expandtab
-
 from ..templateCommon import *
 
 from authlibs import accesslib
@@ -124,80 +122,80 @@ def check_api_access(username,password):
 @blueprint.route('/v1/reloadacl', methods=['GET'])
 @api_only
 def api_v1_reloadacl():
-		authutil.kick_backend()
-		return json_dump({'status':'success'}), 200, {'Content-type': 'application/json'}
+    authutil.kick_backend()
+    return json_dump({'status':'success'}), 200, {'Content-type': 'application/json'}
 
 @blueprint.route('/test/localhost', methods=['GET'])
 @localhost_only
 def test_localhost():
-		return "Success", 200, {'Content-type': 'text/plain'}
+    return "Success", 200, {'Content-type': 'text/plain'}
 
 @blueprint.route('/v1/whoami', methods=['GET'])
 @api_only
 def whoami():
-		return json_dump("You have a valid API key %s" % g.apikey, 200, {'Content-type': 'text/plain'})
+    return json_dump("You have a valid API key %s" % g.apikey, 200, {'Content-type': 'text/plain'})
 
 @blueprint.route('/v1/node/<string:node>/config', methods=['GET'])
 @api_only
 def api_v1_nodeconfig(node):
-		result = {'status':'success'}
-		n = Node.query.filter(Node.name == node).one_or_none()
-		if not n:
-			result['status']='error'
-			result['message']='Node not found'
-			return json_dump(result, 200, {'Content-type': 'text/plain'})
+    result = {'status':'success'}
+    n = Node.query.filter(Node.name == node).one_or_none()
+    if not n:
+      result['status']='error'
+      result['message']='Node not found'
+      return json_dump(result, 200, {'Content-type': 'text/plain'})
 
-		result['mac']=n.mac
-		result['name']=n.name
+    result['mac']=n.mac
+    result['name']=n.name
 
-		kv = KVopt.query.add_column(NodeConfig.value).outerjoin(NodeConfig,((NodeConfig.node_id == n.id) & (NodeConfig.key_id == KVopt.id))).all()
-		result['params']={}
-		for (k,v) in kv:
-			#print "KEy %s Value %s Default %s"%(k.keyname,v,k.default)
-			sp = k.keyname.split(".")
-			val=""
-			if v: 
-				val = v
-			else:
-				val = k.default
-			if val is None: val=""
-			if k.kind.lower() == "boolean":
-				if not v:
-					val = False
-				elif v.lower() in ('on','yes','true','1'):
-					val=True
-				else:
-					val=False
-			elif k.kind.lower() == "integer":
-				try:
-					val=int(v)
-				except:
-					val=0
-			
-			i = result['params']
-			for kk in sp[:-1]:
-				if kk not in i:
-					i[kk]={}
-				i=i[kk]
-				
-			i[sp[-1]]=val
+    kv = KVopt.query.add_column(NodeConfig.value).outerjoin(NodeConfig,((NodeConfig.node_id == n.id) & (NodeConfig.key_id == KVopt.id))).all()
+    result['params']={}
+    for (k,v) in kv:
+      #print "KEy %s Value %s Default %s"%(k.keyname,v,k.default)
+      sp = k.keyname.split(".")
+      val=""
+      if v: 
+        val = v
+      else:
+        val = k.default
+      if val is None: val=""
+      if k.kind.lower() == "boolean":
+        if not v:
+          val = False
+        elif v.lower() in ('on','yes','true','1'):
+          val=True
+        else:
+          val=False
+      elif k.kind.lower() == "integer":
+        try:
+          val=int(v)
+        except:
+          val=0
+      
+      i = result['params']
+      for kk in sp[:-1]:
+        if kk not in i:
+          i[kk]={}
+        i=i[kk]
+        
+      i[sp[-1]]=val
 
-		result['tools']=[]
-		tools= Tool.query.add_columns(Resource.name).add_column(Resource.id)
-		tools = tools.filter(Tool.node_id==n.id).join(Resource,Resource.id==Tool.resource_id)
-		tools = tools.all()
-		for x in tools:
-			(t,resname,rid) =x
-			tl={}
-			tl['name']=t.name
-			tl['resource_id']=rid
-			tl['resource']=resname
-			tl['id']=t.id
-			tl['lockout']=t.lockout
-			result['tools'].append(tl)
+    result['tools']=[]
+    tools= Tool.query.add_columns(Resource.name).add_column(Resource.id)
+    tools = tools.filter(Tool.node_id==n.id).join(Resource,Resource.id==Tool.resource_id)
+    tools = tools.all()
+    for x in tools:
+      (t,resname,rid) =x
+      tl={}
+      tl['name']=t.name
+      tl['resource_id']=rid
+      tl['resource']=resname
+      tl['id']=t.id
+      tl['lockout']=t.lockout
+      result['tools'].append(tl)
 
-		#print json_dump(result,indent=2)
-		return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    #print json_dump(result,indent=2)
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
 @blueprint.route('/v1/slack/admin/<string:slackid>',methods=['POST'])
 @api_only
@@ -330,7 +328,7 @@ def api_member_search_handler(searchstr):
 @blueprint.route('/v1/kiosklog', methods=['OPTIONS'])
 #@api_only
 def api_v1_kiosklog_options():
-		return "", 200, {
+    return "", 200, {
                         'Access-Control-Allow-Origin':'https://plachenko.github.io',
                         'Access-Control-Allow-Headers':'Content-Type,Authorization',
                         'Access-Control-Allow-Credentials':'true',
@@ -556,12 +554,11 @@ def api_v1_macconfig(mac):
       result['message']='Node not found'
       return json_dump(result, 200, {'Content-type': 'text/plain'})
     return api_v1_nodeconfig(n.name)
-	
 
 @blueprint.route('/v3/test', methods=['GET'])
 @login_required
 def api_v3_test():
-		return("Hello world")
+    return("Hello world")
 
 # NOTE this requires LOGIN (not API) access because it
 # is used by javascript to dynamically find members
@@ -653,7 +650,7 @@ def api_v1_get_resources():
 @blueprint.route('/v1/resources/<string:id>/fob/<int:fob>', methods=['OPTIONS'])
 #@api_only
 def api_v1_show_resource_fob_options(id,fob):
-		return "", 200, {
+    return "", 200, {
                         'Access-Control-Allow-Origin':'https://plachenko.github.io',
                         'Access-Control-Allow-Headers':'Content-Type,Authorization',
                         'Access-Control-Allow-Credentials':'true',
@@ -746,21 +743,21 @@ def api_v0_show_resource_acl(id):
 @blueprint.route('/v0/resources/<string:id>/aclhash', methods=['GET'])
 @api_only
 def api_v0_show_resource_aclhash(id):
-		"""(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
-		rid = safestr(id)
-		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
-		#users = _getResourceUsers(rid)
-		users = json_load(accesslib.getAccessControlList(rid))
-		outformat = request.args.get('output','csv')
-		if outformat == 'csv':
-				digest = hashlib.sha224()
-				outstr = "username,key,value,allowed,hashedCard,lastAccessed"
-				for u in users:
-						outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
+    """(API) Return a list of all tags, their associated users, and whether they are allowed at this resource"""
+    rid = safestr(id)
+    # Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
+    #users = _getResourceUsers(rid)
+    users = json_load(accesslib.getAccessControlList(rid))
+    outformat = request.args.get('output','csv')
+    if outformat == 'csv':
+        digest = hashlib.sha224()
+        outstr = "username,key,value,allowed,hashedCard,lastAccessed"
+        for u in users:
+            outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
 
-				digest.update(outstr.decode("utf-8"))
-				outstr=binascii.hexlify(digest.digest())
-				return outstr+"\n", 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
+        digest.update(outstr.decode("utf-8"))
+        outstr=binascii.hexlify(digest.digest())
+        return outstr+"\n", 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
 
 
@@ -805,12 +802,12 @@ def api_v1_payments_update():
 @blueprint.route('/v1/test', methods=['GET'])
 @api_only
 def api_test():
-		host_addr = str.split(request.environ['HTTP_HOST'],':')
-		str1 = pprint.pformat(request.environ,depth=5)
-		if request.environ['REMOTE_ADDR'] == host_addr[0]:
-				return "Yay, right host"
-		else:
-				return "Boo, wrong host"
+    host_addr = str.split(request.environ['HTTP_HOST'],':')
+    str1 = pprint.pformat(request.environ,depth=5)
+    if request.environ['REMOTE_ADDR'] == host_addr[0]:
+        return "Yay, right host"
+    else:
+        return "Boo, wrong host"
 
 @blueprint.route('/v1/healthcheck', methods=['GET'])
 @api_only
@@ -988,7 +985,7 @@ def cli_cron(cmd,**kwargs):
   api_cron_nightly()
 
 def register_pages(app):
-	app.register_blueprint(blueprint)
+  app.register_blueprint(blueprint)
 
 # Like: curl 'http://test:test@127.0.0.1:5000/api/v1/setaccess/user@makeitlabs.com?resource=fake-resource-users&slack=CID1234'
 @blueprint.route('/v1/setaccess/<string:email>', methods = ['GET'])
@@ -1047,6 +1044,8 @@ def member_api_getaccess(email):
     result = {'status':'success','level':m[1]}
   return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
+## ORIGINAL Vending - draws charges DIRECTLY from Stripe
+## DO NOT CHANGE!!
 # Query like: http://test:test@127.0.0.1:5000/api/v1/getaccess/myemail@makeitlabs.com?resource=resource-users
 @blueprint.route("/v1/vending/<string:member>/<int:amount>", methods = ['GET'])
 @api_only
@@ -1078,7 +1077,7 @@ def vendig_api_charge(member,amount):
         collection_method="charge_automatically",
       )
 
-      finalize=stripe.Invoice.finalize_invoice(invoice)
+      finalize=stripe.Invoice.finalize_invoice(invoice,auto_advance=True)
       result = {'status':'success','member':m.Member.member,'customer':m.customerid}
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_SUCCESS.id,message="${0:0.2f}".format(dollarAmt),member_id=m.Member.id,commit=0)
     except BaseException as e:
@@ -1086,4 +1085,168 @@ def vendig_api_charge(member,amount):
       logger.warning("Stripe error for {0} {1}".format(m.Member.member,str(e)))
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_FAILED.id,message="${0:0.2f}".format(dollarAmt),member_id=m.Member.id,commit=0)
   db.session.commit()
+  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+
+# Just query
+@blueprint.route("/v2/vending/queryBalance/<string:member>", methods = ['GET'])
+@api_only
+def vendig_api_getBalance(member):
+  m = Member.query.filter(Member.member==member)
+  m = m.one_or_none()
+
+
+  if not m:
+    result = {'status':'error','description':'No Member'}
+  else:
+    bal = m.balance
+    if bal is None:
+       bal = 0
+    result = {'status':'success','balance':bal}
+  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+
+  
+#  curl -H 'Content-Type: application/json'  -d '{"amount": 100, "prevBalance":300}' ${STAGING_URL}/api/v2/vending/chargeAccount/Bradley.Goodman
+@blueprint.route("/v2/vending/chargeAccount/<string:member>", methods = ['POST'])
+@api_only
+def vendig_api_chargeAccount(member):
+  m = Member.query.filter(Member.member==member)
+  m = m.join(Subscription,Subscription.member_id == Member.id)
+  m = m.add_column(Subscription.customerid)
+  m = m.one_or_none()
+
+  if m is None:
+    logger.error("Payment charge No Member")
+    result = {'status':'error','description':'No Member??'}
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  data=request.get_json()
+  if data is None:
+    logger.error("Payment charge non JSON payload")
+    result = {'status':'error','description':'Bad Request'}
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  if 'amount' not in data or 'prevBalance' not in data:
+    logger.error("Payment charge request malformed fields")
+    result = {'status':'error','description':'Bad Request'}
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  if m.Member.balance != data['prevBalance']:
+    logger.error("Balance did not match previous")
+    result = {'status':'error','description':'Please try again'}
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+
+  # Amount in CENTS!
+  dollarAmt = float(data['amount'])/100.0
+  if not m:
+    result = {'status':'error','description':'No Member'}
+  elif (data['amount'] <= 0) or (data['amount'] >= 1000):
+    result = {'status':'error','description':'Invalid price'}
+  elif m.Member.balance is None or data['amount'] > m.Member.balance:
+    result = {'status':'error','description':'Low Balance'}
+  else:
+    if m.Member.balance is None:
+      m.Member.balance = data['amount']
+    else:
+      m.Member.balance -= data['amount']
+    vendstr = "OldBal: ${0:0.2f} Purchase: ${1:0.2f} NewBal: ${2:0.2f}".format(
+          data['prevBalance']/100.0,data['amount']/100.0,m.Member.balance/100.0)
+    authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_SUCCESS.id,message=vendstr,member_id=m.Member.id,commit=0)
+    db.session.commit()
+    result = {'status':'success','member':m.Member.member,'customer':m.customerid}
+  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+
+#  curl -H 'Content-Type: application/json'  -d '{"addAmount": 100, "totalCharge":300, "prevBalance":200, "serviceFee":30,"purchaseAmt":100, "newBalance":400}'
+@blueprint.route("/v2/vending/reupBalance/<string:member>", methods = ['POST'])
+@api_only
+def vendig_api_ReupBalance(member):
+  m = Member.query.filter(Member.member==member)
+  m = m.join(Subscription,Subscription.member_id == Member.id)
+  m = m.add_column(Subscription.customerid)
+  m = m.one_or_none()
+
+  result = {'status':'error','description':'Bad Request'}
+  if m is None:
+    logger.error("Payment reup No Member")
+    result = {'status':'error','description':'No Member??'}
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  data=request.get_json()
+  if data is None:
+    logger.error("Payment reup non JSON payload")
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  # We are going to REDUNDANTLY check all of the charge information approved by the user on the front-end
+  for v in ('addAmount','totalCharge','prevBalance','serviceFee','purchaseAmt','newBalance'):
+    if v not in data:
+      logger.error("Payment reup missing "+v)
+      return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  if (data['totalCharge'] != data['addAmount'] + data['serviceFee']):
+    logger.error("Reup totalCharge was incorrect")
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  if (data['newBalance'] != data['prevBalance'] + data['addAmount'] - data['purchaseAmt']):
+    logger.error("Reup newBalance was incorrect")
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  if m.Member.balance != data['prevBalance']:
+    logger.error("Balance did not match previous")
+    result = {'status':'error','description':'Please try again'}
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  # Amount in CENTS!
+  if not m:
+    result = {'status':'error','description':'No Member'}
+  elif (data['addAmount'] <= 0) or (data['addAmount'] > 1000):
+    result = {'status':'error','description':'Invalid price'}
+  else:
+
+    """
+    # --------- REMOVE THESE LINES! THEY MAKE ALL PAYMENTS UNCONDITIONALLY WORK! BOMB TODO FIXME
+    result = {'status':'success','member':m.Member.member,'customer':m.customerid}
+    authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_ADDBALANCE.id,message="${0:0.2f}".format(data['addAmount']/100.0),member_id=m.Member.id,commit=0)
+    if m.Member.balance is None:
+      m.Member.balance = data['addAmount']
+    else:
+      m.Member.balance += data['addAmount']
+    db.session.commit()
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    # --------- END REMOVE LINES
+    """
+    cid = m.customerid
+    cid = 'cus_MN5oo9gAnx3Vtn' # BOMB TODO FIXME!!!
+
+
+    try:
+      stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+      invoiceItem = stripe.InvoiceItem.create(customer=cid, amount=data['addAmount'],currency="USD",description="Vending Machine")
+      vendstr = "OldBal: ${0:0.2f} Add: ${1:0.2f} Purchase: ${2:0.2f} Fee: ${3:0.2f} NewBal: ${4:0.2f}".format(
+            data['prevBalance']/100.0,data['addAmount']/100.0,data['purchaseAmt']/100.0,data['serviceFee']/100.0,data['newBalance']/100.0)
+
+      invoice = stripe.Invoice.create(
+        customer=cid,
+        #collection_method="charge_automatically",
+      )
+
+      finalize=stripe.Invoice.finalize_invoice(invoice)
+      if (finalize['status'] != 'open'):
+        result = {'error':'success','description':"Stripe Error"}
+        logger.warning("Stripe fainalize error for {0} status is {1}".format(m.Member.member,finalize['status']))
+      else:
+        pay = stripe.Invoice.pay(invoice)
+        if (pay['status'] != 'paid'):
+          result = {'error':'success','description':"Payment Declined"}
+          logger.warning("Stripe Payment error for {0} status is {1}".format(m.Member.member,pay['status']))
+      result = {'status':'success','member':m.Member.member,'customer':cid}
+      authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_ADDBALANCE.id,message=vendstr,member_id=m.Member.id,commit=0)
+      m.Member.balance = data['newBalance']
+    except BaseException as e:
+      result = {'status':'error','description':'Payment Error'}
+      logger.warning("Stripe error for {0} {1}".format(m.Member.member,str(e)))
+      authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_FAILED.id,message=vendstr,member_id=m.Member.id,commit=0)
+    db.session.commit()
   return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)

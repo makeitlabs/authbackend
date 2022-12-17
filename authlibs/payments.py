@@ -13,6 +13,8 @@ from . import stripe_pay
 import datetime
 from . import utilities
 from . import dbutil
+from . import init
+from . import membership
 from sqlalchemy import func
 from authlibs.db_models import db, Member, Resource, AccessByMember, Tool, Logs, UsageLog, Subscription
 
@@ -237,3 +239,8 @@ def cli_updatepayments(cmd,**kwargs):
         #pinpay.chargeFee('5689127638925312','WorkspaceRental','Rental for June','Workspace','37.50','yes')
         #
         updatePaymentData()
+        membership.syncWithSubscriptions(True)
+        #db.session.commit()
+
+
+        print ("PAYMENT DATA FINISHED")
