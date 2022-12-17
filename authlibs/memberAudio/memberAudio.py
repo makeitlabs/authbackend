@@ -45,7 +45,7 @@ def audio():
     if not folderPath:
       flash("MemberAudio path not configured in INI file","danger")
       return redirect(url_for("index"))
-    fn = os.path.join(folderPath,current_user.member).encode('utf=8')
+    fn = os.path.join(folderPath,current_user.member)
     hascurrent =  os.path.exists(fn+".pcm")
     return render_template('audio.html',member=current_user,hascurrent=hascurrent,nickname=current_user.nickname)
 
@@ -64,7 +64,7 @@ def getAudio():
       flash("MemberAudio path not configured in INI file","danger")
       return redirect(url_for("index"))
 
-    fn = os.path.join(folderPath,current_user.member).encode('utf=8')
+    fn = os.path.join(folderPath,current_user.member)
     if not os.path.exists(fn+".pcm"):
       flash("No audio has been uploaded","danger")
       return redirect(url_for("index"))
@@ -96,7 +96,7 @@ def deleteAudio():
       flash("MemberAudio path not configured in INI file","danger")
       return redirect(url_for("index"))
 
-    fn = os.path.join(folderPath,current_user.member).encode('utf=8')
+    fn = os.path.join(folderPath,current_user.member)
     if not os.path.exists(fn+".pcm"):
       flash("No audio has been uploaded","danger")
       return redirect(url_for("index"))
@@ -147,7 +147,7 @@ def upload_file():
             flash('No selected file')
             return redirect(url_for("memberAudio.audio"))
         if f:
-            fn = os.path.join(folderPath,current_user.member).encode('utf=8')
+            fn = os.path.join(folderPath,current_user.member)
             #fn = os.path.join(folderPath,f.filename)
             f.save(fn+".tmp")
             cmd = ['ffmpeg','-hide_banner','-y','-t','7','-i',fn+'.tmp','-f','s16le','-acodec','pcm_s16le','-ac','1','-ar','16000',fn+'.pcm']

@@ -30,7 +30,7 @@ def autoplot_logic(rundate=None,process_payment=False,process_invoice=False,debu
   if rundate is None:
     rundate = datetime.now().strftime("%Y-%m-%d")
   #print "RUNDATE EFFECTIVE",rundate
-  (errors,warnings,debug,data,billables) = crunchauto.crunch_calendar(rundate)
+  (errors,warnings,debug,data,billables) = crunch_calendar(rundate)
   if (len(errors) == 0) and len(billables) ==1:
       mem = Member.query.filter(func.lower(Member.member)==func.lower(billables[0]['member'].replace("@makeitlabs.com",''))).one_or_none()
       if mem:

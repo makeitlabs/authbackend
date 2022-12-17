@@ -29,7 +29,7 @@ weekday=['Sun','Mon','Tues','Wed','Thurs','Fri','Sat'] # OUR Sunday=0 Convention
 def crunch_calendar(rundate=None):
   #ICAL_URL = Config.get('autoplot','ICAL_URI')
   ICAL_URL = current_app.config['globalConfig'].Config.get("autoplot","ICAL_URI")
-  g = urllib.urlopen(ICAL_URL)
+  g = urllib.request.urlopen(ICAL_URL)
   data=  g.read()
   print(data)
   cal = icalendar.Calendar.from_ical(data)
