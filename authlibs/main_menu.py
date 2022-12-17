@@ -169,6 +169,12 @@ def get_raw_menu():
                     'title':"Entrance Audio",
                     'img':url_for("static",filename="audioIcon.png"),
                     'alt':"Entrance Audio Music"
+            },
+            {
+                    'url':url_for('vending.vending'),
+                    'title':"Vending",
+                    'img':url_for("static",filename="vending.png"),
+                    'alt':"Vending and Payments"
             }
     ]
 

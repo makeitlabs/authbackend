@@ -1099,10 +1099,15 @@ def vendig_api_getBalance(member):
   if not m:
     result = {'status':'error','description':'No Member'}
   else:
+    vl = VendingLogs.query.filter(VendingLogs.member_id==m.id).order_by(VendingLogs.id.desc()).limit(1).one_or_none()
+    if vl is None:
+      lastVendLog=0
+    else:
+      lastVendLog=vl.id
     bal = m.balance
     if bal is None:
        bal = 0
-    result = {'status':'success','balance':bal}
+    result = {'status':'success','balance':bal,"lastLog":lastVendLog}
   return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
 
@@ -1121,15 +1126,26 @@ def vendig_api_chargeAccount(member):
     result = {'status':'error','description':'No Member??'}
     return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
+  vl = VendingLogs.query.filter(VendingLogs.member_id==m.Member.id).order_by(VendingLogs.id.desc()).limit(1).one_or_none()
+  if vl is None:
+    lastVendLog=0
+  else:
+    lastVendLog=vl.id
+
+
   data=request.get_json()
   if data is None:
     logger.error("Payment charge non JSON payload")
     result = {'status':'error','description':'Bad Request'}
     return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
-  if 'amount' not in data or 'prevBalance' not in data:
+  if 'amount' not in data or 'prevBalance' not in data or 'lastLog' not in data:
     logger.error("Payment charge request malformed fields")
     result = {'status':'error','description':'Bad Request'}
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  if lastVendLog != data['lastLog']:
+    result = {'status':'error','description':'Please Try Again'}
     return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
   if m.Member.balance != data['prevBalance']:
@@ -1154,6 +1170,23 @@ def vendig_api_chargeAccount(member):
     vendstr = "OldBal: ${0:0.2f} Purchase: ${1:0.2f} NewBal: ${2:0.2f}".format(
           data['prevBalance']/100.0,data['amount']/100.0,m.Member.balance/100.0)
     authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_SUCCESS.id,message=vendstr,member_id=m.Member.id,commit=0)
+    if "comment" not in data: data["comment"]="Vending Purchase"
+    if 'product' in data:
+      productId = data['product']
+    else:
+      productId = None
+    if "comment" in data:
+      comment=data['comment']
+    else:
+      comment="Vending Purchase"
+
+    vl = VendingLogs(member_id=m.Member.id,
+      product=productId,
+      oldBalance=data['prevBalance'],
+      purchaseAmount=data['amount'],
+      newBalance=m.Member.balance,
+      comment=data["comment"])
+    db.session.add(vl)
     db.session.commit()
     result = {'status':'success','member':m.Member.member,'customer':m.customerid}
   return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
@@ -1174,16 +1207,27 @@ def vendig_api_ReupBalance(member):
     result = {'status':'error','description':'No Member??'}
     return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
+
+  vl = VendingLogs.query.filter(VendingLogs.member_id==m.Member.id).order_by(VendingLogs.id.desc()).limit(1).one_or_none()
+  if vl is None:
+    lastVendLog=0
+  else:
+    lastVendLog=vl.id
+
   data=request.get_json()
   if data is None:
     logger.error("Payment reup non JSON payload")
     return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
   # We are going to REDUNDANTLY check all of the charge information approved by the user on the front-end
-  for v in ('addAmount','totalCharge','prevBalance','serviceFee','purchaseAmt','newBalance'):
+  for v in ('lastLog','addAmount','totalCharge','prevBalance','serviceFee','purchaseAmt','newBalance'):
     if v not in data:
       logger.error("Payment reup missing "+v)
       return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+  if (data['lastLog'] != lastVendLog):
+    logger.error("Please Try Again")
+    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
   if (data['totalCharge'] != data['addAmount'] + data['serviceFee']):
     logger.error("Reup totalCharge was incorrect")
@@ -1223,12 +1267,31 @@ def vendig_api_ReupBalance(member):
 
     try:
       stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
-      invoiceItem = stripe.InvoiceItem.create(customer=cid, amount=data['addAmount'],currency="USD",description="Vending Machine")
+      if 'product' in data:
+        productId== data['product']
+      else:
+        productId = current_app.config['globalConfig'].Config.get('Stripe','VendingProduct')
       vendstr = "OldBal: ${0:0.2f} Add: ${1:0.2f} Purchase: ${2:0.2f} Fee: ${3:0.2f} NewBal: ${4:0.2f}".format(
             data['prevBalance']/100.0,data['addAmount']/100.0,data['purchaseAmt']/100.0,data['serviceFee']/100.0,data['newBalance']/100.0)
 
+      invoicevendstr = """Vending Balance Refill:
+Old Vending Balance: ${0:0.2f}
+Item Purchase: (${2:0.2f})
+Amount Added: ${1:0.2f}
+Service Fee: ${3:0.2f} 
+Total Charge: ${5:0.2f} 
+New Vending Balance: ${4:0.2f}""".format(
+            data['prevBalance']/100.0,data['addAmount']/100.0,data['purchaseAmt']/100.0,data['serviceFee']/100.0,data['newBalance']/100.0,data['totalCharge'])
+
+      price = stripe.Price.create(
+          unit_amount=data['addAmount'],
+          currency='usd',
+          product=productId)
+      invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description="Vending Payment")
+
       invoice = stripe.Invoice.create(
         customer=cid,
+        description=invoicevendstr
         #collection_method="charge_automatically",
       )
 
@@ -1244,6 +1307,18 @@ def vendig_api_ReupBalance(member):
       result = {'status':'success','member':m.Member.member,'customer':cid}
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_ADDBALANCE.id,message=vendstr,member_id=m.Member.id,commit=0)
       m.Member.balance = data['newBalance']
+      if "comment" not in data: data["comment"]="Vending Purchase"
+      vl = VendingLogs(member_id=m.Member.id,
+        invoice=invoice.id,
+        product=productId,
+        oldBalance=data['prevBalance'],
+        addAmount=data['addAmount'],
+        purchaseAmount=data['purchaseAmt'],
+        totalCharge=data['totalCharge'],
+        newBalance=data['newBalance'],
+        surcharge=data['serviceFee'],
+        comment=data["comment"])
+      db.session.add(vl)
     except BaseException as e:
       result = {'status':'error','description':'Payment Error'}
       logger.warning("Stripe error for {0} {1}".format(m.Member.member,str(e)))

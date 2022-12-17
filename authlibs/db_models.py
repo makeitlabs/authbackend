@@ -508,6 +508,22 @@ class Logs(db.Model):
     event_type = db.Column(db.Integer(),index=True)
     event_subtype = db.Column(db.Integer(),index=True)
 
+class VendingLogs(db.Model):
+    __tablename__ = 'vendinglog'
+    __bind_key__ = 'logs'
+    id = db.Column(db.Integer, primary_key=True)
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    invoice = db.Column(db.String(100))
+    product = db.Column(db.String(100))
+    doneby = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    time_logged = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)
+    oldBalance = db.Column(db.Integer())
+    surcharge = db.Column(db.Integer())
+    addAmount = db.Column(db.Integer())
+    purchaseAmount = db.Column(db.Integer())
+    totalCharge = db.Column(db.Integer())
+    newBalance = db.Column(db.Integer())
+    comment = db.Column(db.String(100))
 class UsageLog(db.Model):
     __tablename__ = 'usagelog'
     __bind_key__ = 'logs'
