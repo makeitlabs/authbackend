@@ -14,3 +14,6 @@ run_auth.py
 authlibs/logs/static/kioskimages/*
 *.acl
 backups/
+*~
+**/*~
+*.docker

@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 """
 vim:tabstop=2:expandtab
 MakeIt Labs Authorization System, v0.4
@@ -15,15 +15,15 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from flask_sqlalchemy import SQLAlchemy
 from authlibs import utilities as authutil
-from slackclient import SlackClient
+from slack import WebClient as SlackClient
 import json
 import subprocess
-import ConfigParser,sys,os
+import configparser,sys,os
 import paho.mqtt.client as mqtt
 import paho.mqtt.subscribe as sub
 from datetime import datetime
 from authlibs.init import authbackend_init, createDefaultUsers
-import requests,urllib,urllib2
+import requests,urllib
 import logging, logging.handlers
 from  authlibs import eventtypes
 
@@ -47,7 +47,7 @@ ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 logger.addHandler(handler)
 
-Config = ConfigParser.ConfigParser({})
+Config = configparser.ConfigParser({})
 Config.read('makeit.ini')
 slack_token = Config.get('Slack','BOT_API_TOKEN')
 
@@ -55,7 +55,7 @@ slack_token = Config.get('Slack','BOT_API_TOKEN')
 lastMemberAccess = {}
 
 def get_mqtt_opts(app):
-  Config = ConfigParser.ConfigParser({})
+  Config = configparser.ConfigParser({})
   Config.read('makeit.ini')
   mqtt_opts={}
   mqtt_base_topic = Config.get("MQTT","BaseTopic")
@@ -88,9 +88,8 @@ def seconds_to_timespan(s):
 def send_slack_message(towho,message):
   sc = SlackClient(slack_token)
   if sc.rtm_connect():
-    print "SLACK-SEND",towho,message
-    res = sc.api_call(
-        "chat.postMessage",
+    print ("SLACK-SEND",towho,message)
+    res = sc.chat_postMessage(
         channel=towho,
         text=message
         )
@@ -110,7 +109,7 @@ def on_message(client,userdata,msg):
     try:
         with app.app_context():
             log=Logs()
-            print "FROM WIRE",msg.topic,msg.payload
+            print ("FROM WIRE",msg.topic,msg.payload)
             message = json.loads(msg.payload)
             topic=msg.topic.split("/")
 
@@ -139,7 +138,7 @@ def on_message(client,userdata,msg):
                 member_cache={}
             elif topic[0]=="ratt" and topic[1]=="status":
                 if topic[2]=="node":
-                    print topic
+                    print (topic)
                     n=Node.query.filter(Node.mac == topic[3]).one_or_none()
                     t=Tool.query.join(Node,((Node.id == Tool.node_id) & (Node.mac == topic[3]))).one_or_none()
                     if t is None:
@@ -449,6 +448,7 @@ def on_message(client,userdata,msg):
 
                     # TODO FIEME This should be "send_slack_admin" - but Ham wanted only "public" messagse on their "admin" channel??
                     if send_slack_public and associated_resource['slack_admin_chan']:
+                        res = sc.chat_postMessage(
                         res = sc.api_call(
                             'chat.postMessage',
                             channel=associated_resource['slack_admin_chan'],
@@ -499,8 +499,7 @@ if __name__ == '__main__':
       sc = SlackClient(slack_api_token)
       # TODO BKG BUG change channel
       try:
-              res = sc.api_call(
-                "chat.postMessage",
+              res = sc.chat_postMessage(
                 channel="#team-authit-devs",
                 text="AuthIt Slack/MQTT daemon is on the air... :tada:"
               )
@@ -533,6 +532,6 @@ if __name__ == '__main__':
             print("%s %s" % (msg.topic, msg.payload))
           except KeyboardInterrupt:    #on_message(msg)
             sys.exit(0)
-          except:
-            print "EXCEPT"
+          except BaseException as e:
+            print ("EXCEPT",e)
             time.sleep(1)

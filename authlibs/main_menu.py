@@ -1,6 +1,6 @@
 # vim:tabstop=2:expandtab:shiftwidth=2
-from templateCommon import *
-import accesslib
+from .templateCommon import *
+from . import accesslib
 
 ''' If "img" is missing - will not appear in index page, only menu '''
 
@@ -49,6 +49,13 @@ def get_raw_menu():
                     'img':url_for("static",filename="training.png"),
                     'alt':"Self-Training Portal",
                     'title':"Training",
+                    'importance':1200
+            },
+            {
+                    'url':url_for('memberFolders.folder'),
+                    'img':url_for("static",filename="memberFolder.png"),
+                    'alt':"Member Folder",
+                    'title':"Member Folder (NAS)",
                     'importance':1200
             },
             {
@@ -120,6 +127,12 @@ def get_raw_menu():
                     'privs':'Admin',
                     'url':url_for('members.admin_page'),
                     'title':"Admin Roles",
+                    'importance':2000
+            },
+            {
+                    'privs':'Admin',
+                    'url':url_for('autoplot.autoplot'),
+                    'title':"Auto Plot Billing",
                     'importance':2000
             },
             {

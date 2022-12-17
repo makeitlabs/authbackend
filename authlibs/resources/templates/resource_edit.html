@@ -8,6 +8,7 @@
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.resource_usage_reports",resource=rec.name) }}" class="btn btn-link">Usage Reports</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.maintenance",resource=rec.name) }}" class="btn btn-link">Maintenance</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.message",resource=rec.name) }}" class="btn btn-link">Message Users</a>
+		<a class="btn btn-outline-secondary" href="{{ url_for("training.approvals",resname=rec.name) }}" class="btn btn-link">Approve Auth</a>
 	</div>
   <form action={{ url_for('resources.resource_update',resource=rec.id) }} method="POST">
 	{% include 'form.html' %}
@@ -15,6 +16,35 @@
 	<input type=submit class="btn btn-primary" value="Save changes">
 	{% endif %}
   </form>
+
+	<hr />
+	<div class="container"> <!-- Training Records -->
+	<h3>Training</h3>
+	{% if not train %}
+		<p>There are no self-training courses</p>
+	{% else %}
+    <table class="table">
+      <tr>
+        <td>Name</td>
+        <td>Prerequisite</td>
+        <td>Grants</td>
+       </tr>
+      {% for t in train %}
+        <tr>
+          <td> {{ t.name }}</td>
+          <td> {{ t.requires }}</td>
+          <td> {{ t.grants }}</td>
+          <td> <a href="{{ url_for('training.editquiz',trainid=t.id) }}"><span class="glyphicon glyphicon-pencil" /></a></td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+  <!-- Button trigger for "Delete" modal -->
+  <a href="{{ url_for('training.newquiz',resname=rec.name) }}" class="btn btn-info">Add Self-Training Course</a>
+	<div class="collapse" id="addTrainCollapse" >
+	</div>
+  </div>
+  <!-- End Training -->
 
 	<hr />
 	<div class="container"> <!-- Maintenance Records -->

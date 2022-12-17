@@ -80,6 +80,7 @@
 {% endif %}
     src="{{ url_for('static',filename='MakeIt.svg') }}"  alt="">
   </a>
+  <button class="btn bg-transparent btn-lg glyphicon glyphicon-chevron-left"  style="background-color:transparent" onclick="javascript:window.history.back();"> </button>
 {% if current_user.is_authenticated %}
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
@@ -88,7 +89,7 @@
   <div class="collapse navbar-collapse" id="navbarSupportedContent">
     <ul class="navbar-nav mr-auto" >
       <li class="nav-item">
-        <a class="nav-item nav-link" href="#">v1.0.7</a>
+        <a class="nav-item nav-link" href="#">v{{ VERSION }}</a>
       </li>
       <li class="nav-item active">
 	      <a class="nav-link" href="{{ url_for("index") }}">Home <span class="sr-only">(current)</span></a>

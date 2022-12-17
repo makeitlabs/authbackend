@@ -23,7 +23,12 @@ import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response, Markup, make_response
 # NEwer login functionality
-from werkzeug.contrib.fixers import ProxyFix
+
+try:
+	from werkzeug.contrib.fixers import ProxyFix
+except:
+	from werkzeug.middleware.proxy_fix import ProxyFix
+
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 #from flask_oauth import OAuth
 from flask_login import logout_user, login_user
@@ -33,9 +38,9 @@ from flask_sqlalchemy import SQLAlchemy
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from contextlib import closing
 import pycurl, sys
-import ConfigParser
+#import configparser
 import xml.etree.ElementTree as ET
-from StringIO import StringIO
+#from StringIO import StringIO
 from authlibs.init import authbackend_init, get_config, createDefaultUsers
 from authlibs import cli
 from authlibs import utilities as authutil
@@ -59,6 +64,7 @@ from authlibs.main_menu import main_menu, index_page
 
 from authlibs.auth import auth
 from authlibs.members import members
+from authlibs.memberFolders import memberFolders
 from authlibs.resources import resources as resource_pages
 from authlibs.logs import logs as log_pages
 from authlibs.waivers import waivers 
@@ -68,6 +74,7 @@ from authlibs.reports import reports
 from authlibs.tools import tools 
 from authlibs.nodes import nodes 
 from authlibs.memberAudio import memberAudio 
+from authlibs.autoplot import autoplot 
 from authlibs.kvopts import kvopts 
 from authlibs.comments import comments 
 from authlibs.apikeys import apikeys 
@@ -223,7 +230,7 @@ def _addPaymentData(subs,paytype):
         bad.append(b['entry'])
     for sub in subs:
         if sub['customerid'] in bad:
-            print "BLACKLIST: IGNORING CUSTOMERID %s for %s" % (sub['customerid'],sub['userid'])
+            print ("BLACKLIST: IGNORING CUSTOMERID %s for %s" % (sub['customerid'],sub['userid']))
         else:
             users.append((sub['userid'],sub['email'],'pinpayments',sub['membertype'],sub['customerid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
     cur = get_db().cursor()
@@ -473,9 +480,9 @@ def create_routes():
 
     @app.route("/empty")
     def empty():
-       print  dir(request)
-       print  request.headers
-       print  request.referrer
+       #print  dir(request)
+       #print  request.headers
+       #print  request.referrer
        return render_template('empty.html')
 
     @app.route("/index")
@@ -532,41 +539,45 @@ def site_map(app):
     links = []
     for rule in app.url_map.iter_rules():
         # Filter out rules we can't navigate to in a browser
-        print rule
+        print (rule)
         # and rules that require parameters
 
 
 ####
-        
-parser=argparse.ArgumentParser()
-parser.add_argument("--createdb",help="Create new db if none exists",action="store_true")
-parser.add_argument("--command",help="Special command",action="store_true")
-(args,extras) = parser.parse_known_args(sys.argv[1:])
 
 app=authbackend_init(__name__)
+
+if __name__=="__main__":
+	parser=argparse.ArgumentParser()
+	parser.add_argument("--createdb",help="Create new db if none exists",action="store_true")
+	parser.add_argument("--command",help="Special command",action="store_true")
+	(args,extras) = parser.parse_known_args(sys.argv[1:])
+	if (args.createdb):
+		db.create_all()
+		createDefaultUsers(app)
+	if  args.command:
+		cli.cli_command(extras,app=app,um=app.user_manager)
+		sys.exit(0)
+
 
 
 with app.app_context():
     # Extensions like Flask-SQLAlchemy now know what the "current" app
     # is while within this block. Therefore, you can now run........
-    if (args.createdb):
-        db.create_all()
-        createDefaultUsers(app)
     try:
         db.session.query("* from test_database").all()
         app.jinja_env.globals['TESTDB'] = "YES"
     except:
         pass
 
+    app.jinja_env.globals['VERSION'] = "2.0b1"
     if app.config['globalConfig'].DeployType.lower() != "production":
         app.jinja_env.globals['DEPLOYTYPE'] = app.config['globalConfig'].DeployType
     if app.config['globalConfig'].backgroundColor:
         app.jinja_env.globals['BACKGROUND_COLOR'] = app.config['globalConfig'].backgroundColor
-    if  args.command:
-        cli.cli_command(extras,app=app,um=app.user_manager)
-        sys.exit(0)
 
     # Register Pages
+    #app.config["SQLALCHEMY_ECHO"] = True # Enabled for DB Debug
     
     create_routes()
     auth.register_pages(app)
@@ -578,6 +589,7 @@ with app.app_context():
     paylib.register_pages(app)
     reports.register_pages(app)
     nodes.register_pages(app)
+    autoplot.register_pages(app)
     tools.register_pages(app)
     kvopts.register_pages(app)
     comments.register_pages(app)
@@ -586,6 +598,7 @@ with app.app_context():
     training.register_pages(app)
     belog.register_pages(app)
     memberAudio.register_pages(app)
+    memberFolders.register_pages(app)
     slackutils.create_routes(app)
     g.main_menu = main_menu
     app.config['main_menu'] = main_menu

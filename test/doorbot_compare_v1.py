@@ -1,14 +1,14 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 #vim:tabstop=2:expandtab
 import os,sys,json,subprocess,re
 
 
 
-olds = json.load(open("../doorbot-v1-api.acl"))
-news = json.load(open("../new_doorbot_v1.acl"))
+olds = json.load(open(sys.argv[1]))
+news = json.load(open(sys.argv[2]))
 
-print olds[0].keys()
+print (olds[0].keys())
 
 # You do not have a current subscription
 # Your membership expired
@@ -27,23 +27,25 @@ other=0
 
 
 for i in olds:
-    oldmembers[i['member']]=i
+    #oldmembers[i['member']]=i
+    oldmembers[i['raw_tag_id']]=i
 for i in news:
-    newmembers[i['member']]=i
+    #newmembers[i['member']]=i
+    newmembers[i['raw_tag_id']]=i
 
 
 for x in oldmembers:
     if x not in newmembers:
-        print x,"NOT in newmembers"
+        print (x,"NOT in newmembers",oldmembers[x]['allowed'],oldmembers[x]['member'],oldmembers[x]['warning'])
 
 for x in newmembers:
     if x not in oldmembers:
-        print x,"NOT in oldmembers"
+        print (x,"NOT in oldmembers")
 
 for x in newmembers:
     if x in oldmembers:
         if newmembers[x]['tagid'] != oldmembers[x]['tagid']:
-            print x,"TAG id changed"
+            print (x,"TAG id changed")
 
 for x in newmembers:
     if x in oldmembers:
@@ -66,10 +68,10 @@ for x in newmembers:
             else: 
                 other+=1
                 desc += " OTHER"
-            print "[MEMBER]",x,desc
-            print "WAS",oldmembers[x]['warning']
-            print "NEW",newmembers[x]['warning']
-            print
+            print ("[MEMBER]",x,desc)
+            print ("WAS",oldmembers[x]['warning'])
+            print ("NEW",newmembers[x]['warning'])
+            print ()
         else:
             nochange+=1
             if oldmembers[x]['allowed'] == 'allowed':
@@ -77,9 +79,9 @@ for x in newmembers:
             else:
                 nc_denied += 1
 
-print len(oldmembers),"OLD members"
-print len(newmembers),"NEW members"
-print "ACCESS CHANGES", accesschange,"GRANTED",granted,"DENIED",denied,"NO-CHANGE",nochange
-print "EXPIRED",expired,"NOSUB",nosub,"OTHER",other
-print 
-print "UNCHANGED: Total",nochange,"allowed",nc_allowed,"denied",nc_denied
+print (len(oldmembers),"OLD members")
+print (len(newmembers),"NEW members")
+print ("ACCESS CHANGES", accesschange,"GRANTED",granted,"DENIED",denied,"NO-CHANGE",nochange)
+print ("EXPIRED",expired,"NOSUB",nosub,"OTHER",other)
+print ()
+print ("UNCHANGED: Total",nochange,"allowed",nc_allowed,"denied",nc_denied)

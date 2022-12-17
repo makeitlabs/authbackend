@@ -126,6 +126,10 @@ class RATTBE_LOGEVENT_DOOR_CLOSED:
     slack_icon=':arrow_backward:'
     slack_color='#777777'
 
+class RATTBE_LOGEVENT_MEMBER_LEASE_CHARGE:
+    id=1027
+    desc='Charge for Leased Space'
+
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000
     desc='Other System Event'
@@ -289,6 +293,16 @@ class RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE:
     desc='Resource privilege change'
     slack_icon=":level_slider:"
 
+class RATTBE_LOGEVENT_RESOURCE_TEMP_ACCESS_GRANTED:
+    id=4005
+    desc='Resource temporary access granted'
+    slack_icon=":thumbs_up:"
+
+class RATTBE_LOGEVENT_RESOURCE_TEMP_ACCESS_REVOKED:
+    id=4006
+    desc='Resource temporary access revoked'
+    slack_icon=":thumbs_down:"
+
 class RATTBE_LOGEVENT_PROSTORE_OTHER:
     id=5000
     desc='Pro-Storage Bin Misc Event'
@@ -332,19 +346,11 @@ def get_event_slack_colors():
 
 
 def get_events():
-		"""
-		print RATTBE_LOGEVENT_UNKNOWN
-		print RATTBE_LOGEVENT_UNKNOWN.id
-		print RATTBE_LOGEVENT_UNKNOWN.desc
-		print dir(__package__)
-		print __package__.__doc__
-		"""
-
     events_by_id={}
     for (name,cl) in inspect.getmembers(sys.modules[__name__], inspect.isclass):
         events_by_id[cl.id]=cl.desc
     return events_by_id
 
 if __name__=="__main__":
-    print get_events()
-		print get_event_slack_icons()
+    print (get_events())
+    print (get_event_slack_icons())

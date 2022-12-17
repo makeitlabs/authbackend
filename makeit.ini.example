@@ -15,6 +15,7 @@ Logins: all
 DefaultLogin: oauth
 ; "oauth" or "local"
 HelpURL: https://github.com/makeitlabs/authbackend/wiki/RATT-Tool-Authentication-Backend
+MemberFolderPath: /mnt/memberfolders
 ; BackendLogfile: /tmp/authit.log  NOT USED YET
 ; LockoutMessage: Covid-19 Training Required
 
@@ -103,3 +104,7 @@ api_password=camerasystempassword
 camera_id=cameraid
 camera_addr=10.0.0.3:7001
 slackchan=SlackCHallelIDtoReport
+
+[autoplot]
+ical_uri=<Autoplot ical URI>
+stripe item=<Stripe sku_ or price_ to purchase>

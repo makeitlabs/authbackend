@@ -1,0 +1,54 @@
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+	<script type="text/javascript" src="{{ url_for("static",filename="js/sorttable.js") }}"></script>
+{% endblock %}
+{% block body %}
+<div class="body"> <!-- BASE contrainer -->
+
+		
+<div class="container"> {# Outer container #}
+  <h3>Member Folder for {{ member.firstname }} {{ member.lastname}} </h3>
+  {% if up is not none %}
+  <a class="btn btn-outline-secondary glyphicon glyphicon-arrow-up" href="{{ url_for("memberFolders.folder")+up }}"></a>
+  {% endif %}
+  <span>{{ folder }}</span>
+  
+  <table id="fileTable" style="font-size:10px" class="table greenbar-table table-compact supercompact">
+      <thead>
+				<tr>
+        <th>Filename  <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Last Modified  <i class="glyphicon glyphicon-sort"></i></th>
+        <th></th>
+        <th>Ext.  <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Size  <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Action</th>
+      </thead>
+  {% for f in files %}
+     <tr>
+      <td>{{ f['name'] }}</td>
+      <td sortvalue={{ f['lastmod'] }}>{{ f['ago1'] }}</td>
+      <td>{{ f['ago2'] }} Ago</td>
+
+      {% if f['dir'] %}
+        <td>Directory</td>
+        <td sortvalue=0></td>
+        <td><a href="{{ url_for("memberFolders.folder")+"/"+f['path'] }}" class="btn btn-outline-secondary glyphicon glyphicon-folder-open"></a></td>
+      {% else %}
+        <td>{{ f['ext'] }}</td>
+        <td sortvalue={{ f['size'] }}>{{ f['sizeText'] }}</td>
+        <td><a href="{{ url_for("memberFolders.download",filename=f['path']) }}" class="btn btn-outline-secondary glyphicon glyphicon-download"></a></td>
+      {% endif %}
+    </tr>
+  {% endfor %}
+  </table>
+  <form method="post" enctype="multipart/form-data" action="{{ url_for("memberFolders.upload_file") }}">
+    <input type="hidden" name="folder" value="{{ folder }}">
+    <input type=file name=file>
+    <input type=submit value=Upload>
+   </form>
+</div>
+
+<script type="text/javascript">
+var t = new SortableTable(document.getElementById('fileTable'), 100);
+</script>
+{% endblock %}

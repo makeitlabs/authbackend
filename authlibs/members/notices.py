@@ -65,7 +65,7 @@ def sendnotices(notice):
 	text=notice_header
 	text += "\n"
 
-	print notice
+	#print (notice)
 	for (i,x) in enumerate(notice['notices']):
 		ps = x.split(":",2)
 		t = ps[0]
@@ -82,10 +82,12 @@ def sendnotices(notice):
 	text+=notice_footer
 
 
+	"""
 	print "SEND TO",notice['email'],notice['alt_email']
 	print text
 	print
 	print
+	"""
 	try:
 		genericEmailSender("info@makeitlabs.com",notice['email'],"Issues with your MakeIt Labs Membership",text)
 		genericEmailSender("info@makeitlabs.com",notice['alt_email'],"Issues with your MakeIt Labs Membership",text)
@@ -202,7 +204,7 @@ def send_all_notices():
 	# SEND NOTICES
 	notices = get_notices()
 	for n in notices:
-		print n
+		print (n)
 		errs += sendnotices(notices[n])
 	return errs
 			
