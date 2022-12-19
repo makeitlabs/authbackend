@@ -69,5 +69,20 @@ systemctl restart apache2
 
 cp authserver.wsgi.EXAMPLE authserver.wsgi
 
+chown -R www-data.www-data .
+
 # Test it
 wget --no-check-certificate https://localhost/authit/
+
+
+# Acces Test
+# Define environ variables like:
+
+```
+declare -x TEST_APIKEY="........"
+declare -x STAGING_URL="https://test:${TEST_APIKEY}@testserver.makeitlabs.com/staging"
+declare -x LIVE_URL="https://test:${TEST_APIKEY}@prodserver.makeitlabs.com/release"
+```
+
+Then run `tests/accesstest.sh` to test and check. You will have to have the above "test" API account and credentails working
+Make sure there is like a 99% success rate on the matching elements. You might have a few mismatches due to DBs being slightly out-of-sync
