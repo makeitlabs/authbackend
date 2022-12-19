@@ -1,0 +1,73 @@
+apt install git
+mkdir /var/www
+cd /var/www/
+git clone https://github.com/bkgoodman/authbackend.git
+cd authbackend/
+git checkout python3
+apt install sqlite3 python3-pip python3-pycurl mosquitto net-tools libcurl4-openssl-dev libssl-dev ffmpeg
+apt-get install -y libssl-dev libcurl4-openssl-dev python3-dev gcc ssh curl sqlite3 bash vim-tiny awscli
+pip3 install -r requirements.txt
+
+## Copy these files from an existing production or staging server
+## These can also be collected from the ./restore.py script (from AWS backups), or backup directory itself
+## Just make sure you NEVER confuse "staging" and "production" ini files - as production has live keys and will overwrite backups, etc
+
+cp ~bkg/makeit.ini .
+cp ~bkg/makeit.db .
+cp ~bkg/log.db .
+
+apt install apache2
+apt-get install libapache2-mod-wsgi-py3
+cd /etc/apache2/mods-enabled/
+
+# Copy from an existing server - enables WSGI and SSL 
+# Make sure you CHANGE this between staging and production!
+cp ~bkg/001-authit.conf .
+
+```
+<VirtualHost *:443>
+    ServerName staging.makeitlabs.com
+
+    CustomLog /var/log/apache2/authbackend-staging.log combined
+    ErrorLog /var/log/apache2/authbackend-staging-error.log
+
+    WSGIDaemonProcess authserver-ng-staging user=www-data group=www-data threads=5 home=/var/www/authbackend
+    WSGIScriptAlias /authit /var/www/authbackend/authserver.wsgi
+
+    <Directory /var/www/authbackend>
+        WSGIProcessGroup authserver-ng-staging
+        WSGIApplicationGroup %{GLOBAL}
+  WSGIPassAuthorization On
+        Order deny,allow
+        Allow from all
+    </Directory>
+
+    SSLEngine On
+    Include /etc/letsencrypt/options-ssl-apache.conf
+    SSLCertificateFile /etc/letsencrypt/staging/fullchain1.pem
+    SSLCertificateKeyFile /etc/letsencrypt/staging/privkey1.pem
+</VirtualHost>
+
+```
+
+
+# Copy SSL certificates into place
+mkdir /etc/letsencrypt
+cd /etc/letsencrypt/
+mv ~bkg/staging/ .
+chown -R root.root staging/
+chown -R root.root .
+cp ~bkg/options-ssl-apache.conf .
+chown root.root options-ssl-apache.conf 
+
+# Enable ssl and cache modules
+cd /etc/apache2/mods-enabled/
+ln -s ../mods-available/ssl.load ssl.load
+ln -s ../mods-available/ssl.conf ssl.conf
+ln -s ../mods-available/socache_shmcb.load socache_shmcb.load
+systemctl restart apache2
+
+cp authserver.wsgi.EXAMPLE authserver.wsgi
+
+# Test it
+wget --no-check-certificate https://localhost/authit/

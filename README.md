@@ -2,6 +2,11 @@
 
 Some rough documentation as of April, 2022
 
+# Ground-up install
+
+See the `rawinstall.txt` file for a capture of an install and configure of Ubuntu 22 from ground-up
+Looking at the `Dockerfile` is also a good source on how to get the code itself running
+
 # Running via. Docker/Container Images
 
 To run or build Docker, Containers or Kubernentes, see the `Dockerfile`
