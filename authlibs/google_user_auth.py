@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(GLOBAL_LOGGER_LEVEL)
 import os
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE']='Yes'
+os.environ['OAUTHLIB_INSECURE_TRANSPORT']='Yes'
 
 """ 
 TODO FIX BUG
@@ -41,6 +42,7 @@ def authinit(app):
         scope=[#"https://www.googleapis.com/auth/plus.me",
         "https://www.googleapis.com/auth/userinfo.email"
         ],
+	# TEST - DOESNT WORK authorized_url="https://staging.makeitlabs.com/authit/google_login/google/authorized",
         offline=True
         )
 

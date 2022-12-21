@@ -91,10 +91,14 @@ def do_update():
 		get_v1_acl(x['name'])
 		str= compare_v1(yesterdaystr,todaystr,x['name'])
 		if x['slack_admin_chan']:
-			sc.chat_postMessage(
-				channel=x['slack_admin_chan'],
-				text=str
-				)
+			try:
+				sc.chat_postMessage(
+					channel=x['slack_admin_chan'],
+					text=str
+					)
+			except BaseException as e:
+				print ("Slack postMessage error",e)
+
 
 if __name__ == "__main__":
 	do_update()

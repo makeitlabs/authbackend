@@ -75,6 +75,32 @@ chown -R www-data.www-data .
 wget --no-check-certificate https://localhost/authit/
 
 
+# Member Audio
+mkdir /var/www/memberAudio
+chown www-data.www-data /var/www/memberAudio
+
+# (Copy any existing audio files over from wherever)
+
+
+# Add mounts to `/etc/fstab`
+
+```
+//makerspace/MakerSpace /media/makerspace cifs username=guest,password=,vers=2.0 0 0
+//makerspace/Backup /media/backup cifs credentials=/etc/.smbcreds,vers=2.0,gid=nasbackup,file_mode=0660,dir_mode=0770 0 0
+```
+
+
+apt install cifs-utils -y
+useradd nasbackup
+#create `/etc/.smbcreds` like:
+```
+Username=....
+Password=....
+```
+mkdir /media/makerspace
+mkdir /media/backup
+mount -a
+
 # Acces Test
 # Define environ variables like:
 
@@ -83,6 +109,11 @@ declare -x TEST_APIKEY="........"
 declare -x STAGING_URL="https://test:${TEST_APIKEY}@testserver.makeitlabs.com/staging"
 declare -x LIVE_URL="https://test:${TEST_APIKEY}@prodserver.makeitlabs.com/release"
 ```
+
+# Setup Backups
+mkdir /var/www/backups-staging/db
+mkdir /var/www/backups-staging/acls
+## Set mackup directories and credentials in makeit.ini
 
 Then run `tests/accesstest.sh` to test and check. You will have to have the above "test" API account and credentails working
 Make sure there is like a 99% success rate on the matching elements. You might have a few mismatches due to DBs being slightly out-of-sync

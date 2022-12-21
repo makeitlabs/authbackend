@@ -13,6 +13,7 @@ import configparser
 import subprocess,os
 import glob
 import boto3
+import paramiko
 from stat import *
 
 
@@ -24,6 +25,7 @@ if __name__ == '__main__':
     parser.add_argument("--debug","-d",help="verbosity",action="count")
     parser.add_argument("--nopayment",help="Do not update payment and waiver data",action="store_true")
     parser.add_argument("--noupload",help="Do not send backups to AWS",action="store_true")
+    parser.add_argument("--nosftp",help="Do not send backups to sftp",action="store_true")
     (args,extras) = parser.parse_known_args(sys.argv[1:])
 
     now = datetime.now()
@@ -41,6 +43,11 @@ if __name__ == '__main__':
     localurl = Config.get("backups","localurl")
     api_username = Config.get("backups","api_username")
     api_password = Config.get("backups","api_password")
+    localmethod = Config.get("backups","localmethod")
+    sftp_user = Config.get("backups","sftp_user")
+    sftp_password = Config.get("backups","sftp_password")
+    sftp_server = Config.get("backups","sftp_server")
+    sftp_directory = Config.get("backups","sftp_directory")
 
     # Take Snapshot of databases
     if args.verbose: print ("* Snapshotting databases")
@@ -75,6 +82,20 @@ if __name__ == '__main__':
           # File is too old - delete
           if args.verbose: print ("DELETING ",f,now-ft)
           os.unlink(f)
+
+    # Send backups to NAS
+    if not args.nosftp and localmethod=="sftp":
+        with paramiko.Transport((sftp_server,22)) as transport:
+            transport.connect(None,sftp_user,sftp_password)
+            with paramiko.SFTPClient.from_transport(transport) as sftp:
+                for d in (acldir,backup_dir):
+                    files = glob.glob(os.path.join(d,today+"*"))
+                    for f in files:
+                        if args.verbose: print ("SFTP",f)
+                        fn = f.split("/")[-1]
+                        rfn = sftp_directory+"/"+fn
+                        print("SFTP PUT",f,rfn)
+                        sftp.put(f,rfn)
 
     # Send backups to Amazon S3 (and Glacier) storage
     if not args.noupload:
