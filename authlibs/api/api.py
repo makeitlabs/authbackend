@@ -133,7 +133,56 @@ def test_localhost():
 @blueprint.route('/v1/whoami', methods=['GET'])
 @api_only
 def whoami():
-    return json_dump("You have a valid API key %s" % g.apikey, 200, {'Content-type': 'text/plain'})
+    return ("You have a valid API key %s" % g.apikey, 200, {'Content-type': 'text/plain'})
+
+@blueprint.route('/v1/nodes', methods=['GET'])
+@api_only
+def api_v1_nodelist():
+    result = {'status':'success','nodes':[]}
+    nodes = Node.query.all()
+
+    for n in nodes:
+      result['nodes'].append({
+        'id': n.id,
+        'last_ping': n.last_ping.strftime("%Y-%m-%d %H:%M:%S") if n.last_ping is not None else "", 
+        'last_update': n.last_update.strftime("%Y-%m-%d %H:%M:%S") if n.last_update is not None else "",
+        'strength': n.strength,
+        'name': n.name,
+        'mac': n.mac
+      })
+
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+
+@blueprint.route('/v1/tools', methods=['GET'])
+@api_only
+def api_v1_toollist():
+    result = {'status':'success','tools':[]}
+    tool = Tool.query
+    tool = tool.outerjoin(Node,(Node.id == Tool.node_id))
+    tool = tool.outerjoin(Resource,(Resource.id == Tool.resource_id))
+    tool = tool.add_column(Node)
+    tool = tool.add_column(Resource)
+    tool = tool.all()
+
+    for t in tool:
+      result['tools'].append({
+        'id': t[0].id,
+        'name': t[0].name,
+        'lockout': t[0].lockout,
+        'short': t[0].short,
+        'displayname': t[0].displayname,
+        'node': t[1].name if t[1] is not None else "",
+        'node_id': t[1].id if t[1] is not None else "",
+        'node_mac': t[1].mac if t[1] is not None else "",
+        'node_last_ping': t[1].last_ping.strftime("%Y-%m-%d %H:%M:%S") if t[1] is not None and t[1].last_ping is not None else "", 
+        'node_last_update': t[1].last_update.strftime("%Y-%m-%d %H:%M:%S") if t[1] is not None and t[1].last_update is not None else "",
+        'resource': t[2].name if t[2] is not None else "",
+        'resource_id': t[2].id if t[2] is not None else "",
+      })
+
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+
+
 
 @blueprint.route('/v1/node/<string:node>/config', methods=['GET'])
 @api_only
@@ -143,10 +192,11 @@ def api_v1_nodeconfig(node):
     if not n:
       result['status']='error'
       result['message']='Node not found'
-      return json_dump(result, 200, {'Content-type': 'text/plain'})
+      return (json_dump(result), 200, {'Content-type': 'text/plain'})
 
     result['mac']=n.mac
     result['name']=n.name
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
     kv = KVopt.query.add_column(NodeConfig.value).outerjoin(NodeConfig,((NodeConfig.node_id == n.id) & (NodeConfig.key_id == KVopt.id))).all()
     result['params']={}
@@ -195,7 +245,7 @@ def api_v1_nodeconfig(node):
       result['tools'].append(tl)
 
     #print json_dump(result,indent=2)
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 @blueprint.route('/v1/slack/admin/<string:slackid>',methods=['POST'])
 @api_only

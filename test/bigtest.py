@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import sys,re,os,urllib,requests
 skip_pages="""/api/v1/payments/update
@@ -237,7 +237,8 @@ def finderror(url,r):
 
 	return 
 
-BASE="http://127.0.0.1:5000"
+BASE="http://127.0.0.1:443"
+BASE=os.env['STAGING_URL']
 
 query_args = { 'username':'admin', 'password':'admin' }
 req = requests.Session()
