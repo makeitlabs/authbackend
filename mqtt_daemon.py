@@ -209,6 +209,7 @@ def on_message(client,userdata,msg):
                     if n:
                       n.last_ping=datetime.utcnow()
                       n.strength=message['level'];
+                      n.ip_addr = message['ip'] if 'ip' else ""
                       db.session.commit()
                     pass
             elif topic[0]=="ratt" and topic[1]=="status" and subt=="acl" and sst=="update":

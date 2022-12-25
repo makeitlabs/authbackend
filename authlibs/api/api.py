@@ -147,6 +147,7 @@ def api_v1_nodelist():
         'last_ping': n.last_ping.strftime("%Y-%m-%d %H:%M:%S") if n.last_ping is not None else "", 
         'last_update': n.last_update.strftime("%Y-%m-%d %H:%M:%S") if n.last_update is not None else "",
         'strength': n.strength,
+        'ip': n.ip,
         'name': n.name,
         'mac': n.mac
       })
@@ -174,6 +175,7 @@ def api_v1_toollist():
         'node': t[1].name if t[1] is not None else "",
         'node_id': t[1].id if t[1] is not None else "",
         'node_mac': t[1].mac if t[1] is not None else "",
+        'node_ip': t[1].ip_addr if t[1] is not None else "",
         'node_last_ping': t[1].last_ping.strftime("%Y-%m-%d %H:%M:%S") if t[1] is not None and t[1].last_ping is not None else "", 
         'node_last_update': t[1].last_update.strftime("%Y-%m-%d %H:%M:%S") if t[1] is not None and t[1].last_update is not None else "",
         'resource': t[2].name if t[2] is not None else "",

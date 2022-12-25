@@ -311,6 +311,12 @@ CREATE TABLE vendinglog (
 
 ## Main DB
 
+
+# Node IP Addresses
+
+```
+ALTER TABLE nodes ADD COLUMN ip_addr VARCHAR(20);
+```
 # HOTFIX - member balances
 
 ```

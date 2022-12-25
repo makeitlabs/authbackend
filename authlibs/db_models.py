@@ -437,6 +437,7 @@ class Node(db.Model):
     last_ping = db.Column(db.DateTime(timezone=True))
     last_update = db.Column(db.DateTime(timezone=True))
     strength = db.Column(db.Integer())
+    ip_addr = db.Column(db.String(20))
     name = db.Column(db.String(20))
     mac = db.Column(db.String(20))
 

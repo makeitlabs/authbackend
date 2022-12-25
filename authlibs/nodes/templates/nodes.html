@@ -7,6 +7,7 @@
         <tr>
             <th>Name</th>
             <th>MAC</th>
+            <th>IP</th>
             <th colspan=2>Last Ping</th>
             <th colspan=>Strength</th>
             <th colspan=2>Last ACL Update</th>
@@ -15,6 +16,7 @@
 	  <tr>
 		<td><a href="{{ url_for('nodes.nodes_show',node=nodes.id) }}">{{ nodes.name }}</a></td>
 		<td>{{ nodes.mac }}</td>
+		<td>{{ nodes.ip_addr }}</td>
 		<td>
 			{% if nodes.when %}
 			{{ nodes.when }}
