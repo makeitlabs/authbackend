@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 """
 vim:tabstop=2:expandtab:shiftwidth=2:softtabstop=2
 MakeIt Labs Authorization System, v0.4
@@ -15,14 +15,14 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from flask_sqlalchemy import SQLAlchemy
 from authlibs import utilities as authutil
-from slackclient import SlackClient
+#from slack_sdk import WebClient as SlackClient
 import json
-import ConfigParser,sys,os
+import configparser,sys,os
 import paho.mqtt.client as mqtt
 import paho.mqtt.subscribe as sub
 from datetime import datetime
 from authlibs.init import authbackend_init, createDefaultUsers
-import requests,urllib,urllib2
+import requests,urllib
 import logging, logging.handlers
 from  authlibs import eventtypes
 import subprocess
@@ -49,12 +49,12 @@ ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 logger.addHandler(handler)
 
-Config = ConfigParser.ConfigParser({})
+Config = configparser.ConfigParser({})
 Config.read('makeit.ini')
 slack_token = Config.get('Slack','BOT_API_TOKEN')
 
 def get_mqtt_opts(app):
-  Config = ConfigParser.ConfigParser({})
+  Config = configparser.ConfigParser({})
   Config.read('makeit.ini')
   mqtt_opts={}
   mqtt_base_topic = Config.get("MQTT","BaseTopic")
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     with app.app_context():
       # The callback for when the client receives a CONNACK response from the server.
       (base_topic,opts,slack_api_token) = get_mqtt_opts(app)
-      sc = SlackClient(slack_api_token)
+      #sc = SlackClient(slack_api_token)
 
       for m in Node.query.all():
           x =m.mac
@@ -98,14 +98,14 @@ if __name__ == '__main__':
               sp = xx.split()
               if sp[2] == mac:
                   ip = sp[0]
-          print m.name,mac,ip
+          print (m.name,mac,ip)
           if ip:
             p=subprocess.call(["/bin/ping","-c1",ip])
             if p==0:
-		eastern = dateutil.tz.gettz('US/Eastern')
-		utc = dateutil.tz.gettz('UTC')
-		now = datetime.utcnow()
-		#now.replace(tzinfo=None).astimezone(utc).replace(tzinfo=None)
-		#now.astimezone(utc).replace(tzinfo=None)
+                eastern = dateutil.tz.gettz('US/Eastern')
+                utc = dateutil.tz.gettz('UTC')
+                now = datetime.utcnow()
+                #now.replace(tzinfo=None).astimezone(utc).replace(tzinfo=None)
+                #now.astimezone(utc).replace(tzinfo=None)
                 m.last_ping=now
       db.session.commit();

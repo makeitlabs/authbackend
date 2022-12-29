@@ -1,0 +1,138 @@
+apt install git
+mkdir /var/www
+cd /var/www/
+git clone https://github.com/bkgoodman/authbackend.git
+cd authbackend/
+git checkout python3
+apt install sqlite3 python3-pip python3-pycurl mosquitto net-tools libcurl4-openssl-dev libssl-dev ffmpeg
+apt-get install -y libssl-dev libcurl4-openssl-dev python3-dev gcc ssh curl sqlite3 bash vim-tiny awscli
+pip3 install -r requirements.txt
+
+## Copy these files from an existing production or staging server
+## These can also be collected from the ./restore.py script (from AWS backups), or backup directory itself
+## Just make sure you NEVER confuse "staging" and "production" ini files - as production has live keys and will overwrite backups, etc
+
+cp ~bkg/makeit.ini .
+cp ~bkg/makeit.db .
+cp ~bkg/log.db .
+
+apt install apache2
+apt-get install libapache2-mod-wsgi-py3
+cd /etc/apache2/mods-enabled/
+
+# Copy from an existing server - enables WSGI and SSL 
+# Make sure you CHANGE this between staging and production!
+cp ~bkg/001-authit.conf .
+
+```
+<VirtualHost *:443>
+    ServerName staging.makeitlabs.com
+
+    CustomLog /var/log/apache2/authbackend-staging.log combined
+    ErrorLog /var/log/apache2/authbackend-staging-error.log
+
+    WSGIDaemonProcess authserver-ng-staging user=www-data group=www-data threads=5 home=/var/www/authbackend
+    WSGIScriptAlias /authit /var/www/authbackend/authserver.wsgi
+
+    <Directory /var/www/authbackend>
+        WSGIProcessGroup authserver-ng-staging
+        WSGIApplicationGroup %{GLOBAL}
+  WSGIPassAuthorization On
+        Order deny,allow
+        Allow from all
+    </Directory>
+
+    SSLEngine On
+    Include /etc/letsencrypt/options-ssl-apache.conf
+    SSLCertificateFile /etc/letsencrypt/staging/fullchain1.pem
+    SSLCertificateKeyFile /etc/letsencrypt/staging/privkey1.pem
+</VirtualHost>
+
+```
+
+
+# Copy SSL certificates into place
+mkdir /etc/letsencrypt
+cd /etc/letsencrypt/
+mv ~bkg/staging/ .
+chown -R root.root staging/
+chown -R root.root .
+cp ~bkg/options-ssl-apache.conf .
+chown root.root options-ssl-apache.conf 
+
+# Enable ssl and cache modules
+cd /etc/apache2/mods-enabled/
+ln -s ../mods-available/ssl.load ssl.load
+ln -s ../mods-available/ssl.conf ssl.conf
+ln -s ../mods-available/socache_shmcb.load socache_shmcb.load
+systemctl restart apache2
+
+cp authserver.wsgi.EXAMPLE authserver.wsgi
+
+chown -R www-data.www-data .
+
+# Test it
+wget --no-check-certificate https://localhost/authit/
+
+
+# Member Audio
+mkdir /var/www/memberAudio
+chown www-data.www-data /var/www/memberAudio
+
+# (Copy any existing audio files over from wherever)
+
+
+# Add mounts to `/etc/fstab`
+
+```
+//makerspace/MakerSpace /media/makerspace cifs username=guest,password=,vers=2.0 0 0
+//makerspace/Backup /media/backup cifs credentials=/etc/.smbcreds,vers=2.0,gid=nasbackup,file_mode=0660,dir_mode=0770 0 0
+```
+
+
+apt install cifs-utils -y
+useradd nasbackup
+#create `/etc/.smbcreds` like:
+```
+Username=....
+Password=....
+```
+mkdir /media/makerspace
+mkdir /media/backup
+mount -a
+
+# Acces Test
+# Define environ variables like:
+
+```
+declare -x TEST_APIKEY="........"
+declare -x STAGING_URL="https://test:${TEST_APIKEY}@testserver.makeitlabs.com/staging"
+declare -x LIVE_URL="https://test:${TEST_APIKEY}@prodserver.makeitlabs.com/release"
+```
+
+# Setup Backups
+mkdir /var/www/backups-staging/db
+mkdir /var/www/backups-staging/acls
+## Set mackup directories and credentials in makeit.ini
+
+Then run `tests/accesstest.sh` to test and check. You will have to have the above "test" API account and credentails working
+Make sure there is like a 99% success rate on the matching elements. You might have a few mismatches due to DBs being slightly out-of-sync
+
+# MQTT Daemon
+create like an `ssl` directory
+Copy MQTT ssl certs to client directory
+change `MQTT_SSL` options in `makeit.ini` to use those certs
+
+# Daemons
+add the `authbackend-mqtt.service` and `authbackend-slack.service` to `/etc/systemd/user` (or wherever) and enabled/start via `systemctl`
+
+
+# CRON
+See `crontab.txt` as an example of cron services which are needed. Install these - but under `www-data`, not `root`!
+
+
+# DOORENTRY
+Make sure `doorentry` go program and `doorentry.cfg` file are in the same directory as `mqtt_daemon.py`
+
+# tmp
+Create `/tmp/authit.log` and `/tmp/mqtt-daemon.log` - and give `www-data` as owner

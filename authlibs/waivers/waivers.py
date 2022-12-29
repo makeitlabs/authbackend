@@ -106,30 +106,30 @@ def cli_waivers(cmd,**kwargs):
 	addNewWaivers()
 
 def cli_econtacts(cmd,**kwargs):
-	"""Check the DB to get the most recent waiver, add any new ones, return count added"""
-	logger.debug ("Updating waivers...")
-	waiversystem = {}
-	waiversystem['Apikey'] = current_app.config['globalConfig'].Config.get('Smartwaiver','Apikey')
-	#(last_waiverid,last_date) = smartwaiver.getLastWaiver()
-	(last_waiverid,last_date) = (None,None)
-	waiver_dict = {'api_key': waiversystem['Apikey'],'waiver_id': last_waiverid,'last_date':last_date}
-	waivers = smartwaiver.getWaivers(waiver_dict)
+  """Check the DB to get the most recent waiver, add any new ones, return count added"""
+  logger.debug ("Updating waivers...")
+  waiversystem = {}
+  waiversystem['Apikey'] = current_app.config['globalConfig'].Config.get('Smartwaiver','Apikey')
+  #(last_waiverid,last_date) = smartwaiver.getLastWaiver()
+  (last_waiverid,last_date) = (None,None)
+  waiver_dict = {'api_key': waiversystem['Apikey'],'waiver_id': last_waiverid,'last_date':last_date}
+  waivers = smartwaiver.getWaivers(waiver_dict)
 
-        """
-        fd=open("waiverdata.dat","w")
-        fd.write(json.dumps(waivers,indent=2))
-        fd.close()
-        """
-        #waivers = json.load(open("waiverdata.dat"))
-	logger.debug("Checking {0} new waivers".format(len(waivers)))
-        for w in waivers:
-          print w
-          for ww in Waiver.query.filter(Waiver.waiver_id == w['waiver_id']).all():
-            print "GOT",ww
-            ww.emergencyName = w['emergencyName']
-            ww.emergencyPhone = w['emergencyPhone']
-	db.session.commit()
-	logger.debug ("Done.")
+  """
+  fd=open("waiverdata.dat","w")
+  fd.write(json.dumps(waivers,indent=2))
+  fd.close()
+  """
+  #waivers = json.load(open("waiverdata.dat"))
+  logger.debug("Checking {0} new waivers".format(len(waivers)))
+  for w in waivers:
+    print (w)
+    for ww in Waiver.query.filter(Waiver.waiver_id == w['waiver_id']).all():
+      print ("GOT",ww)
+      ww.emergencyName = w['emergencyName']
+      ww.emergencyPhone = w['emergencyPhone']
+  db.session.commit()
+  logger.debug ("Done.")
 
 
 # This should ONLY be required for v0.7->v0.8 Migrations
@@ -166,30 +166,31 @@ def removed_from_register_pages():
   logger.debug ("Done.")
 
 def connect_waivers():
-	logger.debug("CONNECING WAIVERS")
-	for w in Waiver.query.filter(Waiver.member_id == None).all():
-		s =  "Unattached %s %s %s " % (w.email,w.firstname,w.lastname)
-		m = Member.query.filter(or_((Member.alt_email.ilike(w.email)),(Member.email.ilike(w.email))))
-		m = m.filter(Member.firstname.ilike(w.firstname))
-		m = m.filter(Member.lastname.ilike(w.lastname))
-		m = m.all()
-		if len(m)==1:
-			w.member_id = m[0].id
-			s += " accept waiver for member %s" % m[0].member
-			try:
-				comment = Waiver.waiverTypes[w.waivertype]['short']
-			except:
-				comment="??"
-			authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,member_id=m[0].id,message=comment,commit=0)
-			if (w.waivertype == Waiver.WAIVER_TYPE_MEMBER):
-				if  (m[0].access_reason is None or m[0].access_reason == ""):
-					m[0].access_enabled=1;
-					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id,member_id=m[0].id,commit=0)
-				else:
-					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,message="Waiver found, but access otherwise denied",member_id=m[0].id,commit=0)
-		#else:
-		#	print s+" ?? len "+str(len(m))
-	db.session.commit()
+  logger.debug("CONNECING WAIVERS")
+  for w in Waiver.query.filter(Waiver.member_id == None).all():
+    s =  "Unattached %s %s %s " % (w.email,w.firstname,w.lastname)
+    m = Member.query.filter(or_((Member.alt_email.ilike(w.email)),(Member.email.ilike(w.email))))
+    m = m.filter(Member.firstname.ilike(w.firstname))
+    m = m.filter(Member.lastname.ilike(w.lastname))
+    m = m.all()
+    if len(m)==1:
+      w.member_id = m[0].id
+      s += " accept waiver for member %s" % m[0].member
+      try:
+        comment = Waiver.waiverTypes[w.waivertype]['short']
+      except:
+        comment="??"
+      authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,member_id=m[0].id,message=comment,commit=0)
+      if (w.waivertype == Waiver.WAIVER_TYPE_MEMBER):
+        if  (m[0].access_reason is None or m[0].access_reason == ""):
+          m[0].access_enabled=1;
+          authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id,member_id=m[0].id,commit=0)
+        else:
+          authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,message="Waiver found, but access otherwise denied",member_id=m[0].id,commit=0)
+    #else:
+    #  print s+" ?? len "+str(len(m))
+  db.session.commit()
+  authutil.kick_backend()
 
 @blueprint.route('/relate', methods = ['GET'])
 @login_required
@@ -238,6 +239,7 @@ def relate_assign():
               mem.access_enabled=1;
               authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id,member_id=mem.id,commit=0)
         db.session.commit()
+        authutil.kick_backend()
         flash ("Assigning waiver to existing member","success")
     else:
       flash("No action specified","warning")

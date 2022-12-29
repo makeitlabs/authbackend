@@ -7,16 +7,18 @@ and use them to complete Payment-related operations.
 
 """
 
-import pinpayments as pinpay
-import stripe_pay
+#import .pinpayments as pinpay
+#import stripe_pay
+from . import stripe_pay
 import datetime
-import utilities
-import dbutil
-import init
+from . import utilities
+from . import dbutil
+from . import init
+from . import membership
 from sqlalchemy import func
 from authlibs.db_models import db, Member, Resource, AccessByMember, Tool, Logs, UsageLog, Subscription
 
-import config
+from . import config
 import sys
 
 import logging
@@ -105,7 +107,7 @@ def filterSubscriptions2(subscriptions):
 def writeSubscribersTextfile(subs,filename):
     f = open(filename,'w')
     for sub in subs:
-        print>>f, sub
+        print (sub,file=f)
     f.close()
 
 def old_updatePaymentsData():
@@ -198,13 +200,13 @@ def updatePaymentData(modules=None):
     for module in modules.split(","):
         logger.info("Module: %s" % module)
         subs = getSubscriptions(module)
-        print """
+        print ("""
 
 
         NOW WE HAVE PAY DATA
 
 
-        """
+        """)
         logger.info(subs)
         fsubs = filterSubscriptions(subs)
         logger.info(fsubs)
@@ -237,3 +239,8 @@ def cli_updatepayments(cmd,**kwargs):
         #pinpay.chargeFee('5689127638925312','WorkspaceRental','Rental for June','Workspace','37.50','yes')
         #
         updatePaymentData()
+        membership.syncWithSubscriptions(True)
+        #db.session.commit()
+
+
+        print ("PAYMENT DATA FINISHED")

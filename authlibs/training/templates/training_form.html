@@ -1,0 +1,123 @@
+{#    This is meant to be INCLUDED by another page.
+			Wrap this inside another div class-content block, 
+			and inside a form (if desiered)
+
+			This template is used for THREE different thins:
+			Create, Edit, or Display a record
+	
+			{% include 'template.html' %}
+
+			Or to include checkbox columns:
+
+			{% with add_checkboxes='1' %}
+			{% include 'userlist.html' %}
+			{% endwith %}
+
+#}
+
+<!-- Import any "with" parameters -->
+
+{% if readonly is defined and readonly  %}
+{% set ro="readonly" %}
+{% endif %}
+
+{% if rec is not defined %}
+{% set rec={} %}
+{% endif %}
+
+{% from 'global_macros.html' import input with context  %}
+
+<!-- Training Stuff -->
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('name',"Course Name",'',small="Optional. Short name for course.") }}
+    </div>
+    <div class="form-group col-md-6">
+			{{ input('url',"Training info/video URL",'',small="URL for video and info. If blank, course will not show in training portal") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-3">
+			<label for="input_required">Prerequisite Resource</label>
+			<select id="required_resource" onChange="prereq_changed();" name="input_required">
+			<option value=-1>(None)</option>
+			
+			{% for r in resources %}
+				<option value={{ r.id }}
+				{{ 'selected' if (r.id == rec.required) else '' }}
+				>{{ r.name }}
+				</option>
+			{% endfor %}
+			</select><br />
+			<small>Must already be qualified on this to self-authorize</small>
+    </div>
+    <div class="form-group col-md-3">
+			<label for="input_permit">Approval Type</label>
+			<select name="input_permit">
+			<option value=0
+				{{ 'selected' if (0 == rec.permit) else '' }}
+				>Automatic access when Passed</option>
+			<option value=1
+				{{ 'selected' if (1 == rec.permit) else '' }}
+				>RM must approve</option>
+			
+			</select><br />
+			<small>Automatically approve when quiz is passed, or hold user in "pending" state until RM approves</small>
+    </div>
+    <div class="form-group col-md-2">
+			{{ input('days',"Days Required",'',small="Number of days users must be authorized on this to qualify. If zero or blank, not required") }}
+    </div>
+    <div class="form-group col-md-2">
+			{{ input('hours',"Hours Required",'',small="Number of machine-houres user must have logged to qualify. If zero or blank, not required") }}
+    </div>
+    <div class="form-group col-md-2">
+	<!-- <button type="button" class="btn btn-secondary" onclick='location.href="{XX{ url_for("training.editquiz",trainid=train.id) }XX}";'>Edit Quiz</button> -->
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('required_endorsements',"Prerequisite Endorsements",'',small="Endorsements required on prerequisite resource. If empty, only basic access is required as prerequisite (Space seperated list)") }}
+    </div>
+    <div class="form-group col-md-6">
+			{{ input('endorsements',"Endorsements to Grant",'',small="Passing gives these endorsements. If empty, grants basic resource access (Space separated list)") }}
+    </div>
+  </div>
+<button class="btn btn-primary" type="submit" name="Save" value="Save Training">Save</button>
+  <!-- End Training -->
+
+<script type="text/javascript">
+
+function prereq_changed() {
+   var x = document.getElementById("required_resource").value
+   var p = document.getElementById("input_required_endorsements")
+   if (x== -1) {
+      p.value="";
+      p.disabled = true;
+   } else {
+      p.disabled = false;
+   }
+
+/* We can use this to populate dropdown list */
+fetch('{{ url_for('training.get_endorsements',resid="") }}'+x)
+  .then(
+    function(response) {
+      if (response.status !== 200) {
+        console.log('Looks like there was a problem. Status Code: ' +
+          response.status);
+        return;
+      }
+
+      // Examine the text in the response
+      response.json().then(function(data) {
+        console.log(data);
+      });
+    }
+  )
+  .catch(function(err) {
+    console.log('Fetch Error :-S', err);
+  });
+}
+
+prereq_changed();
+</script>

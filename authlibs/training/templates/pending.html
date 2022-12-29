@@ -5,7 +5,7 @@ vim:tabstop=2:expandtab:shiftwidth=2
 {% block search %}
 <div class=body>
 	<div class="container"> {# outer container #}
-	<h1>{{ resources.name}} Pending Approvals</h1>
+	<h1>{{ resources.name.title() }} Pending Authorizations</h1>
     {% if users|length == 0 %}
     No approvals are pending
     {% else %}
@@ -13,13 +13,21 @@ vim:tabstop=2:expandtab:shiftwidth=2
 	  <table class="table table-sm">
       <tr>
         <th>Name</th>
+        <th>Type</th>
         <th></th>
       </tr>
       {% for a in users %}
         <tr>
           <td>
+            {% if a.type %}
+            <input type="checkbox" name="id_{{ a.id }}_{{ a.type }}" /> 
+            {% else %}
             <input type="checkbox" name="id_{{ a.id }}" /> 
+            {% endif %}
             {{ a.name }}
+          </td>
+          <td>
+            {{ a.desc }}
           </td>
         </tr>
       {% endfor %}

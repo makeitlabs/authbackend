@@ -1,0 +1,34 @@
+{% extends "layout_bootstrap.html" %}
+{% block search %}
+  <div class=body>
+
+	<form action="{{ url_for('members.tempauth',id=member.id,rid=resource.id) }}" method="post">
+		
+
+
+        <h3>Temporarily Authorize {{ member.name}} on {{ resource.name }}</h3>
+        <div class="form-row">
+          <div class="form-col col-sm-3">
+            <label class="my-3 mr-3" for="hours">Expire Time (Hours)</label>	
+            <input  class="form-control col-lg-6" id="hours" name="hours" type="Text" value="{{ rec.expires }}" /></td>
+          </div>
+          <div class="form-col col-sm-3">
+            <label class="my-3 mr-3" for="times">Times Allowed</label>	
+            <input  class="form-control col-lg-6" id="times" name="times" type="Text" value="{{ rec.times }}" /></td>
+          </div>
+        </div>
+
+        <pre>{{ debug }}</pre>
+	<div class="form-row"> {# Outer container #}
+	</div> {# Outer container #}
+
+	<div class="form-row"> {# Outer container #}
+	<input class='btn btn-primary' type="submit" name="SaveChanges" value="Save" />
+        &nbsp;
+	<input class='btn btn-primary' type="submit" name="RemoveAuth" value="Remove" />
+	</div> {# Outer container #}
+
+
+	</form>
+
+{% endblock %}

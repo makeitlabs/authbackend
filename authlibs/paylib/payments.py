@@ -251,7 +251,7 @@ def relate():
     mem = Member.query.filter(Member.id==mid).one_or_none()
   subscriptions = Subscription.query.filter(Subscription.member_id == None).filter(Subscription.active == "true").all()
 
-  return render_template('relate.html',subscriptions=subscriptions,linkmember=mem)
+  return render_template('payments_relate.html',subscriptions=subscriptions,linkmember=mem)
 
 # Post handler for "relate" above
 @blueprint.route('/relate_assign', methods = ['POST'])

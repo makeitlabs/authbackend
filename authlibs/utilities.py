@@ -9,12 +9,16 @@ import pytz
 from datetime import datetime,date
 from flask import g,current_app
 from flask_user import current_user
-from db_models import db, AccessByMember, Member, Resource, Logs
+from .db_models import db, AccessByMember, Member, Resource, Logs
 import json
 import paho.mqtt.publish as mqtt_pub
+
+
+# Set-up Python module logging
 import logging
-
-
+from authlibs.init import GLOBAL_LOGGER_LEVEL
+logger = logging.getLogger(__name__)
+logger.setLevel(GLOBAL_LOGGER_LEVEL)
     
 def hash_rfid(rfid):
     "Given an integer RFID, create a hashed value for storage"
@@ -102,7 +106,7 @@ def accessLevelString(level,noaccess=None,user=None):
     if (level==AccessByMember.LEVEL_USER) and user is not None:
         return user
     elif level == AccessByMember.LEVEL_PENDING:
-	return "Pending"
+        return "Pending"
     elif level == AccessByMember.LEVEL_NOACCESS:
         if noaccess is not None:
             return noaccess
@@ -168,8 +172,9 @@ def kick_backend():
       gc= current_app.config['globalConfig']
       topic= gc.mqtt_base_topic+"/control/broadcast/acl/update"
       mqtt_pub.single(topic, "update", hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
+      logger.debug("MQTT acl/update Backend Update")
     except BaseException as e:
-        logging.debug("MQTT acl/update failed to publish: "+str(e))
+        logger.debug("MQTT acl/update failed to publish: "+str(e))
 
 # This is the one to allow a user temporary accces
 def send_tool_unlock(toolname,member,node,level,code):
@@ -179,7 +184,7 @@ def send_tool_unlock(toolname,member,node,level,code):
       data = {'member':member.member,'member_id':member.id,'level':level,'code':code,'node':node,'tool':toolname}
       mqtt_pub.single(topic, json.dumps(data), hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
     except BaseException as e:
-        logging.warning("MQTT acl/update failed to send tool open message: "+str(e))
+        logger.warning("MQTT acl/update failed to send tool open message: "+str(e))
 
 # Send a "lockout" to a tool
 def send_tool_lockout(toolname,node,reason):
@@ -189,7 +194,7 @@ def send_tool_lockout(toolname,node,reason):
       data = {'reason':reason,'tool':toolname}
       mqtt_pub.single(topic, json.dumps(data), retain=True, hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
     except BaseException as e:
-        logging.warning("MQTT acl/update failed to send tool open message: "+str(e))
+        logger.warning("MQTT acl/update failed to send tool open message: "+str(e))
 
 # Send a "removelockout" to a tool
 def send_tool_remove_lockout(toolname,node):
@@ -205,7 +210,7 @@ def send_tool_remove_lockout(toolname,node):
       data = {'tool':toolname}
       mqtt_pub.single(topic, json.dumps(data), hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
     except BaseException as e:
-        logging.warning("MQTT acl/update failed to send tool open message: "+str(e))
+        logger.warning("MQTT acl/update failed to send tool open message: "+str(e))
 
 
 # Auth wrapper - this means the user 
@@ -214,8 +219,8 @@ def send_tool_remove_lockout(toolname,node):
 def privileged_user(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-				if not current_user.is_arm() and (len(current_user.effective_roles()) == 0):
-					flash("Not authorized for this page","warning")
-					return redirect_url_for("index")
-				return f(*args, **kwargs)
+        if not current_user.is_arm() and (len(current_user.effective_roles()) == 0):
+            flash("Not authorized for this page","warning")
+            return redirect_url_for("index")
+        return f(*args, **kwargs)
     return decorated

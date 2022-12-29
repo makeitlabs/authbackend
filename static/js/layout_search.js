@@ -1,8 +1,9 @@
+var lastrequest= null;
 
 function layout_search_keypress(){
   $('#layout_search_menu').dropdown('toggle');
 	line = $("#layout_search_text")[0].value;
-	if (line == "") {
+	if (line.length < 3) {
    $('#layout_search_menu').removeClass('open');
    $('#layout_search_menu').removeClass('show');
 	return;
@@ -10,16 +11,23 @@ function layout_search_keypress(){
 
 	makePostCall = function (url, data) { // here the data and url are not hardcoded anymore
 		 var json_data = JSON.stringify(data);
-			return $.ajax({
+      if (lastrequest != null)  {
+        lastrequest.abort();
+        lastrequest=null;
+      }
+			req= $.ajax({
 					type: "GET",
 					url: url,
 					data: data,
 					dataType: "json",
 					contentType: "application/json;charset=utf-8"
 			});
+     return req;
 	}
+
 	makePostCall(LAYOUT_SEARCH_URL+line, "")
 		.success(function(data){
+      lastrequest=null;
 			var x = $(".layout_search_item")[0]
 			while (x)  {
 				x.parentNode.removeChild(x);
