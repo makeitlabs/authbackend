@@ -15,7 +15,6 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from flask_sqlalchemy import SQLAlchemy
 from authlibs import utilities as authutil
-from slackclient import SlackClient
 import json
 import ConfigParser,sys,os
 import paho.mqtt.client as mqtt

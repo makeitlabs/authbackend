@@ -7,11 +7,14 @@ import hashlib,zlib
 from flask_login.mixins import AnonymousUserMixin
 import random, string
 import sqlalchemy
-from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
+from flask_dance.consumer.storage.sqla import SQLAlchemyStorage, OAuthConsumerMixin
+try:
+	from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
+except:
+	from flask_dance.consumer.storage.sqla import SQLAlchemyStorage, OAuthConsumerMixin
 
 
-
-defined_roles=['Admin','RATT','Finance','Useredit','HeadRM','ProStore']
+defined_roles=['Admin','RATT','Finance','Useredit','HeadRM','ProStore','LeaseMgr']
 
 db = SQLAlchemy()
 
@@ -32,11 +35,11 @@ class AnonymousMember(AnonymousUserMixin):
     def resource_roles(self):
         return []
 	
-		def is_arm(self):
-				return False
+    def is_arm(self):
+        return False
 
     def has_privs(self):
-      return False
+        return False
 
 # Members and their data
 class Member(db.Model,UserMixin):
@@ -55,6 +58,7 @@ class Member(db.Model,UserMixin):
     access_enabled = db.Column(db.Integer(),default=0) # Defaults to "0" for new member - Waiver will make this non-zero - means no access
     access_reason = db.Column(db.String(50)) # If access_enabled is nonzero - access_reason will be a MANUAL reason for no access (empty means waiver-block)
     active = db.Column(db.Integer()) # Applies to membership AND GUI login (flask-user) set ONLY by program logic
+    balance = db.Column(db.Integer()) # Vending balance in CENTS!!!
     nickname = db.Column(db.String(50))
     stripe_name = db.Column(db.String(50))
     time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
@@ -63,6 +67,7 @@ class Member(db.Model,UserMixin):
     warning_level = db.Column(db.Integer()) 
     email_confirmed_at = db.Column(db.DateTime())
     membership = db.Column(db.String(50),nullable=True,unique=True)
+    memberFolder = db.Column(db.String(255))
 
     password = db.Column(db.String(255),nullable=True)
     roles= db.relationship('Role', secondary = 'userroles')
@@ -92,7 +97,7 @@ class Member(db.Model,UserMixin):
         return self.member+"@makeitlabs.com"
 
     def is_arm(self):
-				return AccessByMember.query.filter(AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).count() >= 1
+        return AccessByMember.query.filter(AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).count() >= 1
 
     def resource_roles(self):
         return [x[0] for x in db.session.query(Resource.name).join(AccessByMember,AccessByMember.resource_id == Resource.id).filter(AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).all()]
@@ -192,13 +197,22 @@ class Resource(db.Model):
     info_text = db.Column(db.String(150))
     slack_info_text = db.Column(db.String())
     age_restrict = db.Column(db.Integer())  # Years old
-    # Resource that you must already be authorized on for self-auth
-    sa_hours = db.Column(db.Integer())  # Machine hours required for self-auth
-    sa_permit = db.Column(db.Integer())  # 0=Grant Permission 1=Set Pending
-    sa_days = db.Column(db.Integer())  # Authorization days required for self-auth
-    sa_url = db.Column(db.String(150))  # URL to training info for Self-Auth - If empty - no self-auth
-    sa_required = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE')) 
     permissions = db.Column(db.String(255), nullable=True) # Endorsements
+
+class Training(db.Model):
+    __tablename__ = 'training'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(150))  # Cleartext short name of training (Or none for general resource auth)
+    # Resource that you must already be authorized on for self-auth
+    hours = db.Column(db.Integer())  # Machine hours required for self-auth
+    permit = db.Column(db.Integer())  # 0=Grant Permission 1=Set Pending
+    days = db.Column(db.Integer())  # Authorization days required for self-auth
+    url = db.Column(db.String(150))  # URL to training info for Self-Auth - If empty - no self-auth
+    required = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))  # Prerequisite Resource (or None)
+    required_endorsements = db.Column(db.String(50)) # Required Self-training prerequisite endorsements (or none)
+    endorsements = db.Column(db.String(50)) # Endorsements granted (if any)
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE')) # Resorce which this applies to
 
 class ResourceAlias(db.Model):
     __tablename__ = 'resourcealiases'
@@ -207,14 +221,14 @@ class ResourceAlias(db.Model):
     alias = db.Column(db.String(50), unique=True)
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
-class ResourceQuiz(db.Model):
-    __tablename__ = 'resourcequiz'
+class QuizQuestion(db.Model):
+    __tablename__ = 'quizquestion'
     __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
     question = db.Column(db.String())
     answer = db.Column(db.String())
     idx = db.Column(db.Integer())
-    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+    training_id = db.Column(db.Integer(), db.ForeignKey('training.id', ondelete='CASCADE'))
 
 class Subscription(db.Model):
     __tablename__ = 'subscriptions'
@@ -341,14 +355,14 @@ class Waiver(db.Model):
 
   @staticmethod
   def addWaiverTypeCol(query):
-		return query.add_column(sqlalchemy.case([
-				((Waiver.waivertype == 0), 'Other'),
-				((Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER), 'Member'),
-				((Waiver.waivertype == Waiver.WAIVER_TYPE_NONMEMBER), 'Non-Member'),
-				((Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE), 'Pro-Storage'),
-				((Waiver.waivertype == Waiver.WAIVER_TYPE_WORKSPACE), 'Workspace'),
-				], 
-				else_ = 'Unknown').label('waivertype'))
+    return query.add_column(sqlalchemy.case([
+      ((Waiver.waivertype == 0), 'Other'),
+      ((Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER), 'Member'),
+      ((Waiver.waivertype == Waiver.WAIVER_TYPE_NONMEMBER), 'Non-Member'),
+      ((Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE), 'Pro-Storage'),
+      ((Waiver.waivertype == Waiver.WAIVER_TYPE_WORKSPACE), 'Workspace'),
+      ], 
+      else_ = 'Unknown').label('waivertype'))
 
   @staticmethod
   def codeFromWaiverTitle(title):
@@ -423,6 +437,7 @@ class Node(db.Model):
     last_ping = db.Column(db.DateTime(timezone=True))
     last_update = db.Column(db.DateTime(timezone=True))
     strength = db.Column(db.Integer())
+    ip_addr = db.Column(db.String(20))
     name = db.Column(db.String(20))
     mac = db.Column(db.String(20))
 
@@ -462,6 +477,16 @@ class MaintSched(db.Model):
     machinetime_unit = db.Column(db.String(12))
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
+# Temporary Authoriziaitons
+class TempAuth(db.Model):
+    __tablename__ = 'tempauth'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    timesallowed = db.Column(db.Integer())
+    expires = db.Column(db.DateTime(timezone=True))
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    admin_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
 ##
 ## LOGS
@@ -484,6 +509,22 @@ class Logs(db.Model):
     event_type = db.Column(db.Integer(),index=True)
     event_subtype = db.Column(db.Integer(),index=True)
 
+class VendingLogs(db.Model):
+    __tablename__ = 'vendinglog'
+    __bind_key__ = 'logs'
+    id = db.Column(db.Integer, primary_key=True)
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    invoice = db.Column(db.String(100))
+    product = db.Column(db.String(100))
+    doneby = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    time_logged = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)
+    oldBalance = db.Column(db.Integer())
+    surcharge = db.Column(db.Integer())
+    addAmount = db.Column(db.Integer())
+    purchaseAmount = db.Column(db.Integer())
+    totalCharge = db.Column(db.Integer())
+    newBalance = db.Column(db.Integer())
+    comment = db.Column(db.String(100))
 class UsageLog(db.Model):
     __tablename__ = 'usagelog'
     __bind_key__ = 'logs'

@@ -1,7 +1,7 @@
 # vim:tabstop=2:shiftwidth=2:expandtab
-from templateCommon import *
+from .templateCommon import *
 
-from accesslib import addQuickAccessQuery
+from .accesslib import addQuickAccessQuery
 
 
 def ubersearch(searchstr,only=None,membertypes=None):
@@ -35,13 +35,13 @@ def ubersearch(searchstr,only=None,membertypes=None):
             })
 
   if not only or 'tools' in only:
-          for x in Tool.query.filter((Tool.name.ilike('%'+searchstr+'%') | Resource.description.ilike('%'+searchstr+'%'))).all():
+          for x in Tool.query.filter((Tool.name.ilike('%'+searchstr+'%'))).all():
             result.append({
               'title':"%s" % (x.name),
               'in':"Tool",
               'short':x.short,
               'id':x.id,
-              'url':url_for("tools.tools_show",tool=x.name)
+              'url':url_for("tools.tools_show",tool=x.id)
             })
 
   if not only or 'nodes' in only:
@@ -50,11 +50,11 @@ def ubersearch(searchstr,only=None,membertypes=None):
               'title':"%s" % (x.name),
               'in':"Node",
               'id':x.id,
-              'url':url_for("nodes.nodes_show",node=x.name)
+              'url':url_for("nodes.nodes_show",node=x.id)
             })
   return result
 	
 
 def cli_ubersearch(cmd,**kwargs):
 	for x in  ubersearch(cmd[1]):
-			print "%s %s %s" %(x['title'],x['in'],x['url'])
+			print ("%s %s %s" %(x['title'],x['in'],x['url']))

@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authserver
+  namespace: makeit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: authserver
+  template:
+    metadata:
+      labels:
+        app: authserver
+    spec:
+      containers:
+        - name: authserver
+          image: ./authserver.tgz
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          ports:
+          - containerPort: 5000
+            #imagePullPolicy: Never
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: authserver-service
+  namespace: makeit
+spec:
+  ports:
+  - port: 5000
+    targetPort: 5000
+    name: tcp
+  selector:
+    app: authserver
+
+
+apiVersion: networking.k8s.io #/v1beta1
+kind: Ingress
+metadata:
+  name: authserver-ingress
+  namespace: makeit
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        backend:
+          serviceName: authserver-service
+          servicePort: 5000

@@ -5,9 +5,10 @@ vim:tabstop=2:expandtab:shiftwidth=2
 {% block search %}
 <div class=body>
 	<div class="container"> {# outer container #}
+	<h3>{{ res.name }} Self-Authorization </h3>
   <form method="POST">
+  {% include 'training_form.html' %}
   <input type="hidden" name="resource_id" value={{ res.id }} >
-	<h3>{{ res.name }} Self-Authorization Quiz</h3>
     <div id="questions" class="container"> {# outer container #}
     {% for q in questions %}
       {% set i=loop.index %}
@@ -42,6 +43,36 @@ vim:tabstop=2:expandtab:shiftwidth=2
 </div>
   <input type="submit"  class="btn btn-primary" name="Save" value="Save" />
 </form>
+
+{% if rec['id']  %}
+  <!-- Button trigger for "Delete" modal -->
+<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
+  Delete Course
+</button>
+
+<!-- Modal for Delete resource confirmation -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+	      Are you really sure you want to perminatnely delete this training course??
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+	  <form action={{ url_for('training.training_delete',trainid=rec.id) }} method="post">
+		<input class="btn btn-danger" type=submit value="Delete">
+	  </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 <script type="text/javascript">
 var nextQuestion = {{ questions|length }} +1;
 function deleteQuestion(num) {

@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 """
 vim:tabstop=2:expandtab:shiftwidth=2:softtabstop=2
 MakeIt Labs Authorization System, v0.4
@@ -15,14 +15,14 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from flask_sqlalchemy import SQLAlchemy
 from authlibs import utilities as authutil
-from slackclient import SlackClient
+from slack_sdk import WebClient as SlackClient
 import json
-import ConfigParser,sys,os
+import configparser,sys,os
 import paho.mqtt.client as mqtt
 import paho.mqtt.subscribe as sub
 from datetime import datetime,timedelta
 from authlibs.init import authbackend_init, createDefaultUsers
-import requests,urllib,urllib2
+import requests,urllib
 import logging, logging.handlers
 from  authlibs import eventtypes
 import subprocess
@@ -52,7 +52,7 @@ ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 logger.addHandler(handler)
 
-Config = ConfigParser.ConfigParser({})
+Config = configparser.ConfigParser({})
 Config.read('makeit.ini')
 slack_token = Config.get('Slack','BOT_API_TOKEN')
 cam_username = Config.get('cameras','api_username')
@@ -92,28 +92,26 @@ if __name__ == '__main__':
             mn = member.member
             fmtime = datetime.now() - timedelta(days=1)
             c =  Logs.query.filter(Logs.event_type == RATTBE_LOGEVENT_MEMBER_KIOSK_ACCEPTED.id,Logs.member_id == member.id,Logs.time_reported > fmtime).count()
-        print m,mn,c
+        print (m,mn,c)
         if c == 0:
             for t in members[m]:
                 t=t.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
-                print ":alert: {0} has violated kiosk protocol at {1}".format(mn,t)
+                print (":alert: {0} has violated kiosk protocol at {1}".format(mn,t))
                 tc= t.strftime("%Y-%m-%dT%H:%M:%S.000")
-		fn = "tmpvideo_{0}_{1}".format(os.getpid(),index)
-		index +=1
-                url = "http://{username}:{password}@{addr}/hls/{camid}.ts?pos={tc}&duration=20&lo".format(tc=tc,username=cam_username,password=cam_password,
-			addr=cam_addr,camid=cam_id)
+                fn = "tmpvideo_{0}_{1}".format(os.getpid(),index)
+                index +=1
+                url = "http://{username}:{password}@{addr}/hls/{camid}.ts?pos={tc}&duration=20&lo".format(tc=tc,username=cam_username,password=cam_password, addr=cam_addr,camid=cam_id)
                 tt = open(fn+".ts","w")
                 tt.write(urllib.urlopen(url).read())
                 tt.close()
                 subprocess.call(['ffmpeg','-i',fn+".ts",'-f','mp4',"authlibs/logs/static/kioskimages/"+fn+".mp4"])
                 subprocess.call(['chmod','644',"authlibs/logs/static/kioskimages/"+fn+".mp4"])
                 subprocess.call(['rm',fn+".ts"])
-                print "DONE"
+                print ("DONE")
 
 
                 #ffmpeg -i riley.ts -f mp4 riley.mp4
-            res = sc.api_call(
-              "chat.postMessage",
+            res = sc.chat_postMessage(
               channel=cam_slackchan,
               text=":alert: {0} has violated kiosk protocol {1}".format(mn,"https://auth.makeitlabs.com/authit/logs/static/kioskimages/"+fn+".mp4")
               )

@@ -54,7 +54,10 @@
         <th>Active <i class="glyphicon glyphicon-sort"></i></th>
         <th>Active Rate <i class="glyphicon glyphicon-sort"></i></th>
         <th>Subscription <i class="glyphicon glyphicon-sort"></i></th>
-        <th>Waiver <i class="glyphicon glyphicon-sort"></i></th>
+        <th>Member Waivers<i class="glyphicon glyphicon-sort"></i></th>
+        <th>Guest Waivers<i class="glyphicon glyphicon-sort"></i></th>
+        <th>Prostore Waivers<i class="glyphicon glyphicon-sort"></i></th>
+        <th>Workspace Waivers<i class="glyphicon glyphicon-sort"></i></th>
       </thead>
 			<tbody>
       {% for m in members %}
@@ -85,12 +88,15 @@
 					<td>{{ m.Subscription.rate_plan }}</td>
 					<td>{{ m.Subscription.active }}</td>
 					<td>
-							{% if m.Waiver.created_date %}
-							{{ m.Waiver.created_date }}
+							{% if m.memberWaivers %}
+							{{ m.memberWaivers }}
 							{% else %}
 							<a href="{{ url_for('members.link_waiver',id=m.Member.id) }}">Fix Waiver</a>
 							{% endif %}
 					</td>
+                                        <td>{{ m.guestWaivers }}</td>
+                                        <td>{{ m.prostoreWaivers }}</td>
+                                        <td>{{ m.workspaceWaivers }}</td>
 				</tr>
       {% endfor %}
 			</tbody>

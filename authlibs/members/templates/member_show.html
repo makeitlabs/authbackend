@@ -9,6 +9,19 @@
 		
 <hr />
 <div class="container"> {# Outer container #}
+<h3>Vending</h3>
+				<div class="container my-2">
+          <div class="form-row row">
+												<div class="col-sm-4">
+													Current Vending Balance:
+												</div>
+												<div class="col-sm-2">
+                          {{ vendingBalance }}
+												</div>
+          </div>
+        </div>
+        <hr />
+
 <h3>Waivers</h3>
 <div class="form">
 			{% if waivers|length == 0 %}
