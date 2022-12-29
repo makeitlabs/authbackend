@@ -129,3 +129,10 @@ add the `authbackend-mqtt.service` and `authbackend-slack.service` to `/etc/syst
 
 # CRON
 See `crontab.txt` as an example of cron services which are needed. Install these - but under `www-data`, not `root`!
+
+
+# DOORENTRY
+Make sure `doorentry` go program and `doorentry.cfg` file are in the same directory as `mqtt_daemon.py`
+
+# tmp
+Create `/tmp/authit.log` and `/tmp/mqtt-daemon.log` - and give `www-data` as owner

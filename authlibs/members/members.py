@@ -544,6 +544,7 @@ def member_setaccess(id):
                     # Was off - but we turned it on - Create new one
                     db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,doneby=current_user.id))
                     acc = AccessByMember(member_id=member.id,resource_id=resource.id)
+                    acc.level=0
                     db.session.add(acc)
                     if (resource.slack_chan):
                       add_user_to_channel(resource.slack_chan,member)

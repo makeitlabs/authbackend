@@ -238,11 +238,11 @@ def finderror(url,r):
 	return 
 
 BASE="http://127.0.0.1:443"
-BASE=os.env['STAGING_URL']
+BASE=os.environ['STAGING_URL']
 
 query_args = { 'username':'admin', 'password':'admin' }
 req = requests.Session()
-r = req.post(BASE+"/login/check",data=query_args)
+r = req.post(BASE+"/login/check",data=query_args,verify=False)
 print ("LOGIN",r.status_code)
 if r.status_code != 200:
 	raise BaseException("Admin login failed")

@@ -62,16 +62,17 @@ def belog():
 		gitinfo=""
 		try:
 			o=[]
-			f = subprocess.Popen(["git","log","-n","1"],stdout=subprocess.PIPE)
+			f = subprocess.Popen(["/usr/bin/git","log","-n","1"],stdout=subprocess.PIPE)
 			o += f.stdout.readlines()
 			f.wait()
-			f = subprocess.Popen(["git","status"],stdout=subprocess.PIPE)
+			f = subprocess.Popen(["/usr/bin/git","status"],stdout=subprocess.PIPE)
 			o += f.stdout.readlines()
 			f.wait()
-			gitinfo = "".join(o)
+			gitinfo = b''.join(o).decode('utf-8')
 		except BaseException as e:
-			gitinfo = "Error fetching git info "+str(e)
+			gitinfo = "Error fetching git info: "+str(e)
 
+		gitinfo += f"\nGlobal Logfile at {GLOBAL_LOGGER_LOGFILE}\n"
 		if 'format' in request.values:
 			format = request.values['format']
 			offset=0

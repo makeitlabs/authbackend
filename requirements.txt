@@ -64,3 +64,4 @@ WTForms==3.0.1
 pycurl==7.43.0.2
 icalendar==4.0.9
 pysftp==0.2.9
+slacker==0.14.0

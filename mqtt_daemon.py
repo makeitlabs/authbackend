@@ -35,7 +35,7 @@ for handler in logging.root.handlers[:]:
 
 logger=logging.getLogger()
 handler = logging.handlers.RotatingFileHandler(
-    "/tmp/mqtt_dameon.log", maxBytes=(1048576*5), backupCount=7)
+    "/tmp/mqtt_daemon.log", maxBytes=(1048576*5), backupCount=7)
 handler.setLevel(logging.DEBUG)
 format = logging.Formatter("%(asctime)s:%(levelname)s:%(module)s:%(message)s")
 handler.setFormatter(format)
@@ -289,10 +289,10 @@ def on_message(client,userdata,msg):
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id
                         if resourceId == 1:
                             if memberId not in lastMemberAccess or ((datetime.now() - lastMemberAccess[memberId]).total_seconds() > (3600*3)):
-                                print "DOOR ENTRY FOR",memberId
+                                print ("DOOR ENTRY FOR",memberId)
                                 lastMemberAccess[memberId] = datetime.now()
                                 subprocess.Popen(
-                                    ["/var/www/authbackend-ng/doorentry",str(memberId)], shell=False, stdin=None, stdout=None, stderr=None,
+                                    ["/var/www/authbackend/doorentry",str(memberId)], shell=False, stdin=None, stdout=None, stderr=None,
                                     close_fds=True)
                     else:
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED.id
@@ -449,8 +449,8 @@ def on_message(client,userdata,msg):
 
                     # TODO FIEME This should be "send_slack_admin" - but Ham wanted only "public" messagse on their "admin" channel??
                     if send_slack_public and associated_resource['slack_admin_chan']:
+                        #res = sc.api_call(
                         res = sc.chat_postMessage(
-                        res = sc.api_call(
                             'chat.postMessage',
                             channel=associated_resource['slack_admin_chan'],
                             blocks=json.dumps(blocks),
@@ -533,6 +533,6 @@ if __name__ == '__main__':
             print("%s %s" % (msg.topic, msg.payload))
           except KeyboardInterrupt:    #on_message(msg)
             sys.exit(0)
-          except BaseException as e:
-            print ("EXCEPT",e)
+          #except BaseException as e:
+          #  print ("EXCEPT",e)
             time.sleep(1)

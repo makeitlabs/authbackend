@@ -2,7 +2,7 @@ import sqlite3
 import json
 import time
 from slacker import Slacker
-import ConfigParser
+import configparser
 import argparse
 import string
 
@@ -12,9 +12,8 @@ parser.add_argument('--days', type=int, default=7)
 parser.add_argument('--test', default=False, help='test output, do not send to slack')
 args = parser.parse_args()
 
-print args.days
 
-Config = ConfigParser.ConfigParser()
+Config = configparser.ConfigParser()
 Config.read(args.ini)
 
 SlackToken = Config.get('SlackReporter', 'BOT_API_TOKEN')
@@ -30,14 +29,14 @@ def sendMsg(timestamp, text):
     attachments.append(attachment_data)
 
     if args.test:
-        print json.dumps(attachments)
+        print (json.dumps(attachments))
     else:
         slack.chat.post_message(SlackChannel, '_' + timestamp + '_', username=SlackUser, attachments=json.dumps(attachments))
 
 # init slack
 slack = Slacker(SlackToken)
 
-conn = sqlite3.connect('/var/www/authbackend-ng/makeit.db')
+conn = sqlite3.connect('/var/www/authbackend/makeit.db')
 
 c = conn.cursor()
 
