@@ -29,13 +29,34 @@ As of this writing - it doesn't do anything to properly setup database or `makei
 (I think it will run a developer-staging setup as-is). This means you need to restore and load
 databases and `makeit.ini` from backups to work in production
 
-Add a persistant volume to docker like:
-`docker run --rm -it -v authitdata_devel:/opt/authit`
-
 Set up a Persistant Volume like:
 `docker volume create authitdata_devel`
 
-Then inspect persitant volume to find out where it's path is on your filesystem. Place the `makeit.ini`, `db` and `logdb` files in the persistent volume
+Add a persistant volume to docker like:
+`docker run --rm -it -v authitdata_devel:/opt/authit authbackend`
+
+Then inspect the persitant volume:
+
+```
+$ docker volume inspect authitdata_devel 
+[
+    {
+        "CreatedAt": "2024-01-25T01:07:12Z",
+        "Driver": "local",
+        "Labels": null,
+        "Mountpoint": "/var/lib/docker/volumes/authitdata_devel/_data",
+        "Name": "authitdata_devel",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+```
+
+The `Mountpoint` key is the location of the volume on the host system. Then copy:
+
+* makeit.ini.example -> ${VOLUME}/makeit.ini
+* ??? -> ${VOLUME}/db
+* ??? -> ${VOLUME}/logdb
 
 Modify the `makeit.ini` file to point to the aforemented databases. Note that the Persitant Volume will mount to `/opt/makeit` - so make sure that is the "root" of the path you use - i.e. `/opt/makeit/db.sq3`
 
