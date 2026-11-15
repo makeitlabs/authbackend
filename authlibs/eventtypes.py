@@ -404,6 +404,153 @@ def get_events():
         events_by_id[cl.id]=cl.desc
     return events_by_id
 
+
+EVENT_CATEGORIES = [
+    {
+        'key': 'member',
+        'label': 'Member Lifecycle & Billing',
+        'events': [
+            RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_MANUAL.id,
+            RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id,
+            RATTBE_LOGEVENT_CONFIG_PAY_MEMBER_IMPORT_ERR.id,
+            RATTBE_LOGEVENT_CONFIG_PAY_MEMBER_REASSIGN.id,
+            RATTBE_LOGEVENT_MEMBER_TAG_ASSIGN.id,
+            RATTBE_LOGEVENT_MEMBER_TAG_UNASSIGN.id,
+            RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id,
+            RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id,
+            RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,
+            RATTBE_LOGEVENT_MEMBER_PRIVILEGE_GRANTED.id,
+            RATTBE_LOGEVENT_MEMBER_PRIVILEGE_REVOKED.id,
+            RATTBE_LOGEVENT_MEMBER_RECORD_DELETED.id,
+            RATTBE_LOGEVENT_MEMBER_WAIVER_LINKED.id,
+            RATTBE_LOGEVENT_MEMBER_WAIVER_UNLINKED.id,
+            RATTBE_LOGEVENT_MEMBER_PAYMENT_LINKED.id,
+            RATTBE_LOGEVENT_MEMBER_PAYMENT_UNLINKED.id,
+            RATTBE_LOGEVENT_MEMBER_NOTICE_SENT.id,
+            RATTBE_LOGEVENT_MEMBER_REACTIVATED.id,
+            RATTBE_LOGEVENT_MEMBER_LEASE_CHARGE.id,
+        ],
+    },
+    {
+        'key': 'purchases',
+        'label': 'Purchases, Vending & Inventory',
+        'events': [
+            RATTBE_LOGEVENT_VENDING_SUCCESS.id,
+            RATTBE_LOGEVENT_VENDING_FAILED.id,
+            RATTBE_LOGEVENT_VENDING_ADDBALANCE.id,
+            RATTBE_LOGEVENT_PURCHASABLE_PURCHASE.id,
+            RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id,
+            RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id,
+            RATTBE_LOGEVENT_INVENTORY_RESTOCK.id,
+            RATTBE_LOGEVENT_INVENTORY_PULL.id,
+            RATTBE_LOGEVENT_INVENTORY_ADJUST.id,
+        ],
+    },
+    {
+        'key': 'entry',
+        'label': 'Door & Building Entry',
+        'events': [
+            RATTBE_LOGEVENT_MEMBER_KIOSK_ACCEPTED.id,
+            RATTBE_LOGEVENT_MEMBER_KIOSK_DENIED.id,
+            RATTBE_LOGEVENT_MEMBER_KIOSK_FAILED.id,
+            RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id,
+            RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED.id,
+            RATTBE_LOGEVENT_DOOR_OPENED.id,
+            RATTBE_LOGEVENT_DOOR_CLOSED.id,
+            RATTBE_LOGEVENT_MEMBER_ENTRY_STORAGEPASS.id,
+        ],
+    },
+    {
+        'key': 'tool_usage',
+        'label': 'Tool Usage & Access',
+        'events': [
+            RATTBE_LOGEVENT_TOOL_POWERON.id,
+            RATTBE_LOGEVENT_TOOL_POWEROFF.id,
+            RATTBE_LOGEVENT_TOOL_LOGIN_COMBO.id,
+            RATTBE_LOGEVENT_TOOL_PROHIBITED.id,
+            RATTBE_LOGEVENT_TOOL_LOGIN.id,
+            RATTBE_LOGEVENT_TOOL_COMBO_FAILED.id,
+            RATTBE_LOGEVENT_TOOL_LOGOUT.id,
+            RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id,
+        ],
+    },
+    {
+        'key': 'tool_issues',
+        'label': 'Tool Issues, Lockouts & Maint.',
+        'events': [
+            RATTBE_LOGEVENT_TOOL_OTHER.id,
+            RATTBE_LOGEVENT_TOOL_ISSUE.id,
+            RATTBE_LOGEVENT_TOOL_SAFETY.id,
+            RATTBE_LOGEVENT_TOOL_LOCKOUT_PENDING.id,
+            RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED.id,
+            RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED.id,
+            RATTBE_LOGEVENT_TOOL_LOCKOUT_OTHER.id,
+            RATTBE_LOGEVENT_TOOL_MAINTENANCE_DONE.id,
+            RATTBE_LOGEVENT_TOOL_ACL_UPDATED.id,
+        ],
+    },
+    {
+        'key': 'resource_auth',
+        'label': 'Resource Authorizations',
+        'events': [
+            RATTBE_LOGEVENT_MEMBER_RESOURCE_LOCKOUT.id,
+            RATTBE_LOGEVENT_MEMBER_RESOURCE_UNLOCKED.id,
+            RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,
+            RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED.id,
+            RATTBE_LOGEVENT_RESOURCE_ACCESS_XXX.id,
+            RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE.id,
+            RATTBE_LOGEVENT_RESOURCE_TEMP_ACCESS_GRANTED.id,
+            RATTBE_LOGEVENT_RESOURCE_TEMP_ACCESS_REVOKED.id,
+        ],
+    },
+    {
+        'key': 'prostore',
+        'label': 'Pro-Storage',
+        'events': [
+            RATTBE_LOGEVENT_PROSTORE_OTHER.id,
+            RATTBE_LOGEVENT_PROSTORE_ASSIGNED.id,
+            RATTBE_LOGEVENT_PROSTORE_UNASSIGNED.id,
+            RATTBE_LOGEVENT_PROSTORE_CHANGED.id,
+            RATTBE_LOGEVENT_PROSTORE_NOTICE_SENT.id,
+            RATTBE_LOGEVENT_PROSTORE_MAX.id,
+        ],
+    },
+    {
+        'key': 'system',
+        'label': 'System & Comments',
+        'events': [
+            RATTBE_LOGEVENT_UNKNOWN.id,
+            RATTBE_LOGEVENT_COMMENT.id,
+            RATTBE_LOGEVENT_CONFIG_OTHER.id,
+            RATTBE_LOGEVENT_SYSTEM_OTHER.id,
+            RATTBE_LOGEVENT_SYSTEM_WIFI.id,
+            RATTBE_LOGEVENT_SYSTEM_POWER_LOST.id,
+            RATTBE_LOGEVENT_SYSTEM_POWER_RESTORED.id,
+            RATTBE_LOGEVENT_SYSTEM_POWER_SHUTDOWN.id,
+            RATTBE_LOGEVENT_SYSTEM_POWER_OTHER.id,
+            RATTBE_LOGEVENT_SYSTEM_BOOT.id,
+            RATTBE_LOGEVENT_SYSTEM_OTA.id,
+        ],
+    },
+    {
+        'key': 'tool_activity',
+        'label': 'Tool Heartbeats (Active/Inactive)',
+        'events': [
+            RATTBE_LOGEVENT_TOOL_ACTIVE.id,
+            RATTBE_LOGEVENT_TOOL_INACTIVE.id,
+        ],
+    },
+]
+
+
+def get_event_categories():
+    return EVENT_CATEGORIES
+
+
+def get_category_map():
+    return {c['key']: c for c in EVENT_CATEGORIES}
+
+
 if __name__=="__main__":
     print (get_events())
     print (get_event_slack_icons())
