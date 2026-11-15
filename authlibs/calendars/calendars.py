@@ -120,14 +120,14 @@ resources = {
                 "img" : "icon_MOPA.png",
                 "cal" : "c_1886b6dkec306jdkk38lsbpbejeo8@resource.calendar.google.com"
                 },
-        "UV":{
-                "url":"UV",
+        "uv":{
+                "url":"uv",
                 "name":"xTool UV Laser",
                 "img" : "icon_uv.png",
                 "cal" : "c_18876mnepfo42jnunrjppi4cuqkcu@resource.calendar.google.com"
                 },
-        "Kern":{
-                "url":"Kern",
+        "kern":{
+                "url":"kern",
                 "name":"Kern Laser",
                 "img" : "icon_kern.png",
                 "cal" : "c_1886igtlroq94ic5hro66r88vg274@resource.calendar.google.com"
@@ -155,6 +155,18 @@ resources = {
                 "name":"Waterjet",
                 "img" : "icon_waterjet.png",
                 "cal":"c_188f9bh42ku8ahn2lnqukpc25elbs@resource.calendar.google.com"
+                },
+        "hamshack":{
+                "url":"Hamshack",
+                "name":"Hamshack",
+                "img" : "icon_hamshack.png",
+                "cal":"makeitlabs.com_18871j42ru8lgitri015g0rs3c8la@resource.calendar.google.com",
+                },
+        "fiber":{
+                "url":"fiber",
+                "name":"Fiber Laser",
+                "img" : "icon_fiber.png",
+                "cal":"c_188d0nssif766ji6k0jai36vq837g@resource.calendar.google.com"
                 },
         }
 
@@ -190,7 +202,7 @@ def status_booking(resource,eventid):
 @login_required
 def delete_event(resource):
     if resource not in resources:
-        flash(f"Invalid Resource {resource} {eventid} ","danger")
+        flash(f"Invalid Resource {resource} ","danger")
         return redirect(url_for('calendars.calendars'))
 
     debug = f"{request.form}"

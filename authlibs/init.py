@@ -185,6 +185,20 @@ class ConfigClass(object):
   waiversystem = {}
   waiversystem['Apikey'] = Config.get('Smartwaiver','Apikey')
 
+# Flask-SQLAlchemy 2.5 does not set check_same_thread=False for file-based SQLite databases,
+# nor does it support dictionary configs in SQLALCHEMY_BINDS.
+# Hook apply_driver_hacks to ensure SQLite connections allow multi-threaded access.
+_orig_apply_driver_hacks = SQLAlchemy.apply_driver_hacks
+
+def _apply_driver_hacks(self, app, sa_url, options):
+  sa_url, options = _orig_apply_driver_hacks(self, app, sa_url, options)
+  if hasattr(sa_url, 'drivername') and sa_url.drivername.startswith('sqlite'):
+    connect_args = options.setdefault('connect_args', {})
+    connect_args['check_same_thread'] = False
+  return sa_url, options
+
+SQLAlchemy.apply_driver_hacks = _apply_driver_hacks
+
 def _set_sqlite_pragmas(dbapi_connection, connection_record):
   """Enable WAL mode and set busy_timeout on every new SQLite connection.
   WAL allows concurrent readers+writers. busy_timeout tells SQLite to wait

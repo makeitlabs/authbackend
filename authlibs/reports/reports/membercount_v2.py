@@ -24,6 +24,7 @@ Accurately counts members by:
 import os
 import re
 import sys
+import json
 import stripe
 from datetime import datetime
 
@@ -50,6 +51,8 @@ EXEMPT_COUPONS = {
 # Normalize repgroups values that are synonyms for canonical group names
 REPGROUP_SYNONYMS = {
     'ProMember': 'ProMembership',
+    'GroupPro': 'ProMembership',
+    'Group_Pro': 'ProMembership',
 }
 
 def load_repgroups():
@@ -82,6 +85,9 @@ def load_repgroups():
     group_map.setdefault('hobbyist', 'HobbyistMembership')
     group_map.setdefault('pro', 'ProMembership')
     group_map.setdefault('produo', 'ProDuoMember')
+    group_map.setdefault('group_pro', 'ProMembership')
+    group_map.setdefault('group', 'GroupMember')
+    group_map.setdefault('group_hobbyist', 'HobbyistMembership')
 
     return group_map
 
@@ -101,28 +107,113 @@ def get_coupon_info(s):
         pass
     return False, "No Coupon"
 
-def count_seats(s, group_name):
-    """Count individual seats from Stripe metadata. Falls back to defaults."""
-    metadata = s.get('metadata') or {}
-    # Check list-style metadata fields
-    for key in ['names', 'emails', 'members', 'users', 'students', 'members_list', 'team_members']:
-        val = metadata.get(key)
-        if val and isinstance(val, str) and val.strip():
-            items = [item.strip() for item in re.split(r'[,;\n]', val) if item.strip()]
-            if items:
-                return len(items)
-    # Check numeric metadata fields
-    for key in ['count', 'seats', 'num_members', 'total_members', 'quantity']:
-        val = metadata.get(key)
+def count_seats(s, group_name, plan_id=''):
+    """Count individual seats from Stripe metadata, quantities, or plan defaults."""
+    candidates = []
+
+    # 1. Gather plan_id and product_id
+    plan = s.get('plan') or {}
+    if not plan_id:
+        plan_id = plan.get('id', '')
+    product_id = plan.get('product', '')
+
+    items = s.get('items', {}).get('data', []) if isinstance(s.get('items'), dict) else []
+    if not product_id and items:
+        item_plan = items[0].get('plan') or items[0].get('price') or {}
+        if not plan_id:
+            plan_id = item_plan.get('id', '')
+        product_id = item_plan.get('product', '')
+
+    # 2. Gather metadata from customer, items, and root subscription
+    meta = {}
+    cust = s.get('customer')
+    if isinstance(cust, dict):
+        meta.update(cust.get('metadata') or {})
+    for item in items:
+        if isinstance(item, dict) and item.get('metadata'):
+            meta.update(item['metadata'])
+    if s.get('metadata') and isinstance(s.get('metadata'), dict):
+        meta.update(s['metadata'])
+
+    # 3. Normalize metadata keys
+    norm_meta = {}
+    for k, v in meta.items():
+        if k is not None and v is not None:
+            norm_key = re.sub(r'[\s\-_]+', '_', str(k).strip().lower())
+            norm_meta[norm_key] = str(v).strip()
+
+    # 4. Check list-style metadata fields
+    list_keys = [
+        'names', 'emails', 'members', 'users', 'students', 'members_list',
+        'team_members', 'group_members', 'member_names', 'member_emails',
+        'additional_members', 'roster', 'people', 'subscribers', 'seats_list',
+        'attendees', 'family_members', 'additional_names'
+    ]
+    for key in list_keys:
+        val = norm_meta.get(key)
+        if val:
+            if val.startswith('[') and val.endswith(']'):
+                try:
+                    parsed = json.loads(val)
+                    if isinstance(parsed, list) and len(parsed) > 1:
+                        candidates.append(len(parsed))
+                        continue
+                except Exception:
+                    pass
+            split_items = [item.strip() for item in re.split(r'[,;\n\r|/]+', val) if item.strip()]
+            if len(split_items) > 1:
+                candidates.append(len(split_items))
+
+    # 5. Check numbered member keys (e.g. member_1..member_4, name1..name4, email_1..email_4)
+    numbered_indices = set()
+    for norm_k, val in norm_meta.items():
+        if val:
+            m = re.match(r'^(?:member|name|user|student|email|seat|attendee)_?([0-9]+)$', norm_k)
+            if m:
+                numbered_indices.add(m.group(1))
+    if len(numbered_indices) > 1:
+        candidates.append(len(numbered_indices))
+
+    # 6. Check numeric metadata fields
+    num_keys = [
+        'count', 'seats', 'num_members', 'total_members', 'quantity',
+        'num_seats', 'seat_count', 'member_count', 'group_size', 'team_size',
+        'qty', 'number_of_members', 'number_of_seats', 'members_count', 'total_seats'
+    ]
+    for key in num_keys:
+        val = norm_meta.get(key)
         if val:
             try:
                 num = int(val)
-                if num > 0:
-                    return num
+                if num > 1:
+                    candidates.append(num)
             except ValueError:
                 pass
-    if group_name == 'ProDuoMember':
-        return 2
+
+    # 7. Check Stripe native quantity on subscription and items
+    sub_qty = s.get('quantity')
+    if isinstance(sub_qty, int) and sub_qty > 1:
+        candidates.append(sub_qty)
+
+    for item in items:
+        if isinstance(item, dict):
+            item_qty = item.get('quantity')
+            if isinstance(item_qty, int) and item_qty > 1:
+                candidates.append(item_qty)
+
+    # 8. Check plan-based defaults
+    plan_str = f"{plan_id} {product_id} {s.get('description', '')}".lower()
+    for v in norm_meta.values():
+        if 'group_pro' in v.lower():
+            plan_str += ' group_pro'
+
+    if 'group_pro' in plan_str:
+        candidates.append(4)
+    elif group_name == 'ProDuoMember' or 'produo' in plan_str:
+        candidates.append(2)
+
+    if candidates:
+        return max(candidates)
     return 1
 
 def main():
@@ -172,12 +263,26 @@ def main():
         # Look up group from repgroups by product_id first, then plan_id
         group_name = repgroups.get(product_id) or repgroups.get(plan_id)
 
+        # Fallback: plan_id substring matching if not explicitly in repgroups
+        if not group_name:
+            plan_lower = (plan_id or '').lower()
+            if 'group_pro' in plan_lower:
+                group_name = 'ProMembership'
+            elif 'produo' in plan_lower:
+                group_name = 'ProDuoMember'
+            elif 'group' in plan_lower:
+                group_name = 'GroupMember'
+            elif 'pro' in plan_lower:
+                group_name = 'ProMembership'
+            elif 'hobbyist' in plan_lower:
+                group_name = 'HobbyistMembership'
+
         # Strict whitelist: only process recognized membership groups
         if not group_name or group_name not in VALID_GROUPS:
             continue
 
         total_processed += 1
-        seats = count_seats(s, group_name)
+        seats = count_seats(s, group_name, plan_id)
         is_free_coupon, coupon_name = get_coupon_info(s)
 
         # Free if the group is inherently free OR has a 100% exempt coupon

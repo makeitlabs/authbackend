@@ -1442,6 +1442,7 @@ def member_cancel_subscription(id):
         
         # Log and update backend
         authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id, message="Subscription canceled manually via UI", member_id=member.id, doneby=current_user.id, commit=0)
+        authutil.log(eventtypes.RATTBE_LOGEVENT_CONFIG_SUB_CANCELED_PAYSYS.id, message="Subscription canceled manually via UI", member_id=member.id, doneby=current_user.id, commit=0)
         
         # Set to inactive
         sub.active = 0

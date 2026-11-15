@@ -120,6 +120,16 @@
 					</div>
 				</td>
 			</tr>
+			<tr>
+				<td>Fiber Laser Candidates</td>
+				<td>Top 75 active members recommended for expedited Fiber Laser authorization (UV, Epilog, MOPA, Machine Shop)</td>
+				<td>
+					<div style="display: flex; align-items: center; gap: 10px;">
+						<input type="date" id="fiber_date_since" class="form-control" style="width: auto;" title="Usage since date (leave blank for past 1 year)">
+						<button onClick="runreport('fiber_candidates', document.getElementById('fiber_date_since').value)" class="button btn btn-primary">Report</button>
+					</div>
+				</td>
+			</tr>
 		</table>
 	</div>
 	<div id="spinner" style="display:none;  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">

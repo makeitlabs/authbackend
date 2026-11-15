@@ -299,7 +299,7 @@ def fix():
 # Takes Stripe Subscription Object and subcription id
 # Returns subscription and member object
 # TODO
-def fixMemberSubscription(sub):
+def fixMemberSubscription(sub, was_active=False):
 
     expires = datetime.utcfromtimestamp(sub['current_period_end'])
     created = datetime.utcfromtimestamp(sub['created'])
@@ -309,6 +309,9 @@ def fixMemberSubscription(sub):
     if not s:
         logger.error(f"fixMemberSubscription: No Subscription record found in DB for customer {sub['customer']}")
         return
+
+    db_was_active = str(s.active).strip().lower() in ('true', '1')
+    now_active = sub.get('status') in ('active', 'trialing') if isinstance(sub, dict) or hasattr(sub, 'get') else True
 
     # Add Subscription to Database
     s.paysystem = "stripe"
@@ -330,11 +333,16 @@ def fixMemberSubscription(sub):
     s.created_date = created
     s.updated_date = updated
     s.checked_date = datetime.utcnow()
-    s.active = 'true'
+    if now_active:
+        s.active = 'true'
+    else:
+        s.active = f"false ({sub.get('status')})"
     db.session.commit()
 
-    db.session.add(Logs(member_id=s.member_id,event_type=eventtypes.RATTBE_LOGEVENT_MEMBER_REACTIVATED.id))
-    db.session.commit()
+    if now_active and not (was_active and db_was_active):
+        db.session.add(Logs(member_id=s.member_id,event_type=eventtypes.RATTBE_LOGEVENT_MEMBER_REACTIVATED.id))
+        db.session.add(Logs(member_id=s.member_id,event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_SUB_ACTIVATED_PAYSYS.id,message="Subscription reactivated"))
+        db.session.commit()
     authutil.kick_backend()
     return
 
@@ -423,6 +431,7 @@ def fix_postpay():
     message = ""
     if len(active_subs) > 0:
         for s in active_subs:
+            was_sub_active = s.get('status') in ('active', 'trialing')
             subid = s['items']['data'][0]['subscription'] if ('items' in s and 'data' in s['items'] and len(s['items']['data']) > 0) else s['id']
             debug += f"Active subscription SubID: {subid} (Status: {s.get('status')})\n"
             
@@ -445,7 +454,7 @@ def fix_postpay():
                 refreshed_sub = s
 
             # Sync with database
-            fixMemberSubscription(refreshed_sub)
+            fixMemberSubscription(refreshed_sub, was_active=was_sub_active)
 
         message = "Your credit card payment method has been successfully updated."
     else:

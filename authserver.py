@@ -583,6 +583,8 @@ with app.app_context():
         app.jinja_env.globals['TESTDB'] = "YES"
     except:
         pass
+    finally:
+        db.session.remove()
 
     app.jinja_env.globals['VERSION'] = "2.3"
     if app.config['globalConfig'].DeployType.lower() != "production":

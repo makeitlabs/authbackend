@@ -61,7 +61,31 @@ def syncWithSubscriptions(isTest=False):
           db.session.rollback()
           return 1
 
+    # Check subscription state transitions for existing members
+    from . import payments
+    pre_active = payments.get_pre_sync_active_members()
+    if pre_active is not None:
+      now = datetime.utcnow()
+      linked_subs = Subscription.query.filter(Subscription.member_id != None).all()
+      post_active = set(s.member_id for s in linked_subs if payments.is_sub_active(s, now))
+      added_ids = set(m.id for m in added if hasattr(m, 'id') and m.id)
+
+      # 1. Activated: Was inactive before, now active, and NOT a brand new member added in this run
+      reactivated_ids = (post_active - pre_active) - added_ids
+      for mid in reactivated_ids:
+        logger.info("Subscription Activated by Payment System for member_id %s" % mid)
+        db.session.add(Logs(member_id=mid, event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_SUB_ACTIVATED_PAYSYS.id,
+                            message="Subscription activated via payment system"))
+
+      # 2. Canceled/Expired: Was active before, now not active
+      canceled_ids = pre_active - post_active
+      for mid in canceled_ids:
+        logger.info("Subscription Canceled by Payment System for member_id %s" % mid)
+        db.session.add(Logs(member_id=mid, event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_SUB_CANCELED_PAYSYS.id,
+                            message="Subscription canceled/expired via payment system"))
+
     db.session.commit()
+    payments.clear_pre_sync_active_members()
     logger.debug("New Member/Sub data Committed")
     return 0
   except OperationalError as e:

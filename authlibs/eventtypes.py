@@ -136,6 +136,14 @@ class RATTBE_LOGEVENT_MEMBER_REACTIVATED:
     id=1030
     desc='Member reactivated'
 
+class RATTBE_LOGEVENT_CONFIG_SUB_ACTIVATED_PAYSYS:
+    id=1031
+    desc='Subscription Activated by Payment System'
+
+class RATTBE_LOGEVENT_CONFIG_SUB_CANCELED_PAYSYS:
+    id=1032
+    desc='Subscription Canceled by Payment System'
+
 class RATTBE_LOGEVENT_MEMBER_LEASE_CHARGE:
     id=1100
     desc='Charge for Leased Space'

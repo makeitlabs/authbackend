@@ -257,6 +257,13 @@ def get_raw_menu():
                     'title':"Class Administration",
                     'alt':"Administer Classes and Instructors",
                     'importance':2010
+            },
+            {
+                    'privs':['Admin','Classes','Useredit'],
+                    'url':url_for('classes.social_promo'),
+                    'title':"Class Promo Graphic",
+                    'alt':"Generate social media promo graphics for featured classes",
+                    'importance':2015
             }
     ]
 

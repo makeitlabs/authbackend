@@ -5,9 +5,34 @@ from flask import current_app
 from authlibs.db_models import db, Event, EventDate, EventInstructor
 from authlibs.google_admin import genericEmailSender
 
+import os
+
 def get_eventbrite_creds():
-    org_id = current_app.config['globalConfig'].Config.get('Eventbrite', 'org_id', fallback='')
-    token = current_app.config['globalConfig'].Config.get('Eventbrite', 'token', fallback='')
+    org_id = ""
+    token = ""
+    if 'globalConfig' in current_app.config and hasattr(current_app.config['globalConfig'], 'Config'):
+        org_id = current_app.config['globalConfig'].Config.get('Eventbrite', 'org_id', fallback='')
+        token = current_app.config['globalConfig'].Config.get('Eventbrite', 'token', fallback='')
+    if not token or not org_id:
+        try:
+            import cgimisc.vars as config_vars
+            if hasattr(config_vars, 'ORG_ID') and config_vars.ORG_ID:
+                org_id = config_vars.ORG_ID
+            if hasattr(config_vars, 'TOKEN') and config_vars.TOKEN:
+                token = config_vars.TOKEN
+        except Exception:
+            try:
+                import vars as config_vars
+                if hasattr(config_vars, 'ORG_ID') and config_vars.ORG_ID:
+                    org_id = config_vars.ORG_ID
+                if hasattr(config_vars, 'TOKEN') and config_vars.TOKEN:
+                    token = config_vars.TOKEN
+            except Exception:
+                pass
+    if not token:
+        token = os.environ.get("EVENTBRITE_TOKEN") or os.environ.get("TOKEN") or ""
+    if not org_id:
+        org_id = os.environ.get("EVENTBRITE_ORG_ID") or "27283320655"
     return org_id, token
 
 def sync_events():

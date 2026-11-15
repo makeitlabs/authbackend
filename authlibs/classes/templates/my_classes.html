@@ -2,95 +2,197 @@
 
 {% block body %}
 <div class="container mt-4">
-    <div class="row mb-3">
-        <div class="col-md-12">
+    <div class="row mb-3 align-items-center">
+        <div class="col-md-7">
             <h2>My Classes Dashboard</h2>
-            <p class="text-muted">Manage the classes you are assigned to instruct.</p>
+            <p class="text-muted mb-0">Manage the classes you are assigned to instruct.</p>
         </div>
+        {% if events %}
+        <div class="col-md-5 text-md-right mt-2 mt-md-0">
+            <ul class="nav nav-pills justify-content-md-end" id="classesViewNav" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link {% if active_view != 'chronological' %}active{% endif %}" id="by-class-tab" data-toggle="pill" href="#byClassView" role="tab" aria-controls="byClassView" aria-selected="{% if active_view != 'chronological' %}true{% else %}false{% endif %}">
+                        <span class="glyphicon glyphicon-th-list mr-1"></span> By Class
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_view == 'chronological' %}active{% endif %}" id="chrono-tab" data-toggle="pill" href="#chronoView" role="tab" aria-controls="chronoView" aria-selected="{% if active_view == 'chronological' %}true{% else %}false{% endif %}">
+                        <span class="glyphicon glyphicon-time mr-1"></span> Chronological Schedule
+                        {% if chronological_dates %}
+                            <span class="badge badge-light ml-1">{{ chronological_dates|length }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+            </ul>
+        </div>
+        {% endif %}
     </div>
 
-    <div class="card">
-        <div class="card-body">
-            {% if not events %}
-                <p>You are not currently assigned as an instructor for any active classes.</p>
-            {% else %}
-                <div class="accordion" id="myClassesAccordion">
-                    {% for event in events %}
-                    <div class="card mb-3">
-                        <div class="card-header" id="heading-{{ event.id }}">
-                            <h5 class="mb-0">
-                                <button class="btn btn-link text-left" type="button" data-toggle="collapse" data-target="#collapse-{{ event.id }}" aria-expanded="true" aria-controls="collapse-{{ event.id }}">
-                                    <strong>{{ event.name }}</strong>
-                                </button>
-                            </h5>
-                        </div>
+    {% if not events %}
+        <div class="card">
+            <div class="card-body">
+                <p class="mb-0">You are not currently assigned as an instructor for any active classes.</p>
+            </div>
+        </div>
+    {% else %}
+        <div class="tab-content" id="classesViewTabContent">
+            <!-- View 1: By Class (Accordion view) -->
+            <div class="tab-pane fade {% if active_view != 'chronological' %}show active{% endif %}" id="byClassView" role="tabpanel" aria-labelledby="by-class-tab">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="accordion" id="myClassesAccordion">
+                            {% for event in events %}
+                            <div class="card mb-3">
+                                <div class="card-header" id="heading-{{ event.id }}">
+                                    <h5 class="mb-0">
+                                        <button class="btn btn-link text-left" type="button" data-toggle="collapse" data-target="#collapse-{{ event.id }}" aria-expanded="true" aria-controls="collapse-{{ event.id }}">
+                                            <strong>{{ event.name }}</strong>
+                                        </button>
+                                    </h5>
+                                </div>
 
-                        <div id="collapse-{{ event.id }}" class="collapse show" aria-labelledby="heading-{{ event.id }}" data-parent="#myClassesAccordion">
-                            <div class="card-body">
-                                
-                                {% if event.id in event_warnings %}
-                                    {% set warn = event_warnings[event.id] %}
-                                    <div class="alert alert-{{ warn.level }} py-2" role="alert">
-                                        {{ warn.text }}
-                                    </div>
-                                {% endif %}
+                                <div id="collapse-{{ event.id }}" class="collapse show" aria-labelledby="heading-{{ event.id }}" data-parent="#myClassesAccordion">
+                                    <div class="card-body">
+                                        
+                                        {% if event.id in event_warnings %}
+                                            {% set warn = event_warnings[event.id] %}
+                                            <div class="alert alert-{{ warn.level }} py-2" role="alert">
+                                                {{ warn.text }}
+                                            </div>
+                                        {% endif %}
 
-                                <p>{{ event.description }}</p>
+                                        <p>{{ event.description }}</p>
 
-                                <h5>Upcoming Dates</h5>
-                                {% set upcoming = [] %}
-                                {% for ed in event.dates|sort(attribute='time_start') %}
-                                    {% if ed.time_start >= now %}
-                                        {% set _ = upcoming.append(ed) %}
-                                    {% endif %}
-                                {% endfor %}
-
-                                {% if upcoming|length == 0 %}
-                                    <p class="text-muted">No upcoming dates scheduled.</p>
-                                {% else %}
-                                    <ul class="list-group mb-3">
-                                        {% for ed in upcoming %}
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <span style="font-size: 1.1em;">{{ ed.time_start.strftime('%A, %B %d, %Y') }}</span><br>
-                                                    <small class="text-muted">{{ ed.time_start.strftime('%I:%M %p') }} - {{ ed.time_end.strftime('%I:%M %p') }}</small>
-                                                </div>
-                                                
-                                                <div class="text-right">
-                                                    {% set cap = capacities.get(ed.eventbrite_id) %}
-                                                    {% if cap %}
-                                                        {% if cap.is_sold_out or (cap.capacity > 0 and cap.sold >= cap.capacity) %}
-                                                            {% if cap.capacity > 0 %}
-                                                                <span class="badge badge-danger mr-3" style="font-size: 1em;">SOLD OUT ({{ cap.sold }}/{{ cap.capacity }})</span>
-                                                            {% else %}
-                                                                <span class="badge badge-danger mr-3" style="font-size: 1em;">SOLD OUT</span>
-                                                            {% endif %}
-                                                        {% else %}
-                                                            {% if cap.capacity > 0 %}
-                                                                <span class="badge badge-success mr-3" style="font-size: 1em;">{{ cap.sold }} / {{ cap.capacity }} Seats</span>
-                                                            {% else %}
-                                                                <span class="badge badge-success mr-3" style="font-size: 1em;">Available</span>
-                                                            {% endif %}
-                                                        {% endif %}
-                                                    {% endif %}
-
-                                                    <button type="button" class="btn btn-sm btn-primary" onclick="loadAttendees('{{ ed.eventbrite_id }}')">
-                                                        View Roster
-                                                    </button>
-                                                </div>
-                                            </li>
+                                        <h5>Upcoming Dates</h5>
+                                        {% set upcoming = [] %}
+                                        {% for ed in event.dates|sort(attribute='time_start') %}
+                                            {% if ed.time_start >= now %}
+                                                {% set _ = upcoming.append(ed) %}
+                                            {% endif %}
                                         {% endfor %}
-                                    </ul>
-                                {% endif %}
 
+                                        {% if upcoming|length == 0 %}
+                                            <p class="text-muted">No upcoming dates scheduled.</p>
+                                        {% else %}
+                                            <ul class="list-group mb-3">
+                                                {% for ed in upcoming %}
+                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <span style="font-size: 1.1em;">{{ ed.time_start.strftime('%A, %B %d, %Y') }}</span><br>
+                                                            <small class="text-muted">{{ ed.time_start.strftime('%I:%M %p') }} - {{ ed.time_end.strftime('%I:%M %p') }}</small>
+                                                        </div>
+                                                        
+                                                        <div class="text-right">
+                                                            {% set cap = capacities.get(ed.eventbrite_id) %}
+                                                            {% if cap %}
+                                                                {% if cap.is_sold_out or (cap.capacity > 0 and cap.sold >= cap.capacity) %}
+                                                                    {% if cap.capacity > 0 %}
+                                                                        <span class="badge badge-danger mr-3" style="font-size: 1em;">SOLD OUT ({{ cap.sold }}/{{ cap.capacity }})</span>
+                                                                    {% else %}
+                                                                        <span class="badge badge-danger mr-3" style="font-size: 1em;">SOLD OUT</span>
+                                                                    {% endif %}
+                                                                {% else %}
+                                                                    {% if cap.capacity > 0 %}
+                                                                        <span class="badge badge-success mr-3" style="font-size: 1em;">{{ cap.sold }} / {{ cap.capacity }} Seats</span>
+                                                                    {% else %}
+                                                                        <span class="badge badge-success mr-3" style="font-size: 1em;">Available</span>
+                                                                    {% endif %}
+                                                                {% endif %}
+                                                            {% endif %}
+
+                                                            <button type="button" class="btn btn-sm btn-primary" onclick="loadAttendees('{{ ed.eventbrite_id }}')">
+                                                                View Roster
+                                                            </button>
+                                                        </div>
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% endif %}
+
+                                    </div>
+                                </div>
                             </div>
+                            {% endfor %}
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
-            {% endif %}
+            </div>
+
+            <!-- View 2: Chronological Schedule (Flat chronological list of all upcoming sessions) -->
+            <div class="tab-pane fade {% if active_view == 'chronological' %}show active{% endif %}" id="chronoView" role="tabpanel" aria-labelledby="chrono-tab">
+                <div class="card">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <strong class="text-secondary text-uppercase" style="font-size: 0.85rem; letter-spacing: 0.05em;">Upcoming Class Schedule</strong>
+                        <span class="badge badge-info" style="font-size: 0.9em;">
+                            {{ chronological_dates|length }} session{{ 's' if chronological_dates|length != 1 else '' }}
+                        </span>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if chronological_dates|length == 0 %}
+                            <div class="p-4 text-center text-muted">
+                                <p class="mb-0">No upcoming class dates scheduled across your assigned classes.</p>
+                            </div>
+                        {% else %}
+                            <div class="list-group list-group-flush">
+                                {% for ed in chronological_dates %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap py-3">
+                                        <div class="mb-2 mb-md-0" style="max-width: 65%;">
+                                            <div class="d-flex align-items-baseline flex-wrap">
+                                                <h5 class="mb-1 mr-2 font-weight-bold">
+                                                    {% if ed.event.url %}
+                                                        <a href="{{ ed.event.url }}" target="_blank" rel="noopener noreferrer" class="text-primary">
+                                                            {{ ed.event.name }}
+                                                        </a>
+                                                    {% else %}
+                                                        {{ ed.event.name }}
+                                                    {% endif %}
+                                                </h5>
+                                            </div>
+                                            <div class="text-muted" style="font-size: 0.95em;">
+                                                <span class="glyphicon glyphicon-calendar mr-1"></span>
+                                                <strong>{{ ed.time_start.strftime('%A, %B %d, %Y') }}</strong>
+                                                <span class="mx-1">&bull;</span>
+                                                <span class="glyphicon glyphicon-time mr-1"></span>
+                                                {{ ed.time_start.strftime('%I:%M %p') }} - {{ ed.time_end.strftime('%I:%M %p') }}
+                                            </div>
+                                            {% if ed.event.description %}
+                                                <small class="text-muted d-block mt-1 text-truncate" style="max-width: 620px;">
+                                                    {{ ed.event.description[:140] }}{% if ed.event.description|length > 140 %}...{% endif %}
+                                                </small>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="text-right d-flex align-items-center flex-wrap justify-content-end">
+                                            {% set cap = capacities.get(ed.eventbrite_id) %}
+                                            {% if cap %}
+                                                {% if cap.is_sold_out or (cap.capacity > 0 and cap.sold >= cap.capacity) %}
+                                                    {% if cap.capacity > 0 %}
+                                                        <span class="badge badge-danger mr-3" style="font-size: 1em;">SOLD OUT ({{ cap.sold }}/{{ cap.capacity }})</span>
+                                                    {% else %}
+                                                        <span class="badge badge-danger mr-3" style="font-size: 1em;">SOLD OUT</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    {% if cap.capacity > 0 %}
+                                                        <span class="badge badge-success mr-3" style="font-size: 1em;">{{ cap.sold }} / {{ cap.capacity }} Seats</span>
+                                                    {% else %}
+                                                        <span class="badge badge-success mr-3" style="font-size: 1em;">Available</span>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endif %}
+
+                                            <button type="button" class="btn btn-sm btn-primary" onclick="loadAttendees('{{ ed.eventbrite_id }}')">
+                                                View Roster
+                                            </button>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
+    {% endif %}
 </div>
 
 <!-- Modal for Attendee Roster -->
@@ -119,6 +221,29 @@
 </div>
 
 <script>
+// Remember active tab preference across page refreshes
+$(document).ready(function() {
+    $('a[data-toggle="pill"]').on('shown.bs.tab', function(e) {
+        var target = $(e.target).attr("href");
+        var view = (target === '#chronoView') ? 'chronological' : 'by_class';
+        try {
+            localStorage.setItem('my_classes_view', view);
+        } catch(e) {}
+    });
+
+    var urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.has('view')) {
+        try {
+            var savedView = localStorage.getItem('my_classes_view');
+            if (savedView === 'chronological') {
+                $('#chrono-tab').tab('show');
+            } else if (savedView === 'by_class') {
+                $('#by-class-tab').tab('show');
+            }
+        } catch(e) {}
+    }
+});
+
 function loadAttendees(eventbriteId) {
     document.getElementById('rosterLoading').style.display = 'block';
     document.getElementById('rosterContent').style.display = 'none';

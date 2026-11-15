@@ -144,6 +144,9 @@ def linkExistingMember(sub, plantype, firstname, lastname, email):
 
     db.session.add(Logs(member_id=mm.id,
                         event_type=eventtypes.RATTBE_LOGEVENT_MEMBER_REACTIVATED.id))
+    db.session.add(Logs(member_id=mm.id,
+                        event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_SUB_ACTIVATED_PAYSYS.id,
+                        message="Subscription reactivated via signup portal"))
     return (s, mm)
 
 @blueprint.route('/howdiduhear', methods=['GET','POST'])

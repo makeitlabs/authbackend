@@ -239,9 +239,7 @@ def get_calendar_events(days=14, start_date=None):
             summary_lower = summary.lower()
             if 'mopa' in summary_lower and 'epilog' in summary_lower:
                 device = "Laser Room"
-            elif 'mopa' in summary_lower:
-                device = "Laser Room"
-            elif 'epilog' in summary_lower:
+            elif 'mopa' in summary_lower or 'epilog' in summary_lower or 'fiber' in summary_lower or 'kern' in summary_lower:
                 device = "Laser Room"
             elif 'shopbot' in summary_lower:
                 device = "Machine Shop"

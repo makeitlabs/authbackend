@@ -1,0 +1,281 @@
+{% extends "layout_bootstrap.html" %}
+
+{% block body %}
+<div class="container mt-4 mb-5">
+    <div class="row align-items-center mb-3">
+        <div class="col-md-7">
+            <h2>Featured Classes Social Promo</h2>
+            <p class="text-muted mb-0">Select 2 to 4 upcoming classes to generate an eye-catching graphic for Instagram and Facebook.</p>
+        </div>
+        <div class="col-md-5 text-md-right mt-2 mt-md-0">
+            <a href="?refresh=1" class="btn btn-outline-primary btn-sm mr-2" title="Force fresh sync from Eventbrite">
+                <span class="glyphicon glyphicon-refresh mr-1"></span> Refresh Classes
+            </a>
+            <a href="{{ url_for('signs.social_events') }}" class="btn btn-outline-secondary btn-sm" title="View text-only weekly schedule calendar">
+                Weekly Calendar View &rarr;
+            </a>
+        </div>
+    </div>
+
+    {% if not classes %}
+        <div class="alert alert-warning" role="alert">
+            <h5 class="alert-heading">No Upcoming Classes Found</h5>
+            <p>Could not find any upcoming scheduled classes in the local cache or Eventbrite feed.</p>
+            <hr>
+            <a href="?refresh=1" class="btn btn-warning btn-sm">Try Syncing with Eventbrite</a>
+        </div>
+    {% else %}
+        <form action="{{ url_for('classes.social_promo_generate') }}" method="POST" id="promoForm">
+            <!-- Global Graphic Settings -->
+            <div class="card mb-4 shadow-sm border-primary">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <strong class="text-uppercase" style="font-size: 0.85rem; letter-spacing: 0.05em;">Graphic Layout &amp; Headlines</strong>
+                    <span id="counterBadge" class="badge badge-light" style="font-size: 0.95em;">0 Selected (Choose 2 &ndash; 4)</span>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group col-md-5">
+                            <label for="headline"><strong>Main Headline:</strong></label>
+                            <input type="text" id="headline" name="headline" value="UPCOMING WORKSHOPS &amp; CLASSES" class="form-control" placeholder="e.g. FEATURED WORKSHOPS &amp; CLASSES">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="subhead"><strong>Subhead / Tagline:</strong></label>
+                            <input type="text" id="subhead" name="subhead" value="Hands-on Making • Open to the Public • Nashua, NH" class="form-control" placeholder="e.g. Learn a new skill at MakeIt Labs">
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="aspect_ratio"><strong>Image Format:</strong></label>
+                            <select id="aspect_ratio" name="aspect_ratio" class="form-control">
+                                <option value="portrait" selected>Instagram 4:5 (1080 &times; 1350) • Feed &amp; Story</option>
+                                <option value="square">Square 1:1 (1080 &times; 1080) • Grid</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Class Selection Cards -->
+            <h4 class="mb-3">Select Classes to Feature</h4>
+            <div class="row" id="classesGrid">
+                {% for c in classes %}
+                {% set idx = loop.index0 %}
+                {% set is_default = (idx < 3) %}
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100 class-select-card shadow-sm {% if is_default %}is-selected{% endif %}" 
+                         id="card_{{ idx }}" 
+                         data-idx="{{ idx }}"
+                         style="cursor: pointer; transition: all 0.2s ease;">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start">
+                                <!-- Checkbox -->
+                                <div class="custom-control custom-checkbox mr-3 mt-1">
+                                    <input type="checkbox" 
+                                           class="custom-control-input class-checkbox" 
+                                           id="check_{{ idx }}" 
+                                           name="selected_indices" 
+                                           value="{{ idx }}" 
+                                           data-idx="{{ idx }}" 
+                                           {% if is_default %}checked{% endif %}>
+                                    <label class="custom-control-label" for="check_{{ idx }}" style="cursor: pointer;"></label>
+                                </div>
+
+                                <!-- Thumbnail Image -->
+                                <div class="mr-3 flex-shrink-0" style="width: 120px; height: 80px; background: #e2e8f0; border-radius: 8px; overflow: hidden; position: relative;">
+                                    {% if c.logo_url %}
+                                        <img src="{{ c.logo_url }}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+                                    {% else %}
+                                        <div class="d-flex align-items-center justify-content-center h-100 text-muted" style="font-size: 0.75rem;">
+                                            No Image
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Class Basic Info -->
+                                <div class="flex-grow-1" style="min-width: 0;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="badge badge-warning text-uppercase" style="font-size: 0.75rem;">{{ c.category }}</span>
+                                        <span class="text-muted small"><strong>{{ c.date_str }}</strong></span>
+                                    </div>
+                                    <h6 class="card-title mb-1 font-weight-bold text-truncate" title="{{ c.title }}">
+                                        {{ c.title }}
+                                    </h6>
+                                    <p class="card-text text-muted small text-truncate mb-0">
+                                        {{ c.summary }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Expandable customization inputs for this selected card -->
+                            <div class="mt-3 pt-3 border-top custom-fields-panel" id="custom_fields_{{ idx }}">
+                                <div class="small text-muted mb-2 font-weight-bold text-uppercase">Customize Text for Graphic:</div>
+                                <div class="form-row">
+                                    <div class="form-group col-md-8 mb-2">
+                                        <label class="small mb-1 font-weight-bold">Display Title:</label>
+                                        <input type="text" name="title_{{ idx }}" value="{{ c.title }}" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="form-group col-md-4 mb-2">
+                                        <label class="small mb-1 font-weight-bold">Category Badge:</label>
+                                        <input type="text" name="category_{{ idx }}" value="{{ c.category }}" class="form-control form-control-sm">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-md-5 mb-2">
+                                        <label class="small mb-1 font-weight-bold">Date &amp; Time String:</label>
+                                        <input type="text" name="date_{{ idx }}" value="{{ c.date_str }}" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="form-group col-md-7 mb-2">
+                                        <label class="small mb-1 font-weight-bold">Image URL:</label>
+                                        <input type="text" name="image_url_{{ idx }}" value="{{ c.logo_url|default('') }}" class="form-control form-control-sm">
+                                    </div>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label class="small mb-1 font-weight-bold">Social Teaser (1&ndash;2 sentences):</label>
+                                    <input type="text" name="summary_{{ idx }}" value="{{ c.summary }}" class="form-control form-control-sm" maxlength="160">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Sticky Bottom Generate Bar -->
+            <div class="card bg-light shadow fixed-bottom" style="z-index: 1020; border-top: 2px solid #0284c7;">
+                <div class="container py-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <span id="bottomCounter" class="font-weight-bold text-primary mr-2">0 classes selected</span>
+                        <small class="text-muted d-none d-sm-inline">(Recommendation: 2, 3, or 4 classes look best)</small>
+                    </div>
+                    <div>
+                        <button type="submit" id="btnSubmit" class="btn btn-primary btn-lg">
+                            Generate Graphic &rarr;
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    {% endif %}
+</div>
+
+<style>
+.class-select-card {
+    border: 2px solid transparent;
+}
+.class-select-card:hover {
+    border-color: #93c5fd;
+}
+.class-select-card.is-selected {
+    border-color: #0284c7 !important;
+    background-color: #f0f9ff;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.15) !important;
+}
+.class-select-card .custom-fields-panel {
+    display: none;
+}
+.class-select-card.is-selected .custom-fields-panel {
+    display: block;
+}
+</style>
+
+<script>
+function handleSelectChange(idx) {
+    const cb = document.getElementById('check_' + idx);
+    const card = document.getElementById('card_' + idx);
+
+    if (cb && card) {
+        if (cb.checked) {
+            card.classList.add('is-selected');
+        } else {
+            card.classList.remove('is-selected');
+        }
+    }
+
+    updateCounter();
+}
+
+function updateCounter() {
+    const checked = document.querySelectorAll('.class-checkbox:checked');
+    const count = checked.length;
+    const btn = document.getElementById('btnSubmit');
+    const badge = document.getElementById('counterBadge');
+    const bottomCounter = document.getElementById('bottomCounter');
+
+    if (badge) {
+        if (count === 0) {
+            badge.textContent = "0 Selected (Choose 2 – 4)";
+            badge.className = "badge badge-light";
+        } else if (count >= 2 && count <= 4) {
+            badge.textContent = `${count} Selected (Optimal)`;
+            badge.className = "badge badge-success";
+        } else if (count > 4) {
+            badge.textContent = `${count} Selected (Warning: Max 4 will be used)`;
+            badge.className = "badge badge-warning";
+        } else {
+            badge.textContent = `${count} Selected (Pick at least 2)`;
+            badge.className = "badge badge-info";
+        }
+    }
+
+    if (bottomCounter) {
+        bottomCounter.textContent = `${count} class${count === 1 ? '' : 'es'} selected`;
+    }
+
+    if (btn) {
+        btn.disabled = (count === 0);
+        if (count > 0) {
+            btn.innerHTML = `Generate Graphic (${count} Selected) &rarr;`;
+        } else {
+            btn.innerHTML = `Generate Graphic &rarr;`;
+        }
+    }
+}
+
+function validatePromoForm() {
+    const checked = document.querySelectorAll('.class-checkbox:checked');
+    if (checked.length === 0) {
+        alert("Please select at least 1 class before generating the graphic.");
+        return false;
+    }
+    return true;
+}
+
+function initPromoForm() {
+    const grid = document.getElementById('classesGrid');
+    if (grid) {
+        grid.addEventListener('click', function(e) {
+            const card = e.target.closest('.class-select-card');
+            if (!card) return;
+            const tag = (e.target.tagName || '').toLowerCase();
+            if (tag === 'input' || tag === 'textarea' || tag === 'select' || tag === 'label' || tag === 'button') {
+                return;
+            }
+            const idx = card.getAttribute('data-idx');
+            const cb = document.getElementById('check_' + idx);
+            if (cb) {
+                cb.checked = !cb.checked;
+                handleSelectChange(idx);
+            }
+        });
+    }
+
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.classList.contains('class-checkbox')) {
+            const idx = e.target.getAttribute('data-idx') || e.target.value;
+            handleSelectChange(idx);
+        }
+    });
+
+    const form = document.getElementById('promoForm');
+    if (form) {
+        form.onsubmit = validatePromoForm;
+    }
+
+    updateCounter();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPromoForm);
+} else {
+    initPromoForm();
+}
+</script>
+{% endblock %}

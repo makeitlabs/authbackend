@@ -11,6 +11,7 @@ import os
 import sys
 import json
 import time
+import tempfile
 import base64
 import urllib.request
 import urllib.error
@@ -25,7 +26,7 @@ if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
 ORG_ID = "27283320655"
-TOKEN = "FOX7HERLEN2CYOAW2XBU"
+TOKEN = None
 CACHE_FILE = os.path.join(os.path.expanduser("~"), ".cache", "makeit_classboard_cache.json")
 if not os.path.exists(os.path.dirname(CACHE_FILE)):
     try:
@@ -33,18 +34,27 @@ if not os.path.exists(os.path.dirname(CACHE_FILE)):
     except Exception:
         CACHE_FILE = "/tmp/makeit_classboard_cache.json"
 
-CACHE_TTL_SECONDS = 600  # 10 minutes cache
+CACHE_TTL_SECONDS = 14400  # 4 hours cache
 EVENTBRITE_PROFILE_URL = "https://www.eventbrite.com/o/makeit-labs-1932299069"
 
-# Attempt to load credentials from vars.py in same directory or parent
+# Attempt to load credentials from vars.py or var.py in same directory or parent
+config_vars = None
 try:
     import vars as config_vars
+except ImportError:
+    try:
+        import var as config_vars
+    except ImportError:
+        config_vars = None
+
+if config_vars:
     if hasattr(config_vars, 'ORG_ID') and config_vars.ORG_ID:
         ORG_ID = config_vars.ORG_ID
     if hasattr(config_vars, 'TOKEN') and config_vars.TOKEN:
         TOKEN = config_vars.TOKEN
-except Exception:
-    pass
+
+if not TOKEN:
+    TOKEN = os.environ.get("EVENTBRITE_TOKEN") or os.environ.get("TOKEN")
 
 # ---------------------------------------------------------------------------
 # Category Mapping
@@ -66,7 +76,7 @@ def categorize_class(name):
         cats.append("woodworking")
     if any(k in n for k in ["weld", "metal", "machin", "mill", "trak", "bridgeport", "pewter"]):
         cats.append("metalworking")
-    if any(k in n for k in ["laser", "kern", "epilog", "mopa", "cnc", "router", "waterjet"]):
+    if any(k in n for k in ["laser", "kern", "epilog", "mopa", "fiber", "cnc", "router", "waterjet"]):
         cats.append("laser-cnc")
     if any(k in n for k in ["ceramic", "glaz", "glass", "pottery", "art", "jewelry", "wire wrap", "apparel", "mat board", "ornament"]):
         cats.append("ceramics-arts")
@@ -83,7 +93,7 @@ def categorize_class(name):
 # ---------------------------------------------------------------------------
 def get_logo_html():
     possible_paths = [
-        os.path.join(SCRIPT_DIR, "..", "static", "MakeIt Labs Logo 2016.svg"),
+        os.path.join(SCRIPT_DIR, "..", "html", "MakeIt Labs Logo 2016.svg"),
         os.path.join(SCRIPT_DIR, "static", "MakeIt Labs Logo 2016.svg"),
         os.path.join(SCRIPT_DIR, "MakeIt Labs Logo 2016.svg"),
         os.path.join(SCRIPT_DIR, "..", "static", "makeit.png"),
@@ -124,34 +134,63 @@ def get_logo_html():
 # Eventbrite API Client & Caching
 # ---------------------------------------------------------------------------
 def load_cache():
-    if os.path.exists(CACHE_FILE):
+    for path in (CACHE_FILE, "/tmp/makeit_classboard_cache.json"):
         try:
-            with open(CACHE_FILE, "r", encoding="utf-8") as f:
+            with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 if time.time() - data.get("timestamp", 0) < CACHE_TTL_SECONDS:
                     return data.get("classes"), data.get("last_updated")
         except Exception:
-            pass
+            continue
     return None, None
 
 def save_cache(classes, last_updated):
+    global CACHE_FILE
+    cache_dir = os.path.dirname(os.path.abspath(CACHE_FILE))
+    temp_path = None
     try:
-        temp_file = CACHE_FILE + ".tmp"
-        with open(temp_file, "w", encoding="utf-8") as f:
+        os.makedirs(cache_dir, exist_ok=True)
+    except Exception:
+        cache_dir = "/tmp"
+        CACHE_FILE = "/tmp/makeit_classboard_cache.json"
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            dir=cache_dir,
+            delete=False,
+            encoding="utf-8",
+            prefix=".classboard_cache_",
+            suffix=".tmp"
+        ) as f:
+            temp_path = f.name
             json.dump({
                 "timestamp": time.time(),
                 "last_updated": last_updated,
                 "classes": classes
             }, f)
-        os.replace(temp_file, CACHE_FILE)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_path, CACHE_FILE)
     except Exception:
-        pass
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
 
 def fetch_events_from_eventbrite(force_refresh=False):
     if not force_refresh:
         cached_classes, last_updated = load_cache()
         if cached_classes is not None:
             return cached_classes, last_updated
+
+    if not TOKEN:
+        # Fall back to existing cache if token is not available
+        cached_classes, last_updated = load_cache()
+        if cached_classes is not None:
+            return cached_classes, last_updated
+        raise RuntimeError("Eventbrite TOKEN is not configured (missing in vars.py)")
 
     all_events = []
     page = 1
@@ -173,13 +212,13 @@ def fetch_events_from_eventbrite(force_refresh=False):
                 if page > 10:  # safety cap
                     break
     except Exception as e:
-        if os.path.exists(CACHE_FILE):
+        for path in (CACHE_FILE, "/tmp/makeit_classboard_cache.json"):
             try:
-                with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                with open(path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     return data.get("classes", []), data.get("last_updated", "Cached")
             except Exception:
-                pass
+                continue
         raise RuntimeError(f"Eventbrite API request failed: {e}")
 
     now_dt = datetime.datetime.now()
@@ -229,13 +268,13 @@ def fetch_events_from_eventbrite(force_refresh=False):
         cats = categorize_class(title)
 
         # Calculate sold out status across upcoming instances
-        sold_out_list = [
-            bool(x.get("ticket_availability", {}).get("is_sold_out", False))
-            for x in upcoming_items
+        available_items = [
+            x for x in upcoming_items
+            if not x.get("ticket_availability", {}).get("is_sold_out", False)
         ]
-        available_count = sum(1 for s in sold_out_list if not s)
-        all_sold = all(sold_out_list)
-        any_sold = any(sold_out_list)
+        available_count = len(available_items)
+        all_sold = (available_count == 0)
+        any_sold = (len(upcoming_items) > available_count)
 
         # Check waitlist on next or upcoming item
         waitlist_available = any(
@@ -243,11 +282,32 @@ def fetch_events_from_eventbrite(force_refresh=False):
             for x in upcoming_items
         )
 
+        # Prefer master series URL for recurring classes so Eventbrite shows all dates,
+        # or link to the first open date if not a series
+        series_id = next_item.get("series_id")
+        base_item_url = next_item.get("url") or EVENTBRITE_PROFILE_URL
+
+        if series_id:
+            if "tickets-" in base_item_url:
+                event_url = re.sub(r"tickets-\d+", f"tickets-{series_id}", base_item_url)
+            else:
+                event_url = f"https://www.eventbrite.com/e/{series_id}"
+        elif available_items and available_items[0].get("url"):
+            event_url = available_items[0]["url"]
+        else:
+            event_url = base_item_url
+
+        if event_url.startswith("http://"):
+            event_url = "https://" + event_url[7:]
+
+        if logo_url and logo_url.startswith("http://"):
+            logo_url = "https://" + logo_url[7:]
+
         classes.append({
             "id": next_item.get("id"),
             "series_id": next_item.get("series_id"),
             "title": title,
-            "url": next_item.get("url", EVENTBRITE_PROFILE_URL),
+            "url": event_url,
             "logo_url": logo_url,
             "summary": summary,
             "count": len(upcoming_items),
@@ -328,8 +388,12 @@ def render_classes_page(force_refresh=False):
                 btn_text = "Sold Out &bull; View on Eventbrite"
                 btn_class = "btn-register btn-soldout"
         else:
-            btn_text = "Register on Eventbrite"
-            btn_class = "btn-register"
+            if c["count"] > 1:
+                btn_text = "Select a Date on Eventbrite"
+                btn_class = "btn-register"
+            else:
+                btn_text = "Register on Eventbrite"
+                btn_class = "btn-register"
 
         soldout_attr = "true" if is_sold_out else "false"
         card_extra_class = "is-sold-out" if is_sold_out else ""
@@ -1311,17 +1375,46 @@ def render_classes_page(force_refresh=False):
 # ---------------------------------------------------------------------------
 def main():
     force_refresh = False
+    cache_only = False
+    quiet = False
     output_file = None
 
     for arg in sys.argv[1:]:
-        if arg in ("-r", "--refresh"):
+        if arg in ("-c", "--cache-only", "--refresh-only", "--cron", "--update-cache"):
+            cache_only = True
             force_refresh = True
+        elif arg in ("-r", "--refresh"):
+            force_refresh = True
+        elif arg in ("-q", "--quiet"):
+            quiet = True
         elif arg.startswith("--output="):
             output_file = arg.split("=", 1)[1]
 
     query_string = os.environ.get("QUERY_STRING", "")
-    if "refresh=1" in query_string:
+    if "cache_only=1" in query_string or "refresh_only=1" in query_string or "cron=1" in query_string:
+        cache_only = True
         force_refresh = True
+    elif "refresh=1" in query_string:
+        force_refresh = True
+
+    # Fast path for cron / background cache updates:
+    # Updates cache atomically and avoids expensive HTML rendering, SVG embedding, and templating.
+    if cache_only:
+        try:
+            classes, last_updated = fetch_events_from_eventbrite(force_refresh=True)
+            if "GATEWAY_INTERFACE" in os.environ:
+                print("Content-Type: text/plain; charset=utf-8\r\n\r\n", end="")
+                print(f"OK: Refreshed {len(classes)} classes ({last_updated})")
+            elif not quiet:
+                print(f"Cache refreshed successfully: {len(classes)} classes cached ({last_updated}).")
+            sys.exit(0)
+        except Exception as e:
+            if "GATEWAY_INTERFACE" in os.environ:
+                print("Status: 500 Internal Server Error\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n", end="")
+                print(f"Error refreshing cache: {e}")
+            else:
+                sys.stderr.write(f"Error refreshing cache: {e}\n")
+            sys.exit(1)
 
     html = render_classes_page(force_refresh=force_refresh)
 

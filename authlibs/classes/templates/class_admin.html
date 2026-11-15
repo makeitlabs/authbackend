@@ -6,7 +6,8 @@
         <div class="col-md-6">
             <h2>Class Administration</h2>
         </div>
-        <div class="col-md-6 text-end">
+        <div class="col-md-6 text-right">
+            <a href="{{ url_for('classes.social_promo') }}" class="btn btn-outline-info mr-1">Social Promo Graphic</a>
             <button class="btn btn-warning" onclick="sendNotices()">Send Notices (Debug)</button>
             <button class="btn btn-primary" onclick="syncEvents()">Sync Eventbrite Now</button>
         </div>

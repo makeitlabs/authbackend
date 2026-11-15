@@ -25,6 +25,36 @@ import logging
 logger = logging.getLogger(__name__)
 
 setupDone = False
+_pre_sync_active_members = None
+
+def is_sub_active(sub, now=None):
+    """Check if a subscription record is considered active in the payment system."""
+    if not sub:
+        return False
+    act = str(sub.active).strip().lower()
+    if act not in ('true', '1'):
+        return False
+    return True
+
+def snapshot_active_members():
+    """Snapshot member IDs who currently have an active subscription before payment sync."""
+    global _pre_sync_active_members
+    now = datetime.datetime.utcnow()
+    try:
+        subs = Subscription.query.filter(Subscription.member_id != None).all()
+        _pre_sync_active_members = set(s.member_id for s in subs if is_sub_active(s, now))
+        logger.info("Snapshotted %d active members before payment update" % len(_pre_sync_active_members))
+    except BaseException as e:
+        logger.warning("Could not snapshot active members before payment update: %s" % str(e))
+        _pre_sync_active_members = None
+
+def get_pre_sync_active_members():
+    global _pre_sync_active_members
+    return _pre_sync_active_members
+
+def clear_pre_sync_active_members():
+    global _pre_sync_active_members
+    _pre_sync_active_members = None
 
 
 def getLastUpdatedDate():
@@ -195,6 +225,7 @@ def addSubscriptionData(subs,module):
 
 def updatePaymentData(modules=None):
     setupPaymentSystems()
+    snapshot_active_members()
     if modules is None:
         modules = config.payments['modules']
     for module in modules.split(","):

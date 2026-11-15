@@ -10,7 +10,7 @@
 	{% if resources[r].img %}
 	<div class="menubox content hvr-grow-shadow">
 		<div class="my-10 p-0 mx-auto">
-			<a href="{{ r }}"><img class="menuimg" src="{{ url_for('calendars.static',filename=resources[r].img) }}" alt="{{ resources[r].alt }}"></a>
+			<a href="{{ r }}"><img class="menuimg" src="{{ url_for('calendars.static',filename=resources[r].img) }}?v=2" alt="{{ resources[r].name }}" title="{{ resources[r].name }}"></a>
 		</div>
 	</div>
 	{% endif %}

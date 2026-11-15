@@ -1,8 +1,17 @@
 {% extends "layout_bootstrap.html" %}
 {% block body %}
 <div class="container mt-4">
-    <h2>Generate Social Media Event Image</h2>
-    <p>Select the events you want to include in the generated image. You can edit the text directly before generating.</p>
+    <div class="row align-items-center mb-3">
+        <div class="col-md-8">
+            <h2>Generate Social Media Event Image</h2>
+            <p class="text-muted mb-0">Select the events you want to include in the generated image. You can edit the text directly before generating.</p>
+        </div>
+        <div class="col-md-4 text-md-right mt-2 mt-md-0">
+            <a href="{{ url_for('classes.social_promo') }}" class="btn btn-outline-info">
+                Featured Classes Promo &rarr;
+            </a>
+        </div>
+    </div>
     
     <div class="card mb-4 bg-light">
         <div class="card-body py-3">
