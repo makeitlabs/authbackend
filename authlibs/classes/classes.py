@@ -57,13 +57,14 @@ def my_classes():
     
     ny_tz = tz.gettz('America/New_York')
     now = datetime.datetime.now(tz=ny_tz).replace(tzinfo=None)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     my_events = Event.query.filter(Event.id.in_(event_ids)).order_by(Event.name).all() if event_ids else []
     
     target_eventbrite_ids = set()
     chronological_dates = []
     for ev in my_events:
         for ed in ev.dates:
-            if ed.time_start >= now:
+            if ed.time_start >= today_start:
                 target_eventbrite_ids.add(ed.eventbrite_id)
                 chronological_dates.append(ed)
 
@@ -74,7 +75,7 @@ def my_classes():
     
     event_warnings = {}
     for ev in my_events:
-        upcoming_dates = [ed for ed in ev.dates if ed.time_start >= now]
+        upcoming_dates = [ed for ed in ev.dates if ed.time_start >= today_start]
         if not upcoming_dates:
             event_warnings[ev.id] = {"text": "No upcoming classes scheduled.", "level": "secondary"}
         else:
@@ -100,6 +101,7 @@ def my_classes():
         capacities=capacities,
         event_warnings=event_warnings,
         now=now,
+        today_start=today_start,
         active_view=active_view
     )
 
