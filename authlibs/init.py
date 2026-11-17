@@ -170,6 +170,7 @@ class ConfigClass(object):
   USER_PASSLIB_CRYPTCONTEXT_SCHEMES=['pbkdf2_sha256']
   # Don;t want to include these, but it depends on them, so..
   USER_ENABLE_EMAIL = True        # Enable email authentication
+  USER_ENABLE_CONFIRM_EMAIL = False
   USER_ENABLE_USERNAME = False    # Disable username authentication
   USER_EMAIL_SENDER_NAME = USER_APP_NAME
   USER_EMAIL_SENDER_EMAIL = "noreply@example.com"

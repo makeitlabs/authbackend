@@ -16,6 +16,8 @@ TODO:
 """
 
 import json
+import os
+import re
 import datetime
 import pytz
 from dateutil import parser
@@ -43,6 +45,18 @@ EMAIL_USER = 'makeitlabs.automation@makeitlabs.com'
 ADMIN_USER = 'bill.schongar@makeitlabs.com'
 TEST_EMAIL = 'bill.schongar@makeitlabs.com'
 DOMAIN = "makeitlabs.com"
+# Kept separate from SCOPES so existing functions are unaffected until
+# admin.directory.group.member is authorized in Domain-Wide Delegation.
+GROUP_SCOPES = ['https://www.googleapis.com/auth/admin.directory.group.member']
+
+def _get_keyfile_path():
+    """Return path to KEYFILE, checking cwd first then repo root."""
+    if os.path.exists(KEYFILE):
+        return KEYFILE
+    repo_root_keyfile = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', KEYFILE))
+    if os.path.exists(repo_root_keyfile):
+        return repo_root_keyfile
+    return KEYFILE
 
 def searchEmail(emailstr):
     #return ([])
@@ -86,7 +100,7 @@ def _buildUserGmailService(user_email):
     Note: Gmail may not be ready immediately after account creation —
     callers should delay/retry if they get authorization errors."""
     from google.oauth2 import service_account
-    creds = service_account.Credentials.from_service_account_file(KEYFILE, scopes=SCOPES)
+    creds = service_account.Credentials.from_service_account_file(_get_keyfile_path(), scopes=SCOPES)
     delegated_creds = creds.with_subject(user_email)
     service = discovery.build('gmail', 'v1', credentials=delegated_creds)
     return service
@@ -240,7 +254,7 @@ def _CreateMessage(sender, to, subject, message_text):
 
 def _buildEmailService():
     """Create an HTTP session specifically for the GMAIL API and sending emails from the EMAIL_USER account"""
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(KEYFILE, SCOPES)
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(_get_keyfile_path(), SCOPES)
     delegated_credentials = credentials.create_delegated(EMAIL_USER)
     http_auth = delegated_credentials.authorize(Http())
     service = discovery.build('gmail', 'v1', http=http_auth)
@@ -248,11 +262,108 @@ def _buildEmailService():
 
 def _buildAdminService():
     """Create an HTTP session specifically for GOOGLE ADMIN SDK functions using ADMIN_USER"""
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(KEYFILE, SCOPES)
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(_get_keyfile_path(), SCOPES)
     delegated_credentials = credentials.create_delegated(ADMIN_USER)
     http_auth = delegated_credentials.authorize(Http())
     service = discovery.build('admin', 'directory_v1', http=http_auth)
     return service
+
+def _buildGroupAdminService():
+    """Create an Admin Directory API service delegated to ADMIN_USER for Google Group management."""
+    from google.oauth2 import service_account
+    creds = service_account.Credentials.from_service_account_file(_get_keyfile_path(), scopes=GROUP_SCOPES)
+    delegated_creds = creds.with_subject(ADMIN_USER)
+    return discovery.build('admin', 'directory_v1', credentials=delegated_creds)
+
+_EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+
+def _extract_google_api_error(err):
+    """Extract a readable error message from a Google API HttpError or Exception."""
+    if hasattr(err, 'content') and err.content:
+        try:
+            payload = json.loads(err.content.decode('utf-8'))
+            msg = payload.get('error', {}).get('message')
+            if msg:
+                return msg
+        except Exception:
+            pass
+    return str(err)
+
+def syncGroupMembers(group_email, emails):
+    """Add missing emails to a Google Group, skipping and reporting any invalid or errored emails.
+
+    Returns a dict with keys:
+      - group_email: target group address
+      - existing_count: number of members already in the group before sync
+      - already_present: list of emails already in the group
+      - added: list of newly added emails
+      - errors: list of dicts {'email': ..., 'error': ...} for skipped/failed emails
+    """
+    service = _buildGroupAdminService()
+
+    existing_emails = set()
+    page_token = None
+    while True:
+        results = service.members().list(
+            groupKey=group_email,
+            maxResults=200,
+            pageToken=page_token
+        ).execute()
+        for member in results.get('members', []):
+            addr = (member.get('email') or '').strip().lower()
+            if addr:
+                existing_emails.add(addr)
+        page_token = results.get('nextPageToken')
+        if not page_token:
+            break
+
+    existing_count = len(existing_emails)
+    already_present = []
+    added = []
+    failed = []
+    seen = set()
+
+    for raw_email in emails:
+        email = (raw_email or '').strip()
+        if not email:
+            continue
+        email_lower = email.lower()
+        if email_lower in seen:
+            continue
+        seen.add(email_lower)
+
+        if not _EMAIL_RE.match(email):
+            failed.append({'email': email, 'error': 'Invalid email format'})
+            continue
+
+        if email_lower in existing_emails:
+            already_present.append(email)
+            continue
+
+        try:
+            service.members().insert(
+                groupKey=group_email,
+                body={'email': email, 'role': 'MEMBER'}
+            ).execute()
+            added.append(email)
+            existing_emails.add(email_lower)
+        except errors.HttpError as err:
+            status = getattr(getattr(err, 'resp', None), 'status', None)
+            msg = _extract_google_api_error(err)
+            if status == 409 or 'already exists' in msg.lower():
+                already_present.append(email)
+            else:
+                failed.append({'email': email, 'error': msg})
+        except Exception as err:
+            failed.append({'email': email, 'error': str(err)})
+
+    return {
+        'group_email': group_email,
+        'existing_count': existing_count,
+        'already_present': already_present,
+        'added': added,
+        'errors': failed,
+    }
    
 def get_event_time_reliable(event):
     """
@@ -308,7 +419,7 @@ def _buildCalendarService(user_email_to_delegate_to):
     delegated to act on behalf of a specific user in your domain.
     """
     # 1. Get credentials from the service account key file
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(KEYFILE, CALENDAR_SCOPES)
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(_get_keyfile_path(), CALENDAR_SCOPES)
 
     # 2. Delegate authority to act as the target user (e.g., a domain user)
     delegated_credentials = credentials.create_delegated(user_email_to_delegate_to)

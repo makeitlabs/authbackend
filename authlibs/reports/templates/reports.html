@@ -34,8 +34,10 @@
 				<td>Visualization of member interests and discovery methods</td>
 				<td>
 					<div style="display: flex; align-items: center; gap: 10px;">
-						<input type="date" id="survey_date_since" class="form-control" style="width: auto;" title="Include surveys since this date (leave blank for all)">
-						<button onClick="runreport('surveys', document.getElementById('survey_date_since').value)" class="button btn btn-primary">Report</button>
+						<input type="date" id="survey_date_since" class="form-control" style="width: auto;"
+							title="Include surveys since this date (leave blank for all)">
+						<button onClick="runreport('surveys', document.getElementById('survey_date_since').value)"
+							class="button btn btn-primary">Report</button>
 					</div>
 				</td>
 			</tr>
@@ -62,13 +64,30 @@
 			</tr>
 			<tr>
 				<td>Member Count V2</td>
-				<td>Product &amp; metadata-aware active member counts (includes FIRST Robotics, Group Members, metadata seat counts)</td>
+				<td>Product &amp; metadata-aware active member counts (includes FIRST Robotics, Group Members, metadata
+					seat counts)</td>
 				<td><button onClick="runreport('membercount_v2')" class="button btn btn-primary">Report</button></td>
 			</tr>
 			<tr>
 				<td>Google Groups Active Members</td>
-				<td>Export active members formatted for Google Groups import</td>
-				<td><button onClick="runreport('active_members')" class="button btn btn-primary">Report</button></td>
+				<td>
+					Automatically add active member emails (including personal emails) to
+					<strong>active@makeitlabs.com</strong> for general member announcements, skipping and reporting any
+					invalid emails.
+					<br><small class="text-muted">Google Admin Group: <a
+							href="https://admin.google.com/ac/groups/00sqyw6441b2kli" target="_blank"
+							rel="noopener noreferrer">https://admin.google.com/ac/groups/00sqyw6441b2kli</a></small>
+				</td>
+				<td>
+					<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+						<button onClick="runreport('active_members', '', 'sync')" class="button btn btn-primary">Sync to
+							Group</button>
+						<a href="{{ url_for('reports.active_members_csv') }}"
+							class="button btn btn-outline-secondary">Download CSV</a>
+						<button onClick="runreport('active_members', '', 'csv')"
+							class="button btn btn-outline-secondary">View CSV</button>
+					</div>
+				</td>
 			</tr>
 			<tr>
 				<td>Member Loss</td>
@@ -105,8 +124,11 @@
 				<td>Monthly vending purchases, charges, and top products (24 months)</td>
 				<td>
 					<div style="display: flex; align-items: center; gap: 10px;">
-						<input type="date" id="vending_date_since" class="form-control" style="width: auto;" title="Include bottom tables since this date (leave blank for past 3 months)">
-						<button onClick="runreport('vending_usage', document.getElementById('vending_date_since').value)" class="button btn btn-primary">Report</button>
+						<input type="date" id="vending_date_since" class="form-control" style="width: auto;"
+							title="Include bottom tables since this date (leave blank for past 3 months)">
+						<button
+							onClick="runreport('vending_usage', document.getElementById('vending_date_since').value)"
+							class="button btn btn-primary">Report</button>
 					</div>
 				</td>
 			</tr>
@@ -115,18 +137,24 @@
 				<td>Monthly unique members, total entries, heaviest users, and most consistent visitors (24 months)</td>
 				<td>
 					<div style="display: flex; align-items: center; gap: 10px;">
-						<input type="date" id="door_date_since" class="form-control" style="width: auto;" title="Include bottom tables since this date (leave blank for past 3 months)">
-						<button onClick="runreport('door_usage', document.getElementById('door_date_since').value)" class="button btn btn-primary">Report</button>
+						<input type="date" id="door_date_since" class="form-control" style="width: auto;"
+							title="Include bottom tables since this date (leave blank for past 3 months)">
+						<button onClick="runreport('door_usage', document.getElementById('door_date_since').value)"
+							class="button btn btn-primary">Report</button>
 					</div>
 				</td>
 			</tr>
 			<tr>
 				<td>Fiber Laser Candidates</td>
-				<td>Top 75 active members recommended for expedited Fiber Laser authorization (UV, Epilog, MOPA, Machine Shop)</td>
+				<td>Top 75 active members recommended for expedited Fiber Laser authorization (UV, Epilog, MOPA, Machine
+					Shop)</td>
 				<td>
 					<div style="display: flex; align-items: center; gap: 10px;">
-						<input type="date" id="fiber_date_since" class="form-control" style="width: auto;" title="Usage since date (leave blank for past 1 year)">
-						<button onClick="runreport('fiber_candidates', document.getElementById('fiber_date_since').value)" class="button btn btn-primary">Report</button>
+						<input type="date" id="fiber_date_since" class="form-control" style="width: auto;"
+							title="Usage since date (leave blank for past 1 year)">
+						<button
+							onClick="runreport('fiber_candidates', document.getElementById('fiber_date_since').value)"
+							class="button btn btn-primary">Report</button>
 					</div>
 				</td>
 			</tr>
@@ -159,16 +187,24 @@
 				document.getElementById("reporttext").innerText = text;
 			}
 		}
-		function runreport(report, since_date='') {
-			document.getElementById("spinner").style.display = "inline-block";
-			let url = "{{ url_for('reports.runreport',report='') }}" + report;
-			if (since_date) {
-				url += "?since=" + encodeURIComponent(since_date);
+			function runreport(report, since_date = '', mode = '') {
+				document.getElementById("spinner").style.display = "inline-block";
+				let url = "{{ url_for('reports.runreport',report='') }}" + report;
+				let params = new URLSearchParams();
+				if (since_date) {
+					params.set("since", since_date);
+				}
+				if (mode) {
+					params.set("mode", mode);
+				}
+				let qs = params.toString();
+				if (qs) {
+					url += "?" + qs;
+				}
+				fetch(url)
+					.then(response => response.json())
+					.then(data => myDisplay(data.text))
+					.catch(error => myDisplay('Error:', error));
 			}
-			fetch(url)
-				.then(response => response.json())
-				.then(data => myDisplay(data.text))
-				.catch(error => myDisplay('Error:', error));
-		}
 	</script>
 	{% endblock %}

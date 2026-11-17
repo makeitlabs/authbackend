@@ -262,6 +262,27 @@ def blacklist():
     blacklist = Blacklist.query.all()
     return render_template('blacklist.html',blacklist=blacklist)
 
+@blueprint.route('/active_members.csv', methods=['GET'])
+@login_required
+@roles_required(['Admin','Finance','Useredit'])
+def active_members_csv():
+    """Download active members list as CSV for external email systems or manual Google Groups import"""
+    f = subprocess.Popen(
+        ["./active_members.py", "--csv"],
+        cwd="authlibs/reports/reports/",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    stdout_data, stderr_data = f.communicate()
+    if f.returncode != 0:
+        err_msg = stderr_data.decode("utf-8", errors="replace").strip() or "Failed to generate CSV"
+        return Response(err_msg, status=500, mimetype='text/plain')
+    return Response(
+        stdout_data,
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=active_members.csv'}
+    )
+
 @blueprint.route('/runreport/<string:report>', methods=['GET'])
 @login_required
 @roles_required(['Admin','Finance','Useredit'])
@@ -270,6 +291,7 @@ def runreport(report):
     report = report.replace(".","")
     try:
         since_date = request.args.get('since', '')
+        mode = request.args.get('mode', '').strip().lower()
         res = {
                 "status": "ok",
                 "text":f"This is a run of report {report}"
@@ -278,6 +300,8 @@ def runreport(report):
         env = os.environ.copy()
         if since_date:
             env['REPORT_SINCE'] = since_date
+        if mode in ('sync', 'csv'):
+            env['REPORT_MODE'] = mode
             
         f = subprocess.Popen(["./"+report+".py"],cwd="authlibs/reports/reports/",stdout=subprocess.PIPE,stderr=subprocess.PIPE, env=env)
         txt = f.stdout.read().decode("utf-8")
