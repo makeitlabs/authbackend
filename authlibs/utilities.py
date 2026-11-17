@@ -91,6 +91,13 @@ def make_member_id(firstname, lastname=""):
         return "%s.%s" % (first, last)
     return first or last
 
+def sanitize_plates(s):
+    """Sanitize license plate input: uppercase, commas/semicolons/whitespace normalized to single spaces."""
+    if not s:
+        return ""
+    cleaned = re.sub(r"[^A-Za-z0-9\-,\s;]", "", str(s))
+    return re.sub(r"[,;\s]+", " ", cleaned).strip().upper()
+
 def _joinNameString(s):
     '''Replace all numerics and non-alphanumerics in a name string, then concatenate using . ''' 
     newstr = re.findall(r"[\w]+",s)
