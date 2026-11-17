@@ -55,4 +55,36 @@
         </form>
     </div>
     </div>
+<script>
+    (function () {
+        function isAllUpper(str) {
+            return /[a-zA-Z]/.test(str) && str === str.toUpperCase();
+        }
+        function toTitleCase(str) {
+            return str.toLowerCase().replace(/(^|[\s\-'])[a-z]/g, function (c) {
+                return c.toUpperCase();
+            });
+        }
+        function attachCaseFilter(ids, transform) {
+            ids.forEach(function (id) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('blur', function () {
+                    var val = el.value.trim();
+                    if (!val) {
+                        delete el.dataset.caseCorrected;
+                        return;
+                    }
+                    if (el.dataset.caseCorrected === '1') return;
+                    if (isAllUpper(val)) {
+                        el.value = transform(val);
+                        el.dataset.caseCorrected = '1';
+                    }
+                });
+            });
+        }
+        attachCaseFilter(['firstName', 'lastName'], toTitleCase);
+        attachCaseFilter(['email'], function (s) { return s.toLowerCase(); });
+    })();
+</script>
 {% endblock %}

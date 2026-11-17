@@ -69,7 +69,15 @@ def searchEmail(emailstr):
     return users
 
 def createUser(firstname,lastname,userid,alt_email,password,isTest=False):
-    ### TODO - Make sure no special characters
+    from . import utilities
+    firstname = utilities.sanitize_name(firstname) or "Member"
+    lastname = utilities.sanitize_name(lastname) or firstname
+    userid = utilities.sanitize_userid(userid)
+    if not userid:
+        userid = utilities.make_member_id(firstname, lastname)
+    if not userid:
+        raise ValueError("Cannot create Google user: empty userid after sanitization")
+    alt_email = alt_email.strip() if alt_email else ""
     primary_email = "%s@makeitlabs.com" % (userid)
     userinfo = {'primaryEmail': primary_email,
             'name': { 'givenName': firstname, 'familyName': lastname },
@@ -122,6 +130,8 @@ def setupEmailForwarding(makeitlabs_email, forward_to_email):
 
     Mail is still delivered to the makeitlabs inbox (filters forward a copy).
     """
+    makeitlabs_email = makeitlabs_email.strip()
+    forward_to_email = forward_to_email.strip()
     logger.info("Setting up email forwarding: %s -> %s" % (makeitlabs_email, forward_to_email))
 
     service = _buildUserGmailService(makeitlabs_email)
@@ -158,6 +168,7 @@ def setupEmailForwarding(makeitlabs_email, forward_to_email):
     return True
 
 def sendWelcomeEmail(username,password,email):
+    email = email.strip() if email else email
     logger.info("Sending welcome email to %s at %s" % (username,email))
     letter = "Welcome to MakeIt Labs, and thanks for signing up!\n\n As a new member you have been assigned a MakeIt Labs account: \n\n"
     letter += "\tUsername: %s \n" % username

@@ -26,8 +26,12 @@ blueprint = Blueprint("signup", __name__, template_folder='templates', static_fo
 # Takes Stripe Subscription Object and subcription id
 # Returns subscription and member object
 def addMember(sub,plantype,firstname,lastname,email):
-    name= firstname+" "+lastname
-    membership = "stripe:"+name.replace(" ",".")+":"+email
+    firstname = authutil.sanitize_name(firstname)
+    lastname = authutil.sanitize_name(lastname)
+    email = email.strip() if email else ""
+    name = (firstname+" "+lastname).strip()
+    member_id = authutil.make_member_id(firstname, lastname)
+    membership = "stripe:"+member_id+":"+email
     expires = datetime.utcfromtimestamp(sub['current_period_end'])
     created = datetime.utcfromtimestamp(sub['created'])
     updated = datetime.utcnow()
@@ -37,7 +41,7 @@ def addMember(sub,plantype,firstname,lastname,email):
     s.paysystem = "stripe"
     s.subid = sub.id
     s.customerid = sub['customer']
-    s.name = (firstname+" "+lastname)
+    s.name = name
     s.email = email
     s.plan = plantype
     s.rate_plan = sub['plan']['id']
@@ -50,13 +54,13 @@ def addMember(sub,plantype,firstname,lastname,email):
 
     # Add Member to Database
     mm = Member()
-    mm.member = (firstname+" "+lastname).replace(" ",".")
+    mm.member = member_id
     mm.firstname = firstname
     mm.lastname = lastname
     mm.alt_email = email
     mm.active = 'true'
     mm.plan = plantype
-    mm.stripe_name = firstname+" "+lastname
+    mm.stripe_name = name
     mm.time_created = created
     mm.time_updated = updated
     mm.email_confirmed_at = datetime.now()
@@ -90,7 +94,10 @@ def linkExistingMember(sub, plantype, firstname, lastname, email):
     find that existing Member row and link/update the new Stripe subscription
     to it, effectively reactivating the membership.
     """
-    membername = (firstname + " " + lastname).replace(" ", ".")
+    firstname = authutil.sanitize_name(firstname)
+    lastname = authutil.sanitize_name(lastname)
+    email = email.strip() if email else ""
+    membername = authutil.make_member_id(firstname, lastname)
     mm = Member.query.filter(Member.member == membername).first()
     if mm is None:
         raise ValueError(f"Duplicate insert signalled but member not found: {membername}")
@@ -248,7 +255,7 @@ def postpay():
         emails_list = [e.strip() for e in meta_emails.split(',')] if meta_emails else []
 
         if names_list:
-            parts = names_list[0].split(' ', 1)
+            parts = authutil.sanitize_name(names_list[0]).split(' ', 1)
             sessiondata['firstname'] = parts[0]
             sessiondata['lastname'] = parts[1] if len(parts) > 1 else ''
         else:
@@ -256,18 +263,18 @@ def postpay():
             sessiondata['lastname'] = ''
 
         cust_details = checkout_session.get('customer_details') or {}
-        sessiondata['email'] = emails_list[0] if emails_list else (cust_details.get('email') or '')
-        sessiondata['phone'] = cust_details.get('phone') or ''
+        sessiondata['email'] = (emails_list[0] if emails_list else (cust_details.get('email') or '')).strip()
+        sessiondata['phone'] = (cust_details.get('phone') or '').strip()
 
         plan_id = sub.get('plan', {}).get('id', 'hobbyist')
         sessiondata['mtype'] = plan_id
 
         if len(names_list) > 1 and len(emails_list) > 1:
             sessiondata['mtype'] = 'produo'
-            parts2 = names_list[1].split(' ', 1)
+            parts2 = authutil.sanitize_name(names_list[1]).split(' ', 1)
             sessiondata['firstname2'] = parts2[0]
             sessiondata['lastname2'] = parts2[1] if len(parts2) > 1 else ''
-            sessiondata['email2'] = emails_list[1]
+            sessiondata['email2'] = emails_list[1].strip()
             sessiondata['phone2'] = ''
 
     # Determine customer's full name from subscription metadata or session data
@@ -417,20 +424,25 @@ def payment():
         flash("Please select a membership type")
         return redirect(url_for("signup.signup"))
 
-    if (
-            (request.form.get("firstname", "").strip() == "") or
-            (request.form.get("lastname", "").strip() == "") or
-            (request.form.get("email", "").strip() == "") or
-            (request.form.get("phone", "").strip() == "")):
+    firstname = authutil.sanitize_name(request.form.get("firstname"))
+    lastname = authutil.sanitize_name(request.form.get("lastname"))
+    email = request.form.get("email", "").strip()
+    phone = request.form.get("phone", "").strip()
+
+    if not firstname or not lastname or not email or not phone:
         flash("Please make sure ALL fields are complete")
         return redirect(url_for("signup.signup"))
 
+    firstname2 = ""
+    lastname2 = ""
+    email2 = ""
+    phone2 = ""
     if (mtype == "produo"):
-        if (
-                (request.form.get("firstname2", "").strip() == "") or
-                (request.form.get("lastname2", "").strip() == "") or
-                (request.form.get("email2", "").strip() == "") or
-                (request.form.get("phone2", "").strip() == "")):
+        firstname2 = authutil.sanitize_name(request.form.get("firstname2"))
+        lastname2 = authutil.sanitize_name(request.form.get("lastname2"))
+        email2 = request.form.get("email2", "").strip()
+        phone2 = request.form.get("phone2", "").strip()
+        if not firstname2 or not lastname2 or not email2 or not phone2:
             flash("Please make sure ALL fields are complete")
             return redirect(url_for("signup.signup"))
 
@@ -448,17 +460,17 @@ def payment():
                 ]
     
     # Build metadata for subscription
-    names = request.form.get("firstname")+" "+request.form.get("lastname")
-    emails = request.form.get("email")
+    names = firstname+" "+lastname
+    emails = email
     if mtype == "produo":
-        names += ", "+request.form.get("firstname2")+" "+request.form.get("lastname2")
-        emails += ", "+request.form.get("email2")
+        names += ", "+firstname2+" "+lastname2
+        emails += ", "+email2
     
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
     baseurl = current_app.config['globalConfig'].Config.get('General','baseurl')
     session = stripe.checkout.Session.create(
         payment_method_types=["card"],
-        customer_email=request.form.get("email"),
+        customer_email=email,
         line_items=[ line_item ],
         mode="subscription",
         discounts = discounts,
@@ -473,17 +485,17 @@ def payment():
     )
 
     sessiondata = {
-            "firstname":request.form.get("firstname"),
-            "lastname":request.form.get("lastname"),
-            "phone":request.form.get("phone"),
-            "email":request.form.get("email"),
+            "firstname":firstname,
+            "lastname":lastname,
+            "phone":phone,
+            "email":email,
             "mtype":mtype
             }
     if (mtype == "produo"):
-        sessiondata["firstname2"] = request.form.get("firstname2")
-        sessiondata["lastname2"] = request.form.get("lastname2")
-        sessiondata["phone2"] = request.form.get("phone2")
-        sessiondata["email2"] = request.form.get("email2")
+        sessiondata["firstname2"] = firstname2
+        sessiondata["lastname2"] = lastname2
+        sessiondata["phone2"] = phone2
+        sessiondata["email2"] = email2
             
     r.set("checkoutsession/"+session['id'], json.dumps(sessiondata))
     r.expire("checkoutsession/"+session['id'], 86400)

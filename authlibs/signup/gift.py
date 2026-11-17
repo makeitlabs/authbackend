@@ -171,8 +171,8 @@ def redeem_activate(code=None):
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
     debug += f"Redeem code: {code}\n"
 
-    firstname = sanistring(request.form.get("firstname"))
-    lastname = sanistring(request.form.get("lastname"))
+    firstname = authutil.sanitize_name(request.form.get("firstname"))
+    lastname = authutil.sanitize_name(request.form.get("lastname"))
     email = sanistring(request.form.get("email"))
     phone = sanistring(request.form.get("phone"))
     debug += "Name: {firstname} {lastname} Phone: {phone} Email: {email}\n"
