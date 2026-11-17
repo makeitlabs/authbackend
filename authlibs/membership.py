@@ -337,6 +337,10 @@ def createMissingMemberAccounts(members,isTest=True,searchGoogle=False):
             except BaseException as e:
               msg = "Failed createing Google account for %s: %s" % (m.alt_email,str(e))
               logger.error(msg)
+            try:
+              google.addToGoogleGroup([m.email, m.alt_email])
+            except BaseException as e:
+              logger.warning("Non-fatal error adding %s / %s to active Google group: %s" % (m.email, m.alt_email, str(e)))
             createMemberFolder(m)
         
 

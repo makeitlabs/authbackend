@@ -48,6 +48,7 @@ DOMAIN = "makeitlabs.com"
 # Kept separate from SCOPES so existing functions are unaffected until
 # admin.directory.group.member is authorized in Domain-Wide Delegation.
 GROUP_SCOPES = ['https://www.googleapis.com/auth/admin.directory.group.member']
+ACTIVE_MEMBERS_GROUP = 'active@makeitlabs.com'
 
 def _get_keyfile_path():
     """Return path to KEYFILE, checking cwd first then repo root."""
@@ -364,6 +365,63 @@ def syncGroupMembers(group_email, emails):
         'added': added,
         'errors': failed,
     }
+
+def addToGoogleGroup(emails, group_email=ACTIVE_MEMBERS_GROUP):
+    """Best-effort helper to add one or more emails to a Google Group.
+
+    Never raises: any service, network, auth, or per-email error is logged and
+    skipped so callers (e.g. member enrollment) are never interrupted.
+    """
+    added = []
+    already_present = []
+    failed = []
+
+    if isinstance(emails, str):
+        email_list = [emails]
+    else:
+        email_list = list(emails or [])
+
+    try:
+        service = _buildGroupAdminService()
+    except Exception as err:
+        logger.warning("Could not initialize Google Group service for %s: %s", group_email, err)
+        return {'added': added, 'already_present': already_present, 'errors': [{'email': None, 'error': str(err)}]}
+
+    seen = set()
+    for raw_email in email_list:
+        try:
+            email = (raw_email or '').strip()
+            if not email:
+                continue
+            email_lower = email.lower()
+            if email_lower in seen:
+                continue
+            seen.add(email_lower)
+
+            if not _EMAIL_RE.match(email):
+                logger.warning("Skipping invalid email %r for Google Group %s", email, group_email)
+                failed.append({'email': email, 'error': 'Invalid email format'})
+                continue
+
+            service.members().insert(
+                groupKey=group_email,
+                body={'email': email, 'role': 'MEMBER'}
+            ).execute()
+            logger.info("Added %s to Google Group %s", email, group_email)
+            added.append(email)
+        except errors.HttpError as err:
+            status = getattr(getattr(err, 'resp', None), 'status', None)
+            msg = _extract_google_api_error(err)
+            if status == 409 or 'already exists' in msg.lower():
+                already_present.append(email)
+            else:
+                logger.warning("Failed adding %s to Google Group %s (skipping): %s", email, group_email, msg)
+                failed.append({'email': email, 'error': msg})
+        except Exception as err:
+            logger.warning("Unexpected error adding %r to Google Group %s (skipping): %s", raw_email, group_email, err)
+            failed.append({'email': raw_email, 'error': str(err)})
+
+    return {'added': added, 'already_present': already_present, 'errors': failed}
    
 def get_event_time_reliable(event):
     """

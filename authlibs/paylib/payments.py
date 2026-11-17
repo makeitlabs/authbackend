@@ -349,6 +349,11 @@ def relate_assign():
         return render_template('newmember.html',member=newm)
       else:
         db.session.commit()
+        if not newm['no_email'] and current_app.config['globalConfig'].DeployType.lower() == "production":
+          try:
+            google_admin.addToGoogleGroup([newm['email'].lower() + '@makeitlabs.com', newm.get('alt_email')])
+          except BaseException as e:
+            logger.warning("Non-fatal error adding new member to active Google group: " + str(e))
         flash("Created","success") 
       # TODO Create Google
         return redirect(url_for('members.member_show',id=newm['email']))
