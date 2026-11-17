@@ -230,7 +230,9 @@ def addMissingMembers(missing):
             # TODO - BKG BUG FIX this is where we need to know if this was an existing member or not - Refuse
             # to add if so - report to someone for correction
             i=0
-            rootname = p.name.replace(' ','.')
+            rootname = utilities.sanitize_userid(p.name)
+            if not rootname:
+                rootname = "Member"
             
             mname =None
             while not mname:
@@ -245,7 +247,7 @@ def addMissingMembers(missing):
             nameparts = utilities.nameToFirstLast(rootname)
             mm.firstname = nameparts['first']
             mm.lastname = nameparts['last']
-            mm.alt_email = p.email
+            mm.alt_email = p.email.strip() if p.email else p.email
             mm.active = p.active
             mm.plan = p.plan
             mm.stripe_name = p.name # TODO BKG FIX - Depricate - use first and last names only
@@ -322,21 +324,29 @@ def createMissingMemberAccounts(members,isTest=True,searchGoogle=False):
         if isTest:
             logger.warn("Need to see if we really need an account for %s (%s) or if this is a data issue" % (m.member,m.alt_email))
         else:
-            nameparts = utilities.nameToFirstLast(m.member)
+            userid = utilities.sanitize_userid(m.member)
+            nameparts = utilities.nameToFirstLast(userid)
             # - Use first portion of name as Firstname, all remaining as Familyname
-            password = "%s%d%d" % (nameparts['last'],random.randint(100000,999999),len(nameparts['last']))
+            first = nameparts['first'] or "Member"
+            last = nameparts['last'] or first
+            alt_email = m.alt_email.strip() if m.alt_email else ""
+            password = "%s%d%d" % (last,random.randint(100000,999999),len(last))
             try:
-              google.createUser(nameparts['first'],nameparts['last'],m.member,m.alt_email,password)
-              m.email=m.member.lower()+"@makeitlabs.com"
-              google.sendWelcomeEmail(m.member,password,m.alt_email)
-              msg = "Created new Google account for %s %s" % (m.member,m.alt_email)
+              google.createUser(first,last,userid,alt_email,password)
+              m.email=userid.lower()+"@makeitlabs.com"
+              google.sendWelcomeEmail(userid,password,alt_email)
+              msg = "Created new Google account for %s %s" % (userid,alt_email)
               logger.warn(msg)
               # Set up email forwarding in background thread (Gmail may not be
               # ready immediately after account creation, so we delay and retry)
-              _start_forwarding_background(m.email, m.alt_email)
+              _start_forwarding_background(m.email, alt_email)
             except BaseException as e:
-              msg = "Failed createing Google account for %s: %s" % (m.alt_email,str(e))
+              msg = "Failed createing Google account for %s: %s" % (alt_email,str(e))
               logger.error(msg)
+            try:
+              google.addToGoogleGroup([m.email, alt_email])
+            except BaseException as e:
+              logger.warning("Non-fatal error adding %s / %s to active Google group: %s" % (m.email, alt_email, str(e)))
             createMemberFolder(m)
         
 
@@ -462,10 +472,10 @@ Usage: testgooglecreate [firstname] [lastname] [alt_email] [--test]
     isTest = '--test' in args
     args = [a for a in args if not a.startswith('--')]
 
-    firstname = args[0] if len(args) > 0 else "Testy"
-    lastname  = args[1] if len(args) > 1 else "McTesterson"
-    alt_email = args[2] if len(args) > 2 else "test@example.com"
-    userid = (firstname + "." + lastname).replace(" ", ".")
+    firstname = utilities.sanitize_name(args[0] if len(args) > 0 else "Testy")
+    lastname  = utilities.sanitize_name(args[1] if len(args) > 1 else "McTesterson")
+    alt_email = (args[2] if len(args) > 2 else "test@example.com").strip()
+    userid = utilities.make_member_id(firstname, lastname)
     makeitlabs_email = userid.lower() + "@makeitlabs.com"
     password = "%s%d%d" % (lastname, random.randint(100000, 999999), len(lastname))
 

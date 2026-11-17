@@ -25,9 +25,14 @@ blueprint = Blueprint("signup", __name__, template_folder='templates', static_fo
 
 # Takes Stripe Subscription Object and subcription id
 # Returns subscription and member object
-def addMember(sub,plantype,firstname,lastname,email):
-    name= firstname+" "+lastname
-    membership = "stripe:"+name.replace(" ",".")+":"+email
+def addMember(sub,plantype,firstname,lastname,email,plates=None):
+    firstname = authutil.sanitize_name(firstname)
+    lastname = authutil.sanitize_name(lastname)
+    email = email.strip() if email else ""
+    plates = authutil.sanitize_plates(plates)
+    name = (firstname+" "+lastname).strip()
+    member_id = authutil.make_member_id(firstname, lastname)
+    membership = "stripe:"+member_id+":"+email
     expires = datetime.utcfromtimestamp(sub['current_period_end'])
     created = datetime.utcfromtimestamp(sub['created'])
     updated = datetime.utcnow()
@@ -37,7 +42,7 @@ def addMember(sub,plantype,firstname,lastname,email):
     s.paysystem = "stripe"
     s.subid = sub.id
     s.customerid = sub['customer']
-    s.name = (firstname+" "+lastname)
+    s.name = name
     s.email = email
     s.plan = plantype
     s.rate_plan = sub['plan']['id']
@@ -50,16 +55,18 @@ def addMember(sub,plantype,firstname,lastname,email):
 
     # Add Member to Database
     mm = Member()
-    mm.member = (firstname+" "+lastname).replace(" ",".")
+    mm.member = member_id
     mm.firstname = firstname
     mm.lastname = lastname
     mm.alt_email = email
     mm.active = 'true'
     mm.plan = plantype
-    mm.stripe_name = firstname+" "+lastname
+    mm.stripe_name = name
     mm.time_created = created
     mm.time_updated = updated
     mm.email_confirmed_at = datetime.now()
+    if plates:
+        mm.plates = plates[:50]
 
     grp = None
     if hasattr(sub, 'metadata') and sub.metadata and 'group' in sub.metadata and sub.metadata['group']:
@@ -83,14 +90,18 @@ def addMember(sub,plantype,firstname,lastname,email):
     db.session.add(Logs(member_id=mm.id,event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id))
     return (s,mm)
 
-def linkExistingMember(sub, plantype, firstname, lastname, email):
+def linkExistingMember(sub, plantype, firstname, lastname, email, plates=None):
     """
     Called when addMember() fails with a UNIQUE constraint on members.member,
     meaning this person already has a member record.  Instead of failing, we
     find that existing Member row and link/update the new Stripe subscription
     to it, effectively reactivating the membership.
     """
-    membername = (firstname + " " + lastname).replace(" ", ".")
+    firstname = authutil.sanitize_name(firstname)
+    lastname = authutil.sanitize_name(lastname)
+    email = email.strip() if email else ""
+    plates = authutil.sanitize_plates(plates)
+    membername = authutil.make_member_id(firstname, lastname)
     mm = Member.query.filter(Member.member == membername).first()
     if mm is None:
         raise ValueError(f"Duplicate insert signalled but member not found: {membername}")
@@ -127,6 +138,8 @@ def linkExistingMember(sub, plantype, firstname, lastname, email):
     # 'Grace Period', 'Recent Expire') managed by the Stripe sync process, not a
     # flag we should set manually here.
     mm.time_updated = updated
+    if plates:
+        mm.plates = plates[:50]
 
     grp = None
     if hasattr(sub, 'metadata') and sub.metadata and 'group' in sub.metadata and sub.metadata['group']:
@@ -248,7 +261,7 @@ def postpay():
         emails_list = [e.strip() for e in meta_emails.split(',')] if meta_emails else []
 
         if names_list:
-            parts = names_list[0].split(' ', 1)
+            parts = authutil.sanitize_name(names_list[0]).split(' ', 1)
             sessiondata['firstname'] = parts[0]
             sessiondata['lastname'] = parts[1] if len(parts) > 1 else ''
         else:
@@ -256,19 +269,26 @@ def postpay():
             sessiondata['lastname'] = ''
 
         cust_details = checkout_session.get('customer_details') or {}
-        sessiondata['email'] = emails_list[0] if emails_list else (cust_details.get('email') or '')
-        sessiondata['phone'] = cust_details.get('phone') or ''
+        sessiondata['email'] = (emails_list[0] if emails_list else (cust_details.get('email') or '')).strip()
+        sessiondata['phone'] = (cust_details.get('phone') or '').strip()
 
         plan_id = sub.get('plan', {}).get('id', 'hobbyist')
         sessiondata['mtype'] = plan_id
 
         if len(names_list) > 1 and len(emails_list) > 1:
             sessiondata['mtype'] = 'produo'
-            parts2 = names_list[1].split(' ', 1)
+            parts2 = authutil.sanitize_name(names_list[1]).split(' ', 1)
             sessiondata['firstname2'] = parts2[0]
             sessiondata['lastname2'] = parts2[1] if len(parts2) > 1 else ''
-            sessiondata['email2'] = emails_list[1]
+            sessiondata['email2'] = emails_list[1].strip()
             sessiondata['phone2'] = ''
+
+        meta_plates = sub.get('metadata', {}).get('plates', '')
+        if meta_plates:
+            plates_list = [authutil.sanitize_plates(p) for p in meta_plates.split('|')]
+            sessiondata['plates'] = plates_list[0] if len(plates_list) > 0 else ''
+            if len(plates_list) > 1:
+                sessiondata['plates2'] = plates_list[1]
 
     # Determine customer's full name from subscription metadata or session data
     cust_name = sub.get('metadata', {}).get('names')
@@ -352,12 +372,12 @@ def postpay():
     isDuplicate = False
     try:
         (s,mm) = addMember(sub,plantype,sessiondata['firstname'],sessiondata['lastname'],
-                sessiondata['email'])
+                sessiondata['email'],plates=sessiondata.get('plates'))
         createMissingMemberAccounts([mm],isTest=isTest)
 
         if (plan == "produo"):
             (s,mm) = addMember(sub,plantype,sessiondata['firstname2'],sessiondata['lastname2'],
-                sessiondata['email2'])
+                sessiondata['email2'],plates=sessiondata.get('plates2'))
             createMissingMemberAccounts([mm],isTest=isTest)
         db.session.commit()
     except sqlalchemy.exc.IntegrityError as e:
@@ -367,7 +387,8 @@ def postpay():
         print(f"Signup: duplicate member detected for {sessiondata['email']}, attempting to link subscription")
         try:
             (s, mm) = linkExistingMember(sub, plantype, sessiondata['firstname'],
-                                         sessiondata['lastname'], sessiondata['email'])
+                                         sessiondata['lastname'], sessiondata['email'],
+                                         plates=sessiondata.get('plates'))
             db.session.commit()
             authutil.kick_backend()
             isDuplicate = True   # reactivation succeeded
@@ -417,20 +438,28 @@ def payment():
         flash("Please select a membership type")
         return redirect(url_for("signup.signup"))
 
-    if (
-            (request.form.get("firstname", "").strip() == "") or
-            (request.form.get("lastname", "").strip() == "") or
-            (request.form.get("email", "").strip() == "") or
-            (request.form.get("phone", "").strip() == "")):
+    firstname = authutil.sanitize_name(request.form.get("firstname"))
+    lastname = authutil.sanitize_name(request.form.get("lastname"))
+    email = request.form.get("email", "").strip()
+    phone = request.form.get("phone", "").strip()
+    plates = authutil.sanitize_plates(request.form.get("plates"))
+
+    if not firstname or not lastname or not email or not phone:
         flash("Please make sure ALL fields are complete")
         return redirect(url_for("signup.signup"))
 
+    firstname2 = ""
+    lastname2 = ""
+    email2 = ""
+    phone2 = ""
+    plates2 = ""
     if (mtype == "produo"):
-        if (
-                (request.form.get("firstname2", "").strip() == "") or
-                (request.form.get("lastname2", "").strip() == "") or
-                (request.form.get("email2", "").strip() == "") or
-                (request.form.get("phone2", "").strip() == "")):
+        firstname2 = authutil.sanitize_name(request.form.get("firstname2"))
+        lastname2 = authutil.sanitize_name(request.form.get("lastname2"))
+        email2 = request.form.get("email2", "").strip()
+        phone2 = request.form.get("phone2", "").strip()
+        plates2 = authutil.sanitize_plates(request.form.get("plates2"))
+        if not firstname2 or not lastname2 or not email2 or not phone2:
             flash("Please make sure ALL fields are complete")
             return redirect(url_for("signup.signup"))
 
@@ -448,42 +477,47 @@ def payment():
                 ]
     
     # Build metadata for subscription
-    names = request.form.get("firstname")+" "+request.form.get("lastname")
-    emails = request.form.get("email")
+    names = firstname+" "+lastname
+    emails = email
     if mtype == "produo":
-        names += ", "+request.form.get("firstname2")+" "+request.form.get("lastname2")
-        emails += ", "+request.form.get("email2")
+        names += ", "+firstname2+" "+lastname2
+        emails += ", "+email2
+    sub_metadata = {
+        "emails": emails,
+        "names": names
+    }
+    if plates or plates2:
+        sub_metadata["plates"] = f"{plates}|{plates2}" if mtype == "produo" else plates
     
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
     baseurl = current_app.config['globalConfig'].Config.get('General','baseurl')
     session = stripe.checkout.Session.create(
         payment_method_types=["card"],
-        customer_email=request.form.get("email"),
+        customer_email=email,
         line_items=[ line_item ],
         mode="subscription",
         discounts = discounts,
         subscription_data={
-            "metadata": {
-                "emails": emails,
-                "names": names
-            }
+            "metadata": sub_metadata
         },
         success_url=baseurl+url_for('signup.postpay')+"?session_id={CHECKOUT_SESSION_ID}",
         cancel_url=baseurl+url_for('signup.failure')
     )
 
     sessiondata = {
-            "firstname":request.form.get("firstname"),
-            "lastname":request.form.get("lastname"),
-            "phone":request.form.get("phone"),
-            "email":request.form.get("email"),
+            "firstname":firstname,
+            "lastname":lastname,
+            "phone":phone,
+            "email":email,
+            "plates":plates,
             "mtype":mtype
             }
     if (mtype == "produo"):
-        sessiondata["firstname2"] = request.form.get("firstname2")
-        sessiondata["lastname2"] = request.form.get("lastname2")
-        sessiondata["phone2"] = request.form.get("phone2")
-        sessiondata["email2"] = request.form.get("email2")
+        sessiondata["firstname2"] = firstname2
+        sessiondata["lastname2"] = lastname2
+        sessiondata["phone2"] = phone2
+        sessiondata["email2"] = email2
+        sessiondata["plates2"] = plates2
             
     r.set("checkoutsession/"+session['id'], json.dumps(sessiondata))
     r.expire("checkoutsession/"+session['id'], 86400)

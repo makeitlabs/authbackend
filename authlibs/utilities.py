@@ -5,6 +5,7 @@ import hashlib
 import string
 import sqlite3
 import re
+import unicodedata
 import pytz
 from datetime import datetime,date
 from flask import g,current_app
@@ -50,13 +51,52 @@ def _utcTimestampToDatetime(ts):
 
 def _safeemail(unsafe_str):
     """Sanitize email addresses strings used in some oeprations"""
-    keepcharacters = ('.','_','@','-')
+    if not unsafe_str:
+        return ""
+    keepcharacters = ('.','_','@','-','+')
     return "".join(c for c in unsafe_str if c.isalnum() or c in keepcharacters).strip()
 
 def _safestr(s):
     """Sanitize input strings used in some operations"""
+    if not s:
+        return ""
     keepcharacters = ('-',' ','.',"'")  # Added single quote to allowed characters
-    return "".join(c for c in s if c.isalnum() or c in keepcharacters).strip()
+    cleaned = "".join(c for c in s if c.isalnum() or c in keepcharacters)
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+def sanitize_name(s):
+    """Sanitize a person's name for display/storage, removing weird characters and collapsing spaces."""
+    return _safestr(s)
+
+def sanitize_userid(s):
+    """Sanitize a name or user ID into a valid MakeIt Labs email local-part (e.g. First.Last)."""
+    if not s:
+        return ""
+    # Normalize unicode accents/diacritics to ASCII (e.g. José -> Jose)
+    s = unicodedata.normalize('NFKD', str(s)).encode('ascii', 'ignore').decode('ascii')
+    # Strip apostrophes and backticks so O'Connor -> OConnor instead of O.Connor
+    s = re.sub(r"['`\u2018\u2019]", "", s)
+    # Replace any remaining characters not valid in email local-part with '.'
+    s = re.sub(r"[^A-Za-z0-9._-]+", ".", s)
+    # Collapse consecutive dots into a single '.'
+    s = re.sub(r"\.{2,}", ".", s)
+    # Strip leading and trailing punctuation
+    return s.strip(".-_")
+
+def make_member_id(firstname, lastname=""):
+    """Build a sanitized Member ID (First.Last) from first and last names."""
+    first = sanitize_userid(firstname)
+    last = sanitize_userid(lastname)
+    if first and last:
+        return "%s.%s" % (first, last)
+    return first or last
+
+def sanitize_plates(s):
+    """Sanitize license plate input: uppercase, commas/semicolons/whitespace normalized to single spaces."""
+    if not s:
+        return ""
+    cleaned = re.sub(r"[^A-Za-z0-9\-,\s;]", "", str(s))
+    return re.sub(r"[,;\s]+", " ", cleaned).strip().upper()
 
 def _joinNameString(s):
     '''Replace all numerics and non-alphanumerics in a name string, then concatenate using . ''' 

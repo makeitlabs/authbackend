@@ -271,12 +271,12 @@ def relate():
 def relate_assign():
   if 'Create' in request.form:
       newm={
-        'first':request.form['firstname'],
-        'last':request.form['lastname'],
-        'email':request.form['email'],
+        'first':authutil.sanitize_name(request.form['firstname']),
+        'last':authutil.sanitize_name(request.form['lastname']),
+        'email':authutil.sanitize_userid(request.form['email']),
         'plan':request.form['plan'],
         'rate_plan':request.form['rate_plan'],
-        'alt_email':request.form['alt_email'],
+        'alt_email':request.form['alt_email'].strip(),
         'membership':request.form['membership'],
         'no_email':False
       }
@@ -301,7 +301,7 @@ def relate_assign():
       if not newm['no_email']:
         if current_app.config['globalConfig'].DeployType.lower() == "production":
           try:
-            users = google_admin.searchEmail(request.form['email'])
+            users = google_admin.searchEmail(newm['email'])
             if len(users) > 0:
               flash("Email address already exists in Google","warning")
               error=True
@@ -349,6 +349,11 @@ def relate_assign():
         return render_template('newmember.html',member=newm)
       else:
         db.session.commit()
+        if not newm['no_email'] and current_app.config['globalConfig'].DeployType.lower() == "production":
+          try:
+            google_admin.addToGoogleGroup([newm['email'].lower() + '@makeitlabs.com', newm.get('alt_email')])
+          except BaseException as e:
+            logger.warning("Non-fatal error adding new member to active Google group: " + str(e))
         flash("Created","success") 
       # TODO Create Google
         return redirect(url_for('members.member_show',id=newm['email']))

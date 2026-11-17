@@ -155,10 +155,10 @@ def getSubscriptionsJSON():
 
         for (m,e,g) in zip(names,emails,groups):
             # For each person, create an associated subscription record
-            name = utilities._safestr(m)
+            name = utilities.sanitize_name(m)
             email = utilities._safeemail(e)
             # Membership must be unique to each member - totally definable by pay system
-            membership = "stripe:"+name.replace(" ",".")+":"+email
+            membership = "stripe:"+utilities.sanitize_userid(name)+":"+email
             sub = {'customerid': customerid, 'subid': subid, 'name': name, 'planname': plan, 'plantype': plantype, 'email': email, 'active': active, 'created': created, 'updatedon': updated, 'expires': expires, 'phone': phone , 'membership':membership, 'group': g}
             subscribers.append(sub)
             #print names,created,expires
@@ -236,7 +236,7 @@ def getSubscriptionsJSON2():
 
         for (m,e,g) in zip(names,emails,groups):
             # For each person, create an associated subscription record
-            name = utilities._safestr(m)
+            name = utilities.sanitize_name(m)
             email = utilities._safeemail(e)
             sub = {'customerid': customerid, 'subid': subid, 'name': name, 'planname': plan, 'plantype': plantype, 'email': email, 'active': active, 'created': created, 'updatedon': updated, 'expires': expires, 'phone': phone, 'group': g}
             subscribers.append(sub)

@@ -155,6 +155,20 @@
                     placeholder="Enter your phone number" required="">
             </div>
 
+            <!-- License Plate(s) -->
+            <div class="input-group mb-3">
+                <label for="plates" class="input-group-text mb-2">License Plate(s)</label>
+                <input type="text" class="form-control mb-2" name="plates" id="plates" maxlength="50"
+                    placeholder="Optional — plate # only, separate multiple with spaces">
+                <div class="input-group-append mb-2">
+                    <button type="button" class="btn btn-outline-secondary plates-info-btn"
+                        data-toggle="popover" data-trigger="focus" data-html="true" data-placement="top"
+                        title="About License Plate Info"
+                        data-content="<ul class='mb-0 pl-3'><li><strong>Optional</strong>, but helps <strong>us</strong> contact you directly to settle parking issues &mdash; without getting towing or city parking enforcement involved!</li><li>Enter <strong>plate numbers only</strong> (no state).</li><li>Multiple vehicles? Separate plates with a <strong>space</strong>.</li><li><strong>Never shared</strong> with anyone.</li></ul>"
+                        aria-label="License plate info">&#9432;</button>
+                </div>
+            </div>
+
 
 
             <!-- Second Member -->
@@ -183,6 +197,19 @@
                         <input type="tel" class="form-control mb-2" name="phone2" id="phoneNumber2"
                             placeholder="Additional Member&#39;s Phone Number">
                     </div>
+                    <!-- License Plate(s) -->
+                    <div class="input-group mb-3">
+                        <label for="plates2" class="input-group-text mb-2">License Plate(s)</label>
+                        <input type="text" class="form-control mb-2" name="plates2" id="plates2" maxlength="50"
+                            placeholder="Optional — plate # only, separate multiple with spaces">
+                        <div class="input-group-append mb-2">
+                            <button type="button" class="btn btn-outline-secondary plates-info-btn"
+                                data-toggle="popover" data-trigger="focus" data-html="true" data-placement="top"
+                                title="About License Plate Info"
+                                data-content="<ul class='mb-0 pl-3'><li><strong>Optional</strong>, but helps <strong>us</strong> contact you directly to settle parking issues &mdash; without getting towing or city parking enforcement involved!</li><li>Enter <strong>plate numbers only</strong> (no state).</li><li>Multiple vehicles? Separate plates with a <strong>space</strong>.</li><li><strong>Never shared</strong> with anyone.</li></ul>"
+                                aria-label="License plate info">&#9432;</button>
+                        </div>
+                    </div>
                     <!-- End second member info -->
                 </div>
                 <hr>
@@ -202,4 +229,51 @@
         </form>
     </div>
 </div>
+<script>
+    (function () {
+        function isAllUpper(str) {
+            return /[a-zA-Z]/.test(str) && str === str.toUpperCase();
+        }
+        function toTitleCase(str) {
+            return str.toLowerCase().replace(/(^|[\s\-'])[a-z]/g, function (c) {
+                return c.toUpperCase();
+            });
+        }
+        function attachCaseFilter(ids, transform) {
+            ids.forEach(function (id) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('blur', function () {
+                    var val = el.value.trim();
+                    if (!val) {
+                        delete el.dataset.caseCorrected;
+                        return;
+                    }
+                    if (el.dataset.caseCorrected === '1') return;
+                    if (isAllUpper(val)) {
+                        el.value = transform(val);
+                        el.dataset.caseCorrected = '1';
+                    }
+                });
+            });
+        }
+        attachCaseFilter(['firstName', 'lastName', 'firstName2', 'lastName2'], toTitleCase);
+        attachCaseFilter(['email', 'email2'], function (s) { return s.toLowerCase(); });
+
+        function sanitizePlates(str) {
+            return str.replace(/[^A-Za-z0-9\-,\s;]/g, '').replace(/[,;\s]+/g, ' ').trim().toUpperCase();
+        }
+        ['plates', 'plates2'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('blur', function () {
+                el.value = sanitizePlates(el.value);
+            });
+        });
+
+        if (window.jQuery && $.fn.popover) {
+            $('[data-toggle="popover"]').popover();
+        }
+    })();
+</script>
 {% endblock %}
