@@ -241,9 +241,37 @@ def updatePaymentData(modules=None):
         logger.info(subs)
         fsubs = filterSubscriptions(subs)
         logger.info(fsubs)
+        # Snapshot existing subscription -> member_id links before clearing so
+        # nightly sync never drops an already-linked member association.
+        existing_subs = Subscription.query.filter(
+            Subscription.paysystem == module,
+            Subscription.member_id != None
+        ).all()
+        links_by_subid = {}
+        links_by_membership = {}
+        for es in existing_subs:
+            if es.subid:
+                links_by_subid[(es.subid, (es.email or '').strip().lower())] = es.member_id
+            if es.membership:
+                links_by_membership[es.membership] = es.member_id
+
         # TODO - Make sure retrieval and filtering is working
         clearSubscriptionData(module)
         addSubscriptionData(fsubs['valid'],module)
+
+        restored = 0
+        for ns in Subscription.query.filter(
+            Subscription.paysystem == module,
+            Subscription.member_id == None
+        ).all():
+            mid = links_by_subid.get((ns.subid, (ns.email or '').strip().lower()))
+            if mid is None and ns.membership:
+                mid = links_by_membership.get(ns.membership)
+            if mid is not None:
+                ns.member_id = mid
+                restored += 1
+        if restored:
+            logger.info("Restored %d existing subscription->member links for %s" % (restored, module))
 
 
 ## Call with python ./authserver.py --command updatepayments instead
