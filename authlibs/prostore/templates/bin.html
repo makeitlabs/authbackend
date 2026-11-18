@@ -20,8 +20,26 @@
 
     <form action="{{ url_for('prostore.bin_edit',id=bin.ProBin.id) }}" method="post">
     <div class="form-row">
-      <div class="form-group col-md-6">
-        {{ input('name',"Bin ID",'',small="Optional Unique ID or name of bin") }}
+      <div class="form-group col-md-3">
+
+      <label for="input_name">Aruco</label>
+      <input type="{{ type }}" {{ ro }} class="form-control" name="input_name" id="input_name" placeholder="{{ ph }}" 
+        value="{% if bin.ProBin.name %}{{ bin.ProBin.name }}{% endif %}">
+	<small>Bin Name</small>
+
+
+
+      </div>
+      <div class="form-group col-md-3">
+
+
+      <label for="input_aruco">Aruco</label>
+      <input type="{{ type }}" {{ ro }} class="form-control" name="input_aruco" id="input_aruco" placeholder="{{ ph }}" 
+        value="{% if bin.ProBin.aruco %}{{ bin.ProBin.aruco }}{% endif %}">
+	<small>Aruco Code (1-499)</small>
+
+
+
       </div>
     </div>
     <div class="form-row">
@@ -40,7 +58,10 @@
         <input type="hidden" id="unassign_member_hidden" name="unassign_member_hidden"  value="no" />
         <input type="hidden" name="input_orig_member" value="{{ bin.ProBin.member_id }}" />
         <label for="input_status">Bin Status</label>
-        <select class="form-control" name="input_status">
+        {% if bin.ProBin and bin.ProBin.status_updated_at %}
+        <span style="font-size: 0.85em; color: #666; margin-left: 10px;">(Since: {{ ago.ago(bin.ProBin.status_updated_at)[0] }} - {{ ago.ago(bin.ProBin.status_updated_at)[1] }} ago)</span>
+        {% endif %}
+        <select class="form-control" id="status_select" name="input_status">
           {% for stat in statuses %}
             <option name="{{ stat[0] }}" value="{{ stat[0] }}"
             {% if bin.status == stat[0] %}selected{% endif %}>
@@ -70,6 +91,9 @@
           {% if not bin.waiverDate %}
             <span style="background-color:#ffff80">No waiver</span>
           {% endif %}
+          {% if not iAmPro %}
+          <span style="background-color:#ffff80">Non-Pro</span>
+          {% endif %}
         {% endif %}
       </div>
       <div class="form-group col-md-4">
@@ -86,6 +110,9 @@
     <input type="submit" class="btn btn-primary" name="save_bin" value="Save" />
     <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
       Unassign & Delete
+    </button>
+    <button type="button" class="btn btn-primary" onClick="printlabel()">
+      Print Label
     </button>
     <!-- Modal for Delete resource confirmation -->
     <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
@@ -115,10 +142,31 @@
   </div>
 
 <script type="text/javascript">
+function printlabel() {
+      console.log("Printing bin ID","{{ bin.ProBin.id }}")
+      
+      fetch('{{ url_for("prostore.print_label", bin_id=bin.ProBin.id) }}')
+        .then((response) => response.json())
+        .then((data) => {
+          // Handle the server's response
+          console.log("Print successful:", data);
+          if (data.result === 'ok') {
+            // Update the aruco field on the page in case it was newly assigned
+            var arucoInput = document.getElementById('input_aruco');
+            if (arucoInput && data.code) {
+              arucoInput.value = data.code;
+            }
+          }
+        })
+        .catch((error) => {
+          console.error("Error printing:", error);
+        });
+    }
 function unassign() {
   var x = $("#unassign_button")[0];
   var m = $("#assign_to_member");
   var cmb = $("#change_member_button");
+  $("#status_select").val("2");
   if (cmb[0].classList.contains("active")) {
     cmb.button('toggle');
     $("#unassign_member_hidden")[0].value="no";
@@ -142,6 +190,7 @@ function change_member() {
   } else {
     $("#member_select_div").collapse('show');
     m[0].innerHTML="<strike>{{ bin.member }}</strike>";
+    $("#status_select").val("2");
     if (x.classList.contains("active")) {
       $("#unassign_button").button('toggle');
       $("#unassign_member_hidden")[0].value="no";

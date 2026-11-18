@@ -1,0 +1,75 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div class="container mt-4">
+    <div class="row align-items-center mb-3">
+        <div class="col-md-8">
+            <h2>Generate Social Media Event Image</h2>
+            <p class="text-muted mb-0">Select the events you want to include in the generated image. You can edit the text directly before generating.</p>
+        </div>
+        <div class="col-md-4 text-md-right mt-2 mt-md-0">
+            <a href="{{ url_for('classes.social_promo') }}" class="btn btn-outline-info">
+                Featured Classes Promo &rarr;
+            </a>
+        </div>
+    </div>
+    
+    <div class="card mb-4 bg-light">
+        <div class="card-body py-3">
+            <form method="GET" action="{{ url_for('signs.social_events') }}" class="form-inline">
+                <label for="start_date" class="mr-2 font-weight-bold">Start Date:</label>
+                <input type="date" id="start_date" name="start_date" value="{{ start_date }}" class="form-control mr-2" onchange="this.form.submit()">
+                <button type="submit" class="btn btn-outline-primary">Update Events</button>
+                <small class="form-text text-muted ml-3">Loads 7 days of events starting from this date.</small>
+            </form>
+        </div>
+    </div>
+    
+    <form action="{{ url_for('signs.social_events_generate') }}" method="POST">
+        <div class="form-group mb-4">
+            <label for="date_range"><strong>Header Date Range:</strong></label>
+            <input type="text" id="date_range" name="date_range" value="{{ default_date_range }}" class="form-control w-50">
+            <small class="form-text text-muted">This text appears right below the main title on the image.</small>
+        </div>
+
+        <table class="table table-striped table-bordered table-sm">
+            <thead class="thead-dark">
+                <tr>
+                    <th style="width: 5%">Include</th>
+                    <th style="width: 10%">Abbr (e.g. TUE)</th>
+                    <th style="width: 10%">Day (e.g. 11)</th>
+                    <th style="width: 10%">Month (e.g. AUG)</th>
+                    <th style="width: 40%">Event Title</th>
+                    <th style="width: 25%">Time string</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in events %}
+                <tr>
+                    <td class="text-center align-middle">
+                        <input type="checkbox" name="include_{{ e.id }}" value="1" checked>
+                    </td>
+                    <td>
+                        <input type="text" name="date_abbr_{{ e.id }}" value="{{ e.date_abbr }}" class="form-control form-control-sm">
+                    </td>
+                    <td>
+                        <input type="text" name="date_day_{{ e.id }}" value="{{ e.date_day }}" class="form-control form-control-sm">
+                    </td>
+                    <td>
+                        <input type="text" name="date_month_{{ e.id }}" value="{{ e.date_month }}" class="form-control form-control-sm">
+                    </td>
+                    <td>
+                        <input type="text" name="title_{{ e.id }}" value="{{ e.title }}" class="form-control form-control-sm">
+                    </td>
+                    <td>
+                        <input type="text" name="time_{{ e.id }}" value="{{ e.time }}" class="form-control form-control-sm">
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <button type="submit" class="btn btn-primary btn-lg mt-3">Generate Image</button>
+        <a href="{{ url_for('signs.signboard') }}" class="btn btn-secondary btn-lg mt-3 ml-2">Cancel</a>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% block head %}
+ <script>
+   function onSubmit(token) {
+     document.getElementById("demo-form").submit();
+   }
+ </script>
+{% endblock %}
+{% extends "layout_bootstrap.html" %}
+<h2>Resources</h2>
+{% block body %}
+<div class="purchasablelist">
+	<h2>Purchase</h2>
+	{{ purchaseable.name }}
+	{{ purchaseable.cost }}
+	</div>
+
+
+{% endblock %}

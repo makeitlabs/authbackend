@@ -1,0 +1,145 @@
+{% block head %}
+<link href="{{ url_for('static', filename='css/spinner.css') }}" rel="stylesheet">
+<script type="text/javascript">
+	function clickPay() {
+		var buydesc = document.getElementById('buyDesc');
+		var priceStr = document.getElementById('pricestr').value;
+		if (priceStr == "") {
+			alert("Invalid amount entered");
+			return;
+		}
+		var priceVal = parseFloat(priceStr);
+		if ((priceVal == NaN) || (priceVal <= 0) || (priceVal >= 100)) {
+			alert("Invalid amount entered");
+			return;
+		} else {
+			document.getElementById('payButton').style.display = "none";
+			document.getElementById('confirmButton').style.display = "block";
+			var comment = document.getElementById('comment').value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+			buydesc.innerHTML = `Please confirm - You consent to a charge of $${priceStr} to the credit card on-file for your MakeIt Labs membership. <input type="hidden" name="pricestr" id="pricestr" value=${priceStr} /><input type="hidden" name="comment" value="${comment}" />`;
+		}
+	}
+
+
+	function selectItem(name, no, price) {
+		var buydesc = document.getElementById('buyDesc');
+		document.getElementById('itemref').value = no;
+		var priceStr = (price / 100.0).toFixed(2);
+		if (price == 0) {
+			buydesc.innerHTML = `Enter the dollar amount you would like to have billed for your purchase of "${name}".</br><label>Payment Amount $</label><input type="input" size="6" name="pricestr" id="pricestr" value=""><br /><label>Comment:</label><input type="input" id="comment" name="comment" value=""><small>Optional</small>`;
+
+			document.getElementById('payButton').style.display = "block";
+			document.getElementById('confirmButton').style.display = "none";
+		} else {
+			document.getElementById('payButton').style.display = "none";
+			document.getElementById('confirmButton').style.display = "block";
+			buydesc.innerHTML = `Are you sure you want to buy ${name} ? You will be charged $${priceStr} to the credit card on-file for your MakeIt Labs membership. <input type="hidden" name="pricestr" id="pricestr" value=${priceStr}>`;
+		}
+	}
+</script>
+{% endblock %}
+{% extends "layout_bootstrap.html" %}
+<h2>Resources</h2>
+{% block body %}
+<div class="purchasablelist">
+	<h2>Purchasable: {{ purchasables |length }} available</h2>
+	<table class="table table-sm">
+		<tr>
+			<th>Name</th>
+			<th>Description</th>
+			<th>Price</th>
+		</tr>
+		{% for purchasable in purchasables %}
+		<tr>
+			{% if current_user.privs("Finance") %}
+			<td><a href="{{ url_for('purchasables.purchasables_show',purchasable=purchasable.id) }}">{{ purchasable.name
+					}}</a></td>
+			{% else %}
+			<td>{{ purchasable.name }}</td>
+			{% endif %}
+			<td>{{ purchasable.description }}</td>
+			<td>{{ purchasable.price }}</td>
+			<td>
+				{% if purchasable.resource_id %}
+				<a href="{{ url_for('inventory.store', purchasable_id=purchasable.id) }}" class="btn btn-success"
+					title="Buy from Store">
+					<i class="fa fa-shopping-cart"></i> Buy
+				</a>
+				{% else %}
+				<button type="button" class="btn btn-success" data-toggle="modal" data-target="#purchaseModal"
+					onClick="selectItem( '{{ purchasable.name }}', {{ purchasable.id }}, {{ purchasable.priceval }} )">
+					Buy
+				</button>
+				{% endif %}
+			</td>
+		</tr>
+		{% endfor %}
+	</table>
+</div>
+
+
+<!-- Add New Purchasable -->
+
+
+{% if current_user.privs("Finance") %}
+<button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#purchasable-add-collapse"
+	aria-expanded="false" aria-controls="purchasable-add-collapse">
+	Create New Purchasble
+</button>
+<div class="collapse" id="purchasable-add-collapse">
+	<hr />
+	<h3> Add New Purchasable Item </h3>
+	<form action="{{ url_for('purchasables.purchasables_create') }}" method="post">
+		{% include 'purchasable_form.html' %}
+		<input type="submit" value="Create purchasable" />
+	</form>
+</div>
+{% endif %} <!-- Add New Node -->
+
+
+<!-- Purchase modal -->
+<div class="modal fade" id="purchaseModal" tabindex="-1" role="dialog" aria-labelledby="purchaseModal"
+	aria-hidden="true">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="exampleModalLabel">Make Purchase</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<form action={{ url_for('purchasables.purchasable_purchase') }} method="post">
+				<button type="submit" disabled style="display: none" aria-hidden="true"></button>
+				<!-- Prevent return from submitting -->
+				<div class="modal-body" id="buyDesc">
+					Are you sure you want to purchase {{ purchasable.name }}? {{ purchasable.cost }} will be billed to
+					your credit card on file with MakeIt Labs.
+					<input type="input" name="pricestr" id="pricestr" value="">
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+					<input class="btn btn-success" type=hidden name="purchase_item_id" id="itemref" value="">
+					<input id="confirmButton" class="btn btn-success" type=submit
+						onclick="this.disabled=true; this.form.submit(); document.getElementById('spinner').style.display='block';"
+						value="Purchase">
+					<button id="payButton" class="btn btn-success" type="button" onClick="clickPay();"
+						value="Pay">Pay</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+<div id="spinner" style="display:none;  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+	<div class="lds-roller">
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+	</div>
+</div>
+<!-- Purchase modal -->
+{% endblock %}

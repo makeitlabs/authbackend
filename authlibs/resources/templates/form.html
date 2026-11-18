@@ -66,14 +66,36 @@
 			{{ input('slack_chan',"Public Slack Channel",'#resource-users',small="e.g. #resource-name users - Public notices, like tool outages") }}
     </div>
     <div class="form-group col-md-6">
-			{{ input('slack_admin_chan',"Admin Slack Channel",'#resource-admin',small="e.g. #resource-name-admin - Notices to admins, like tool activity") }}
+			{{ input('slack_admin_chan',"Admin Slack Channel",'#resource-admin',small="e.g. #resource-name-admin - Notices to admins, like tool activity (Comma seperated list)") }}
     </div>
   </div>
   <div class="form-row">
     <div class="form-group col-md-6">
 			{{ input('info_url',"Resource URL",'https://wiki.makeitlabs.com/resource',small="Where uses can go for more info") }}
     </div>
+    <div class="form-group col-md-6">
+			{{ input('event_mqtt_topic',"MQTT Event Topic","displayboard/read/myresource",small="MQTT Topic for realtime usage displays") }}
+    </div>
   </div>
+
+  <div class="form-row">
+    <div class="form-group col-md-2">
+			{{ input('prodcode',"Product Code",'prod_XXX',small="Stripe Product Code - If billable") }}
+    </div>
+    <div class="form-group col-md-2">
+			{{ input('price',"Price per Hour (CENTS)","0",small="If billable resource") }}
+    </div>
+    <div class="form-group col-md-2">
+			{{ input('price_pro',"Pro-Member Price per Hour (CENTS)","0",small="If billable resource (Usually discounted)") }}
+    </div>
+    <div class="form-group col-md-2">
+			{{ input('free_min',"Free Minutes","0",small="Per bill cycle - If billable resource") }}
+    </div>
+    <div class="form-group col-md-2">
+			{{ input('free_min_pro',"Free Minutes (Pro)","0",small="Pro members - Per bill cycle - If billable resource") }}
+    </div>
+  </div>
+
   <div class="form-row">
     <div class="form-group col-md-12">
 			{{ input('info_text',"Information Text (Short, for RATT)",'This tool requires a class..',small="Displayed on RATT for unauthorized users") }}

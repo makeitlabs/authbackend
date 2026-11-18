@@ -1,0 +1,67 @@
+{% extends "layout_public.html" %}
+{% block head %}
+{% endblock %}
+
+
+{% block body %}
+    <div class="body">
+    <div class="container">
+        <h1 class="mb-4">Purchase Gift Membership</h1>
+        <form method="POST" action="gift_payment">
+		<p>
+		You are purchasing a prepaid 3 month gift membership for another individual. This purchase is limited to first-time memberships for new individuals who have never been a MakeIt Labs member before. 3 Month period will not begin until recipient activates memebership online. All sales are final. 
+		</p>
+		{% include "terms.html" %}
+	<hr />
+
+	    <h2>Your Information:</h2>
+
+            <!-- First Name -->
+            <div class="input-group mb-3">
+		    <label for="gift_from" class="input-group-text mb-2">This is a gift from</label>
+                <input type="text" class="form-control mb-2" name="gift_from" id="gift_from" placeholder="Whos is this from? (Name)" required>
+            </div>
+
+
+            <!-- email -->
+            <div class="input-group mb-3">
+                <label for="email" class="input-group-text mb-2">email</label>
+                <input type="tel" class="form-control mb-2" name="email" id="email" placeholder="Enter your email address" required>
+                <label for="phoneNumber" class="input-group-text  mb-2">Phone Number</label>
+                <input type="tel" class="form-control mb-2" name="phone" id="phoneNumber" placeholder="Enter your phone number" required>
+            </div>
+
+
+	    <hr />
+	    <h2>Person receiving gift:</h2>
+	    <p>We will <b>not</b> send any email to this person, until they register with the coupon you provide to them. Any information not known may be left blank.</p>
+	    (Provided just to help lookup gift certificates)
+
+            <!-- First Name -->
+            <div class="input-group mb-3">
+	        <label for="gift_to" class="input-group-text mb-2">This is a gift to</label>
+                <input type="text" class="form-control mb-2" name="gift_to" id="gift_to" placeholder="Enter recipient's name" >
+            </div>
+
+
+            <!-- email -->
+            <div class="input-group mb-3">
+                <label for="recip_email" class="input-group-text mb-2">email</label>
+                <input type="tel" class="form-control mb-2" name="recip_email" id="recip_email" placeholder="Enter recipient's email address (if known)" >
+                <label for="recip_phoneNumber" class="input-group-text  mb-2">Phone Number</label>
+                <input type="tel" class="form-control mb-2" name="recip_phone" id="recip_phoneNumber" placeholder="Enter recipient's phone number (if known)" >
+            </div>
+
+
+	    <!-- Checkbox -->
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="termsAgreement" name="termsAgreement" required>
+		<label class="form-check-label" for="termsAgreement">&nbsp;I acknowledge the above, and and agree to the Terms and Conditions listed above, and in MakeIt <a target="_blank" href="https://wiki.makeitlabs.com/policies">policies</a></label>
+            </div>
+            <!-- Submit Button -->
+	    <p>Continue to payment page - please enter <b>your</b> information on next page</p>
+            <button type="submit" name="Payment" value="Payment" class="btn btn-primary">Continue to Payment</button>
+        </form>
+    </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div class="container mt-4 mb-5">
+    <h2>Your Event Image is Ready</h2>
+    <p>This image is generated as an SVG, which scales perfectly. To use it on Facebook or Instagram:</p>
+    <ul>
+        <li>Click the <strong>Download SVG</strong> button below to save the file, OR</li>
+        <li>Take a screenshot of the image using your OS screenshot tool.</li>
+    </ul>
+    
+    <div class="mb-4">
+        <a href="{{ url_for('signs.social_events') }}" class="btn btn-secondary">Back to Edit</a>
+        <button onclick="downloadSVG()" class="btn btn-success ms-2">Download SVG</button>
+    </div>
+
+    <!-- Container that matches the aspect ratio or just centers it -->
+    <div id="svg-container" class="d-flex justify-content-center" style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; border: 1px solid #ccc;">
+        {{ svg | safe }}
+    </div>
+
+    <script>
+    function downloadSVG() {
+        const svgElement = document.querySelector('#svg-container svg');
+        if (!svgElement) return;
+        
+        const serializer = new XMLSerializer();
+        const source = serializer.serializeToString(svgElement);
+        const blob = new Blob([source], {type: "image/svg+xml;charset=utf-8"});
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "MakeItLabs_Events.svg";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+    </script>
+</div>
+{% endblock %}

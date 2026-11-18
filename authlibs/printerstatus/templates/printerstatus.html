@@ -1,0 +1,432 @@
+{% extends "layout_bootstrap.html" %}
+
+{% block head %}
+<!-- Modern typography via Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Base premium typography override for this page */
+  .printer-dashboard-container {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #f8fafc;
+    margin-top: 20px;
+    margin-bottom: 40px;
+  }
+
+  .dashboard-header {
+    margin-bottom: 30px;
+    border-bottom: 2px solid #334155;
+    padding-bottom: 15px;
+  }
+
+  .dashboard-title {
+    font-size: 2.25rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #38bdf8 0%, #10b981 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+  }
+
+  .dashboard-subtitle {
+    color: #94a3b8;
+    font-size: 0.95rem;
+    margin-top: 5px;
+  }
+
+  /* Grid configuration */
+  .printer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+  }
+
+  /* Sleek Dark/Glassmorphism Cards */
+  .printer-card {
+    background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .printer-card:hover {
+    transform: translateY(-5px);
+    border-color: #475569;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Status Glowing Accents on Cards */
+  .printer-card.status-running:hover {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.15), 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+    border-color: rgba(16, 185, 129, 0.4);
+  }
+
+  .printer-card.status-idle:hover {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.15), 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+    border-color: rgba(239, 68, 68, 0.4);
+  }
+
+  .printer-card.status-error:hover {
+    box-shadow: 0 0 20px rgba(100, 116, 139, 0.15), 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+    border-color: rgba(100, 116, 139, 0.4);
+  }
+
+  /* Header of each Card */
+  .card-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .printer-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #f8fafc;
+    margin: 0;
+  }
+
+  /* Status Badges & Glowing Dots */
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(30, 41, 59, 0.6);
+    padding: 6px 12px;
+    border-radius: 9999px;
+    border: 1px solid #334155;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .dot-running {
+    background-color: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: pulse 2s infinite;
+  }
+
+  .dot-idle {
+    background-color: #ef4444;
+    box-shadow: 0 0 8px #ef4444;
+  }
+
+  .dot-error {
+    background-color: #475569;
+    box-shadow: 0 0 8px #64748b;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+      transform: scale(1);
+      box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+    }
+    100% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+  }
+
+  /* Detail rows inside Card */
+  .detail-row {
+    margin-bottom: 16px;
+  }
+
+  .detail-label {
+    color: #94a3b8;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+
+  .detail-value {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #e2e8f0;
+  }
+
+  .filename-tag {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    background-color: rgba(15, 23, 42, 0.6);
+    border: 1px solid #334155;
+    padding: 6px 10px;
+    border-radius: 6px;
+    color: #38bdf8;
+    display: block;
+    word-break: break-all;
+    font-size: 0.85rem;
+  }
+
+  /* Progress section */
+  .progress-section {
+    margin-top: 20px;
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+  }
+
+  .progress-percent {
+    font-weight: 700;
+    color: #10b981;
+  }
+
+  .progress-time {
+    color: #94a3b8;
+  }
+
+  .progress-bar-bg {
+    background-color: #334155;
+    height: 8px;
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+    transition: width 0.6s ease;
+  }
+
+  /* Error state styling */
+  .error-box {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-left: 4px solid #ef4444;
+    padding: 12px;
+    border-radius: 0 8px 8px 0;
+    margin-top: 15px;
+  }
+
+  .error-message {
+    color: #fca5a5;
+    font-size: 0.85rem;
+    margin: 0;
+  }
+
+  /* Standby styling for non-printing */
+  .standby-text {
+    color: #64748b;
+    font-style: italic;
+    font-size: 0.9rem;
+  }
+
+  /* Toggle Switch */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 24px;
+  }
+
+  .switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #334155;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  input:checked + .slider {
+    background-color: #10b981;
+  }
+
+  input:focus + .slider {
+    box-shadow: 0 0 1px #10b981;
+  }
+
+  input:checked + .slider:before {
+    -webkit-transform: translateX(22px);
+    -ms-transform: translateX(22px);
+    transform: translateX(22px);
+  }
+
+  /* Rounded sliders */
+  .slider.round {
+    border-radius: 24px;
+  }
+</style>
+{% endblock %}
+
+{% block widebody %}
+<div class="container printer-dashboard-container">
+  <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <h1 class="dashboard-title">3D Printer Status</h1>
+      <div class="dashboard-subtitle">Real-time status of 3D printing equipment</div>
+    </div>
+    <div style="display: flex; align-items: center;">
+      <span style="font-size: 14px; font-weight: 500; color: #94a3b8; margin-right: 10px;">Auto Refresh: <span id="autoRefreshStatus" style="font-weight: bold; color: #64748b; transition: color 0.3s ease;">Off</span></span>
+      <label class="switch" style="position: relative; display: inline-block; width: 46px; height: 24px; margin: 0; vertical-align: middle;">
+        <input type="checkbox" id="autoRefreshToggle" style="opacity: 0; width: 0; height: 0;">
+        <span class="slider round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; -webkit-transition: .4s; transition: .4s; border-radius: 24px;"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="printer-grid">
+    {% for printer in printers %}
+      <a href="{{ url_for('printerstatus.cam', serialno=printer.serialno, name=printer.name) }}" class="printer-card status-{{ printer.status }}" style="text-decoration: none; display: block; color: inherit;">
+        <!-- Card Header -->
+        <div class="card-header-flex">
+          <h3 class="printer-name">{{ printer.name }}</h3>
+          <div class="status-indicator">
+            <span class="dot dot-{{ printer.status }}"></span>
+            <span>{{ printer.status }}</span>
+          </div>
+        </div>
+
+        <!-- Filename Row (if active or has file info) -->
+        {% if printer.filename %}
+          <div class="detail-row">
+            <div class="detail-label">Current Job</div>
+            <div class="detail-value">
+              <span class="filename-tag">{{ printer.filename }}</span>
+            </div>
+          </div>
+        {% else %}
+          <div class="detail-row">
+            <div class="detail-label">Current Job</div>
+            <div class="detail-value standby-text">No active job</div>
+          </div>
+        {% endif %}
+
+        <!-- Progress/Remaining Time if Running -->
+        {% if printer.status == 'running' %}
+          <div class="progress-section">
+            <div class="progress-meta">
+              <span class="progress-percent">{{ printer.progress }}% Complete</span>
+              {% if printer.time_remaining %}
+                <span class="progress-time">Remaining: {{ printer.time_remaining }}</span>
+              {% endif %}
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" data-progress="{{ printer.progress }}"></div>
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Error Panel if Error -->
+        {% if printer.status == 'error' and printer.error %}
+          <div class="error-box">
+            <div class="detail-label" style="color: #f87171; margin-bottom: 2px;">System Error</div>
+            <p class="error-message">{{ printer.error }}</p>
+          </div>
+        {% endif %}
+      </a>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+  $(document).ready(function() {
+    var toggle = document.getElementById('autoRefreshToggle');
+    var statusText = document.getElementById('autoRefreshStatus');
+    var refreshTimer = null;
+
+    function updateStatusUI(isOn) {
+      if (isOn) {
+        statusText.textContent = 'On';
+        statusText.style.color = '#10b981';
+      } else {
+        statusText.textContent = 'Off';
+        statusText.style.color = '#64748b';
+      }
+    }
+
+    function startTimer() {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(function() {
+        location.reload();
+      }, 60000); // 60 seconds
+    }
+
+    function stopTimer() {
+      if (refreshTimer) {
+        clearTimeout(refreshTimer);
+        refreshTimer = null;
+      }
+    }
+
+    // Check URL parameters to see if auto-refresh is active
+    var urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('autorefresh') === 'on') {
+      toggle.checked = true;
+      updateStatusUI(true);
+      startTimer();
+    } else {
+      toggle.checked = false;
+      updateStatusUI(false);
+    }
+
+    // Handle toggle change
+    $(toggle).on('change', function() {
+      var url = new URL(window.location.href);
+      if (this.checked) {
+        url.searchParams.set('autorefresh', 'on');
+        window.history.replaceState({}, '', url.toString());
+        updateStatusUI(true);
+        startTimer();
+      } else {
+        url.searchParams.delete('autorefresh');
+        window.history.replaceState({}, '', url.toString());
+        updateStatusUI(false);
+        stopTimer();
+      }
+    });
+  });
+
+  // Apply progress bar widths dynamically to avoid inline template CSS parsing issues
+  document.querySelectorAll('.progress-bar-fill').forEach(function(bar) {
+    var progress = bar.getAttribute('data-progress');
+    if (progress) {
+      bar.style.width = progress + '%';
+    }
+  });
+</script>
+{% endblock %}

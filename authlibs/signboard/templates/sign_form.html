@@ -1,0 +1,79 @@
+{#    This is meant to be INCLUDED by another page.
+			Wrap this inside another div class-content block, 
+			and inside a form (if desiered)
+
+			This template is used for THREE different thins:
+			Create, Edit, or Display a record
+	
+			{% include 'template.html' %}
+
+			Or to include checkbox columns:
+
+			{% with add_checkboxes='1' %}
+			{% include 'userlist.html' %}
+			{% endwith %}
+
+#}
+
+
+{% if rec is not defined %}
+{% set rec={} %}
+{% endif %}
+
+{% from 'global_macros.html' import input with context %}
+
+{% block head %}
+	<link href="{{ url_for('static', filename='css/bootstrap-datepicker3.min.css') }}" rel="stylesheet">
+	<script type="text/javascript" src="{{ url_for("static",filename="js/bootstrap-datepicker.min.js") }}"></script>
+{% endblock %}
+
+<div class="container">
+  <div class="form-row">
+    <div class="form-group col-md-4">
+			{{ input('s_what',"What",small="Event Title") }}
+    </div>
+    <div class="form-group col-md-4">
+			{{ input('s_when',"When",small="e.g. \"Tuesday, December 2, 6pm\"") }}
+    </div>
+    <div class="form-group col-md-4">
+			{{ input('s_where',"Where",small="e.g. \"Main Event Room\"") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-12">
+			{{ input('s_desc',"Description",small="Long form event description text") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-8">
+			{{ input('s_qr',"QR Code URL",small="(Optional URL for QR Code)") }}
+    </div>
+    <div class="form-group col-md-4">
+			{{ input('s_qr_desc',"QR Code Caption",small="Optional: e.g. \"Scan to Register\"") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-3">
+        <p>Start Displaying:</p>
+	<input type="datetime-local" id="start" name="input_start" value="{{ default_start.strftime('%Y-%m-%dT%H:%M') }}" autocomplete="off" />
+    </div>
+    <div class="form-group col-md-3">
+        <p>Stop Displaying:</p>
+	<input type="datetime-local" id="end" name="input_end" value="{{ default_end.strftime('%Y-%m-%dT%H:%M') }}" autocomplete="off" />
+	<br /><small>Max 30 days</small>
+    </div>
+    <div class="form-group col-md-2">
+        <label>Retain</label>
+	<input type="checkbox" id="retain" name="input_retain" {{ 'checked' if (rec['retain'] == 1) else '' }} autocomplete="off" />
+	<br /><small>Don't delete after end. i.e. Stuff to reuse</small>
+    </div>
+    <div class="form-group col-md-4">
+      <label for="input_resource_id">Display</label>
+			<select {{ ro }} class="form-control" name="input_priority">
+				<option {{ 'selected' if (rec['priority'] == 0 ) else '' }} name="always" value="0">Always</option>
+				<option name="optional" {{ 'selected' if (rec['priority'] == 1 ) else '' }} value="1">Only if nothing else</option>
+				<option name="test" {{ 'selected' if (rec['priority'] == 2 ) else '' }} value="2">Test - Not yet "Live"</option>
+			</select>
+    </div>
+  </div>
+</div>

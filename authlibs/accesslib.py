@@ -13,7 +13,7 @@ from datetime import timedelta,datetime
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from .db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, ApiKey, Node, NodeConfig, KVopt, Tool
+from .db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, ApiKey, Node, NodeConfig, KVopt, Tool, Acknowledgement, AcknowledgementUser
 from functools import wraps
 import json
 from authlibs import eventtypes
@@ -58,6 +58,7 @@ def accessQueryToDict(y):
             'membership':x[15],
             'expires_date':x[16],
             'endorsements':x[17],
+            'ack_lockout':x[18],
             'last_accessed':"" # We may never want to report this for many reasons
             }
 
@@ -119,6 +120,9 @@ def determineAccess(u,resource_text,resource_rec=None):
             allowed = 'false'
         elif u['lockout_reason'] and u['lockout_reason'].strip() != "":
             warning = u['lockout_reason']
+            allowed = 'false'
+        elif u.get('ack_lockout'):
+            warning = "Missing acknowledgement: " + u['ack_lockout']
             allowed = 'false'
         elif u['allowed'] == 'denied':
                 warning = c['resource']
@@ -244,18 +248,18 @@ def access_query(resource_id,member_id=None,tags=True):
     if tags:
       q = db.session.query(MemberTag,MemberTag.tag_ident)
       if resource_id:
-        print ("JOIN NEG 1")
+        #print ("JOIN NEG 1")
         q = q.select_from(MemberTag).outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == resource_id)))
         #q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) ))
         #q = q.filter(AccessByMember.resource_id == resource_id)
       else:
-        print ("JOIN NEG 2")
+        #print ("JOIN NEG 2")
         q = q.outerjoin(AccessByMember, (AccessByMember.member_id == MemberTag.member_id))
     else:
       #q = db.session.query(Member,literal_column("''")) 
       q = db.session.query(Member,Member.id == member_id)
       if resource_id and member_id:
-          print ("JOIN ONE")
+          #print ("JOIN ONE")
           q = q.join(AccessByMember, ((AccessByMember.resource_id == resource_id) & (AccessByMember.member_id == Member.id)))
           print (q)
     q = q.add_column(case([(Subscription.plan != None , Subscription.plan ), 
@@ -286,42 +290,61 @@ def access_query(resource_id,member_id=None,tags=True):
     # BKG DEBUG ITEMS
     q = q.add_column(AccessByMember.permissions)
 
+    if resource_id:
+        ack_sq = db.session.query(Acknowledgement.title).join(AcknowledgementUser).filter(
+            AcknowledgementUser.member_id == Member.id,
+            Acknowledgement.resource_id == resource_id,
+            AcknowledgementUser.time_acknowledged == None,
+            Acknowledgement.enforce_on != None,
+            Acknowledgement.enforce_on <= db.func.DateTime('now')
+        ).limit(1).correlate(Member).as_scalar()
+    else:
+        ack_sq = db.session.query(Acknowledgement.title).join(AcknowledgementUser).filter(
+            AcknowledgementUser.member_id == Member.id,
+            Acknowledgement.resource_id == AccessByMember.resource_id,
+            AcknowledgementUser.time_acknowledged == None,
+            Acknowledgement.enforce_on != None,
+            Acknowledgement.enforce_on <= db.func.DateTime('now')
+        ).limit(1).correlate(Member, AccessByMember).as_scalar()
+        
+    q = q.add_column(ack_sq.label('ack_lockout'))
+
     if (tags):
-        print ("JOIN TWO")
+        #print ("JOIN TWO")
         q = q.outerjoin(Member,Member.id == MemberTag.member_id)
         if member_id:
-            print ("JOIN 2-0")
+            #print ("JOIN 2-0")
             q = q.filter(MemberTag.member_id == member_id)
         if resource_id:
-            print ("JOIN 2-1")
+            #print ("JOIN 2-1")
             #q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == resource_id)))
             #q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id)))
             pass
             #q = q.filter (AccessByMember.resource_id == resource_id)
         else:
-            print ("JOIN 2-2")
+            #print ("JOIN 2-2")
             pass # q = q.outerjoin(AccessByMember, (AccessByMember.member_id == MemberTag.member_id))
     else: # No tags
         if member_id:
             q = q.filter(Member.id == member_id)
         if resource_id and member_id:
-            print ("JOIN 2-3")
+            #print ("JOIN 2-3")
             pass #q = q.join(AccessByMember, ((AccessByMember.resource_id == resource_id) & (AccessByMember.member_id == member_id)))
 
         elif resource_id:
-            print ("JOIN THREE")
+            #print ("JOIN THREE")
             q = q.join(AccessByMember, (AccessByMember.resource_id == resource_id))
         elif member_id:
             print ("JOIN FOUR")
-            q = q.outerjoin(AccessByMember, (AccessByMember.member_id == member_id))
+            #q = q.outerjoin(AccessByMember, (AccessByMember.member_id == member_id))
 
-    print ("JOIN FIVE")
+    #print ("JOIN FIVE")
     q = q.outerjoin(Subscription, Subscription.member_id == Member.id)
     if (tags):
-      print ("JOIN SIX")
+      #print ("JOIN SIX")
       q = q.group_by(MemberTag.tag_ident)
 
-    print ("BIGQUERY",str(q))
+    #print ("BIGQUERY",str(q))
     return q
     
 # Does this user have the ability to do ANY kind of authorization in the system?
@@ -342,7 +365,18 @@ def user_privs_on_resource(member=None,member_id=None,resource=None,resource_id=
   if (member.privs('HeadRM','RATT')):
     return AccessByMember.LEVEL_ADMIN
 
-  q = AccessByMember.query.filter(AccessByMember.resource_id == resource.id)
+  if type(resource) is Tool: 
+      res_id = resource.resource_id
+      #print ("USE TOOL ID")
+  elif type(resource) is Node: 
+      res_id = resource.resource_id
+      #print ("USE Node ID")
+  else:
+      #print ("USE REsoruce ID")
+      res_id = resource.id
+  #print (f"Check reousrce {resource} type {type(resource)}")
+
+  q = AccessByMember.query.filter(AccessByMember.resource_id == res_id)
   q = q.filter(AccessByMember.member_id == member.id).one_or_none()
   if not q:
     return AccessByMember.LEVEL_NOACCESS

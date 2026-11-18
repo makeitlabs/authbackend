@@ -102,7 +102,7 @@ function queryMembers(searchstr) {
 							 pulls the member_id from this td */
 							if ((! USE_MEMBER_CHECKBOXES) && (! USE_MEMBER_RADIOBUTTONS) && (! USE_MEMBER_CUSTOM_BUTTON))
 								if (MEMBER_URL) {
-									td += "<a href=\""+MEMBER_URL+data[x]['member']+"\">";
+									td += "<a href=\""+MEMBER_URL+encodeURIComponent(data[x]['member'])+"\">";
 								}
 							td += data[x]['member'];
 							if (! USE_MEMBER_CHECKBOXES)
@@ -113,12 +113,13 @@ function queryMembers(searchstr) {
 								"<td>"+data[x]['firstname']+"</td>"+
 								"<td>"+data[x]['lastname']+"</td>"+
 								"<td>"+data[x]['email']+"</td>"+
+								"<td>"+(data[x]['group'] || '')+"</td>"+
 								"<td>"+data[x]['active']+"</td>"+
 								"<td>";
-							el.innerHTML += "<a href=\""+MEMBER_URL+data[x]['member']+"\">"+
+							el.innerHTML += "<a href=\""+MEMBER_URL+encodeURIComponent(data[x]['member'])+"\">"+
 							 "<img style=\"height:16px\" src=\""+STATIC_URL+"logicon.png\" />"+
 							 "</a>";
-							el.innerHTML += "&nbsp;<a href=\""+MEMBER_URL+data[x]['member']+"\">"+
+							el.innerHTML += "&nbsp;<a href=\""+MEMBER_URL+encodeURIComponent(data[x]['member'])+"\">"+
 							 "<img style=\"height:16px\" src=\""+STATIC_URL+"eye.png\" />"+
 							 "</a>";
 							el.innerHTML += "<a href=\""+MEMBER_URL+data[x]['id']+"/access\">"+

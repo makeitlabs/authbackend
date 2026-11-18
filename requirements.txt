@@ -54,7 +54,7 @@ six==1.16.0
 slack-sdk==3.13.0
 SQLAlchemy==1.4.31
 SQLAlchemy-Utils==0.38.2
-stripe==2.65.0
+stripe==5.4.0
 testresources==2.0.1
 uritemplate==4.1.1
 urllib3==1.26.8
@@ -65,3 +65,5 @@ pycurl==7.43.0.2
 icalendar==4.0.9
 pysftp==0.2.9
 slacker==0.14.0
+redis==4.5.3
+qrcode==8.0

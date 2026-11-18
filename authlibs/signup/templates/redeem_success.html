@@ -1,0 +1,23 @@
+{% extends "layout_public.html" %}
+{% block head %}
+{% endblock %}
+
+
+{% block widebody %}
+    <div class="body">
+        <h2 class="mb-4">Membership Registration</h2>
+	<p><b>Thank you for joining MakeIt Labs!</b></p>
+	<p>Your 3-Month gift membership has been activated. You should be receiving an email very soon - please check your inbox and spam folder. It will contain important information on setting up your MakeIt accounts, attending orientation so you can get access to the lab. If you do not hear back within a day, please email info@makeitlabs.com for help, or ask at orientation. We look forward to seeing you at your orientation session - any Thursday at 7:00pm!
+	</p>
+
+	<p>
+	Your membership will automatically end after the 3-month gift period. If you do wish to keep and extend your membership after your trial period, 
+	go to the <a href="{{ url_for('membershipupdate.payupdate') }}">Update Membership</a> page at any time to extend your membership.
+	</p>
+
+	<p>
+	In the meantime, please click the button below to sign your member waiver. (Lab access will not be premitted until waiver is signed, and orientation has been completed.)
+	</p>
+	    <a href="https://waiver.smartwaiver.com/w/5626bfb9a69fd/web/" class="btn btn-info" target="_blank">Member Waiver...</a>
+    </div>
+{% endblock %}

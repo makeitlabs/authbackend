@@ -1,6 +1,11 @@
 {% extends "layout_bootstrap.html" %}
 {% block body %}
 			<p>To assign a waiver to a member - select to appropriate radio boxes for each, then click "assign"</p>
+			{% if from_orientation %}
+			<div class="alert alert-info">
+				<strong>Showing Member waivers only</strong> - <a href="{{ url_for('waivers.relate') }}">Show all waiver types</a>
+			</div>
+			{% endif %}
   <form action="relate_assign" method="POST">
 		<div class=body>
 			<h3>Unassigned Waivers</h3>
@@ -10,7 +15,7 @@
           <input class="form-control" id="waiversearch" type="text" oninput="changedwaiversearch();" />
         </div>
       </div>
-      <h2 class="alert alert-info" id="messagebox">Enter a phrase in the search box</h2>
+      <h2 class="alert alert-info" id="messagebox">{% if from_orientation %}Showing last 10 unassigned member waivers - enter search to filter{% else %}Enter a phrase in the search box{% endif %}</h2>
 			<table id="waiver_table" class="table table-sm bkg">
 					<tr>
 						<th>Name</th>
@@ -20,7 +25,7 @@
 						<th>Waiver Type</th>
 					</tr>
 					{% for s in waivers %}
-				<tr style="visibility:collapse">
+				<tr style="{% if from_orientation %}visibility:visible{% else %}visibility:collapse{% endif %}">
 				<td>{{ s.lastname }}, {{s.firstname}}</td>
 				<td>{{ s.email }}</td>
 				<td>{{ s.created_date }}</td>
@@ -38,6 +43,13 @@
 		</div>
 	<hr />
 	<h3>Attach to Member:</h4>
+		{% if linkmember %}
+		<div class="alert alert-info">
+			<strong>Pre-selected member:</strong> {{ linkmember.firstname }} {{ linkmember.lastname }} ({{ linkmember.member }})
+			<input type="hidden" name="member_radio" value="{{ linkmember.member }}" />
+			<input type="radio" name="member_radio" value="{{ linkmember.member }}" checked style="display:none;" />
+		</div>
+		{% endif %}
 		<div class="container">
 			{% with add_radiobuttons=1 %}
 			{% include 'userlist.html' %}
@@ -67,9 +79,74 @@ function changedwaiversearch() {
       //console.log(row.cells[1].innerHTML);
     }
   } else {
+    // When search is cleared, return to default state
+    {% if from_orientation %}
+    // Show waivers by default when coming from orientation
+    msg.style.display="none";
+    for (var i = 0, row; row = table.rows[i]; i++) {
+       row.style.visibility="";
+    }
+    {% else %}
+    // Hide waivers when not coming from orientation
     msg.style.display="block";
     table.visibility="collapse";
+    for (var i = 0, row; row = table.rows[i]; i++) {
+       row.style.visibility="collapse";
+    }
+    {% endif %}
   }
 }
+
+{% if from_orientation %}
+// Initialize the page to show waivers when coming from orientation
+window.onload = function() {
+  var msg = document.getElementById("messagebox");
+  msg.style.display="none";
+  
+  // Handle member pre-selection if linkmember exists
+  {% if linkmember %}
+  var searchField = document.getElementById('searchfield1');
+  if (searchField) {
+    searchField.value = '{{ linkmember.firstname|e }} {{ linkmember.lastname|e }}';
+    // Trigger search to populate the member list
+    changedDropdownText();
+    
+    // After a short delay, select the pre-selected member
+    setTimeout(function() {
+      var radioButtons = document.querySelectorAll('input[name="member_radio"]');
+      for (var i = 0; i < radioButtons.length; i++) {
+        if (radioButtons[i].value === '{{ linkmember.member|e }}') {
+          radioButtons[i].checked = true;
+          break;
+        }
+      }
+    }, 1000);
+  }
+  {% endif %}
+};
+{% else %}
+{% if linkmember %}
+// Auto-populate and select the pre-selected member when page loads
+window.onload = function() {
+  var searchField = document.getElementById('searchfield1');
+  if (searchField) {
+    searchField.value = '{{ linkmember.firstname|e }} {{ linkmember.lastname|e }}';
+    // Trigger search to populate the member list
+    changedDropdownText();
+    
+    // After a short delay, select the pre-selected member
+    setTimeout(function() {
+      var radioButtons = document.querySelectorAll('input[name="member_radio"]');
+      for (var i = 0; i < radioButtons.length; i++) {
+        if (radioButtons[i].value === '{{ linkmember.member|e }}') {
+          radioButtons[i].checked = true;
+          break;
+        }
+      }
+    }, 1000);
+  }
+};
+{% endif %}
+{% endif %}
 </script>
 {% endblock %}

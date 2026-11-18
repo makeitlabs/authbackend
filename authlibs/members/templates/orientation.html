@@ -1,0 +1,156 @@
+<style>
+.clickable-badge {
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+}
+.clickable-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  filter: brightness(1.1);
+}
+.clickable-badge:after {
+  content: " ↗";
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+</style>
+
+{% macro dobuttons() %}
+		<div class="content mb-3 mt-2">
+			<span>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-asterisk"  onclick="location.href='{{ url_for('members.orientation') }}'" ></button>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-step-backward" onclick="location.href='{{ meta.first }}'" ></button>
+			{% if meta.prev %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-left"  onclick="location.href='{{ meta.prev }}'" ></button>
+			{% else %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-left disabled" ></button>
+			{% endif %}
+			{% if meta.next %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-right" onclick="location.href='{{ meta.next }}'"  ></button>
+			{% else %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-right disabled"  ></button>
+			{% endif %}
+			<button class="btn btn-lg btn-light glyphicon glyphicon-step-forward"  onclick="location.href='{{ meta.last }}'"></button>
+            <a class="btn btn-lg {{ 'btn-warning' if meta.hide_completed else 'btn-light' }}" href="{{ meta.toggle_hide_url }}">
+                {% if meta.hide_completed %}Show All{% else %}Hide Completed{% endif %}
+            </a>
+			</span>
+			<span class="ml-3">{{ meta.displayoffset }} - {{ meta.lastoffset}} of {{ meta.count }}</span>
+		</div>
+{%- endmacro -%}
+
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div class="container">
+    <h2>Member Orientation</h2>
+    <p>Most recent new member signups</p>
+    <p class="text-info"><small><strong>Tip:</strong> Click "Not on file" badges to quickly add waivers</small></p>
+    
+    {{ dobuttons() }}
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    {% if orientation_list %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>When Added</th>
+                        <th>Waiver Status</th>
+                        <th>Tag</th>
+                        <th>Access Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in orientation_list %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('members.member_show', id=item.member.member) }}">
+                                    {{ item.member.firstname }} {{ item.member.lastname }}
+                                </a>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    <div>{{ ago.ago(item.time_logged)[2] }}</div>
+                                    <div class="text-muted">{{ ago.ago(item.time_logged)[1] }} ago</div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if item.waiver_status == "On file" %}
+                                    <span class="badge badge-success">{{ item.waiver_status }}</span>
+                                {% else %}
+                                    <a href="{{ url_for('waivers.relate', member_id=item.member.id) }}" 
+                                       class="badge badge-warning clickable-badge" 
+                                       style="text-decoration: none;"
+                                       title="Click to add waiver for {{ item.member.firstname }} {{ item.member.lastname }}">
+                                        {{ item.waiver_status }}
+                                    </a>
+                                    <small class="text-muted d-block">(Click to associate)</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.has_tag %}
+                                    <span class="badge badge-info">Tag Assigned</span>
+                                {% else %}
+                                    <form method="POST" action="{{ url_for('members.orientation') }}" class="form-inline">
+                                        <input type="hidden" name="member_id" value="{{ item.member.id }}">
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" 
+                                                   name="tag_ident" 
+                                                   class="form-control" 
+                                                   placeholder="Enter RFID tag"
+                                                   pattern="[0-9]{10}"
+                                                   title="Must be 10-digit numeric RFID tag">
+                                            <div class="input-group-append">
+                                                <button type="submit" class="btn btn-primary btn-sm">Add Tag</button>
+                                                {% if recent_tag %}
+                                                <button type="button" class="btn btn-success btn-sm ml-1" onclick="this.form.tag_ident.value='{{ recent_tag }}'; this.form.submit();">Swiped {{ recent_tag }}</button>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </form>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.is_fully_enabled %}
+                                    <span class="badge badge-success">Fully Enabled</span>
+                                    <small class="text-success d-block">Access: Active</small>
+                                {% else %}
+                                    <span class="badge badge-warning">Not Complete</span>
+                                    <small class="text-muted d-block">
+                                        {% if not item.access_enabled %}Access disabled{% endif %}
+                                        {% if not item.waiver_status == "On file" %}• No waiver{% endif %}
+                                        {% if not item.has_tag %}• No tag{% endif %}
+                                        {% if not item.door_access_allowed %}• No door access{% endif %}
+                                    </small>
+                                {% endif %}
+                                {% if item.access_warning %}
+                                    <small class="text-warning d-block">{{ item.access_warning }}</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            No recent members found from Pay System events.
+        </div>
+    {% endif %}
+    
+    {{ dobuttons() }}
+    
+    <div class="mt-3">
+        <a href="{{ url_for('members.members') }}" class="btn btn-secondary">Back to Members</a>
+    </div>
+</div>
+{% endblock %}

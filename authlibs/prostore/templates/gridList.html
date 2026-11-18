@@ -1,0 +1,50 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+{% with page="gridList" %}
+{% include 'header.html' %}
+{% endwith %}
+<h2>ProStore Storage Grids</h2>
+<div class="gridlist">
+	<h2>Grid:  {{ grids |length }} available</h2>
+	<table class="table table-sm">
+        <tr>
+            <th>Name</th>
+            <th>Short Code</th>
+            <th>Columns</th>
+            <th>Rows</th>
+        </tr>
+	{% for grid in grids %}
+	  <tr>
+	{% if current_user.privs("ProStore") %}
+		<td><a href="{{ url_for('prostore.grids_update',grid=grid.short) }}">{{ grid.name }}</a></td>
+	{% else %}
+		<td>{{ grid.name }}</td>
+	{% endif %}
+		<td>{{ grid.short }}</td>
+		<td>{{ grid.columns }}</td>
+		<td>{{ grid.rows }}</td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+
+<!-- Add New Grid -->
+
+
+	{% if current_user.privs("ProStore") %}
+  <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#grid-add-collapse" aria-expanded="false" aria-controls="grid-add-collapse">
+    Create New Storage Grid
+  </button>
+  <div class="collapse" id="grid-add-collapse">
+	<hr />
+  <h3>Add New Grid</h3>
+<form action="{{ url_for('prostore.grids_create') }}" method="post">
+	{% include 'grid_form.html' %}
+<input type="submit" value="Create grid" />
+</form>
+</div>
+{% endif %} <!-- Add New Node -->
+
+
+{% endblock %}

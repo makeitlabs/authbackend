@@ -35,7 +35,7 @@
 			{% set ph = placeholder %}
 			{% endif %}
       <label for="input_{{ name }}">{{ label }}</label>
-      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ bin[name] }}">
+      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{% if bin['name'] is none %}{% else %}{{ bin[name] }}{% endif %}">
 			{% if small != '' %}
 			<small>{{ small }}</small>
 			{% endif %}
@@ -43,9 +43,12 @@
 
 <div class="container">
   <div class="form-row">
-    <div class="form-group col-md-6">
+    <div class="form-group col-md-3">
 			{{ input('name',"Bin ID",'',small="Optional Unique ID or name of bin") }}
     </div>
+	    <div class="form-group col-md-3">
+				{{ input('aruco',"Aruco Code",'',small="Barcode Number (1-499)") }}
+	    </div>
 	</div>
   <div class="form-row">
     <div class="form-group col-md-6">
@@ -54,15 +57,19 @@
 					<option name="unspecified" value="Unspecified">Unspecified</option>
 				{% for loc in locations %}
 					<option name="{{ loc.ProLocation.location }}" value="{{ loc.ProLocation.location }}"
-					{% if loc.usecount > 0  and loc.ProLocation.loctype == 0 %}disabled{% endif %}
+					{% if loc.usecount > 0  and loc.ProLocation.loctype == 0 %} disabled{% endif %}
+					{% if loc.ProLocation.location == selectlocation %} selected{% endif %}
 					>{{ loc.ProLocation.location }}</option>
 				{% endfor %}
 			</select>
       <label for="input_status">Bin Status</label>
+			{% if bin.ProBin and bin.ProBin.status_updated_at %}
+			<span style="font-size: 0.85em; color: #666; margin-left: 10px;">(Since: {{ ago.ago(bin.ProBin.status_updated_at)[0] }} - {{ ago.ago(bin.ProBin.status_updated_at)[1] }} ago)</span>
+			{% endif %}
 			<select class="form-control" name="input_status">
 				{% for stat in statuses %}
 					<option name="{{ stat[0] }}" value="{{ stat[0] }}"
-					{% if bin.status == stat[0] %}selected{% endif %}
+					{% if ((forcestatus is defined) and (stat[0] == forcestatus)) or (bin.status == stat[0]) %}selected{% endif %}
 					>
 					{{ stat[1] }}</option>
 				{% endfor %}

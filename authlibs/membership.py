@@ -6,14 +6,18 @@ from . import config
 from . import dbutil
 from . import utilities
 import random
+import threading
 from collections import defaultdict
 from . import config
 import sys
 import argparse
 from .db_models import db, Subscription, Member, Blacklist, Logs
+from sqlalchemy.exc import OperationalError
+from authlibs.memberFolders.memberFolders import createMemberFolder
 import configparser
 from . import eventtypes
 from datetime import datetime
+import time
 from flask import current_app
 
 from .templateCommon import *
@@ -23,34 +27,81 @@ from . import accesslib
 
 def syncWithSubscriptions(isTest=False):
   '''Use the latest Subscription data to ensure Membership list is up to date'''
-  logger.debug("Get Missing Members")
-  missing = getMissingMembers()
+  try:
+    logger.debug("Get Missing Members")
+    missing = getMissingMembers()
 
-  ''' Try to match subscriptions to existing member records - TODO - "new/update" flag '''
-  logger.debug("match missing members")
-  newMembers = matchMissingMembers(missing)
+    ''' Try to match subscriptions to existing member records - TODO - "new/update" flag '''
+    logger.debug("match missing members")
+    newMembers = matchMissingMembers(missing)
 
-  ''' Create new member records for actual new members '''
-  logger.debug("ADDING MISSING MEMBERS")
-  added=addMissingMembers(newMembers)
+    ''' Create new member records for actual new members '''
+    logger.debug("ADDING MISSING MEMBERS")
+    added=addMissingMembers(newMembers)
 
-  ''' Create Google (someday Slack?) accounts for new members '''
-  logger.debug("Create new Accounts")
-  createMissingMemberAccounts(added,isTest,True)
+    ''' Create Google (someday Slack?) accounts for new members '''
+    logger.debug("Create new Accounts")
+    createMissingMemberAccounts(added,isTest,True)
 
-  # Canary test 
+    ''' Sync group field for existing linked members if group is empty/null '''
+    linked_subs = Subscription.query.filter(Subscription.member_id != None).filter(Subscription.group != None).all()
+    for ls in linked_subs:
+      if ls.group and ls.group.strip() != "":
+        m_rec = Member.query.filter(Member.id == ls.member_id).one_or_none()
+        if m_rec and (not m_rec.group or m_rec.group.strip() == ""):
+          m_rec.group = ls.group.strip()
 
-  if current_app.config['globalConfig'].Config.has_option('Payments','Canary'):
-    canary = current_app.config['globalConfig'].Config.get('Payments','Canary')
-    check = accesslib.quickSubscriptionCheck(member=canary)
-    if check == "No Subscription":
-        logger.critical("No subscription found for Adam.Shey")
-        db.session.rollback()
-        return 1
+    # Canary test 
 
-  db.session.commit()
-  logger.debug("New Member/Sub data Committed")
-  return 0
+    if current_app.config['globalConfig'].Config.has_option('Payments','Canary'):
+      canary = current_app.config['globalConfig'].Config.get('Payments','Canary')
+      check = accesslib.quickSubscriptionCheck(member=canary)
+      if check == "No Subscription":
+          logger.critical("No subscription found for Adam.Shey")
+          db.session.rollback()
+          return 1
+
+    # Check subscription state transitions for existing members
+    from . import payments
+    pre_active = payments.get_pre_sync_active_members()
+    if pre_active is not None:
+      now = datetime.utcnow()
+      linked_subs = Subscription.query.filter(Subscription.member_id != None).all()
+      post_active = set(s.member_id for s in linked_subs if payments.is_sub_active(s, now))
+      added_ids = set(m.id for m in added if hasattr(m, 'id') and m.id)
+
+      # 1. Activated: Was inactive before, now active, and NOT a brand new member added in this run
+      reactivated_ids = (post_active - pre_active) - added_ids
+      for mid in reactivated_ids:
+        logger.info("Subscription Activated by Payment System for member_id %s" % mid)
+        db.session.add(Logs(member_id=mid, event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_SUB_ACTIVATED_PAYSYS.id,
+                            message="Subscription activated via payment system"))
+
+      # 2. Canceled/Expired: Was active before, now not active
+      canceled_ids = pre_active - post_active
+      for mid in canceled_ids:
+        logger.info("Subscription Canceled by Payment System for member_id %s" % mid)
+        db.session.add(Logs(member_id=mid, event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_SUB_CANCELED_PAYSYS.id,
+                            message="Subscription canceled/expired via payment system"))
+
+    db.session.commit()
+    payments.clear_pre_sync_active_members()
+    logger.debug("New Member/Sub data Committed")
+    return 0
+  except OperationalError as e:
+    logger.error("syncWithSubscriptions: database locked/failed: %s" % str(e))
+    db.session.rollback()
+    return 2
+
+def syncWithSubscriptions_with_retry(isTest=False, retries=5, delay=2):
+  """Call syncWithSubscriptions, retrying if DB is locked (return code 2)."""
+  for attempt in range(retries):
+    res = syncWithSubscriptions(isTest)
+    if res != 2:
+      return res
+    logger.warning("syncWithSubscriptions hit DB lock (attempt %d/%d). Retrying in %ds..." % (attempt + 1, retries, delay))
+    time.sleep(delay)
+  return 2
   
 
 def searchMembers(searchstr):
@@ -59,7 +110,8 @@ def searchMembers(searchstr):
   q = q.filter(Member.firstname.ilike(sstr) | 
       (Member.lastname.ilike(sstr)) | 
       (Member.alt_email.ilike(sstr)) | 
-      (Member.email.ilike(sstr)))
+      (Member.email.ilike(sstr)) |
+      (Member.group.ilike(sstr)))
   return q.all()
 
 
@@ -71,6 +123,8 @@ def matchMissingMembers(missing):
         mm = Member.query.filter(Member.membership == s.membership).one_or_none()
         if mm:
                 logger.debug("MEMBERSHIP MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
+                if getattr(s, 'group', None) and s.group and (not mm.group or mm.group.strip() == ""):
+                  mm.group = s.group.strip()
                 # If we had already done a email/name match (below) - invalidate it so we dont get dupes
                 ss= Subscription.query.filter(Subscription.member_id == mm.id).one_or_none()
                 if (ss):
@@ -83,8 +137,30 @@ def matchMissingMembers(missing):
                 q = q.filter(Member.stripe_name.ilike(s.name)) # TODO BKG FIX - Depricate - use first and last names only
                 try:
                     mm = q.one_or_none()
+                    if not mm and s.email:
+                        # Fallback: match by email + normalized name/member ID (handles
+                        # whitespace, punctuation, or legacy stripe_name differences)
+                        target_uid = utilities.sanitize_userid(s.name).lower()
+                        target_name = utilities.sanitize_name(s.name).lower()
+                        candidates = []
+                        for cand in Member.query.filter(Member.alt_email.ilike(s.email)).all():
+                            cand_uid = utilities.sanitize_userid(cand.member).lower()
+                            cand_stripe = utilities.sanitize_name(cand.stripe_name).lower()
+                            cand_full = utilities.sanitize_name(
+                                "%s %s" % (cand.firstname or "", cand.lastname or "")
+                            ).lower()
+                            if (target_uid and cand_uid == target_uid) or (
+                                target_name and (cand_stripe == target_name or cand_full == target_name)
+                            ):
+                                candidates.append(cand)
+                        if len(candidates) == 1:
+                            mm = candidates[0]
+                        elif len(candidates) > 1:
+                            raise ValueError("Multiple normalized matches")
                     if mm:
                         logger.debug("email/name MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
+                        if getattr(s, 'group', None) and s.group and (not mm.group or mm.group.strip() == ""):
+                          mm.group = s.group.strip()
                         # Avoid DUPLICATE match if MEMBERSHIP MATCH already done (above)
                         ss = Subscription.query.filter(Subscription.member_id == mm.id).one_or_none()
                         if ss and ss.active=="true":
@@ -174,7 +250,9 @@ def addMissingMembers(missing):
             # TODO - BKG BUG FIX this is where we need to know if this was an existing member or not - Refuse
             # to add if so - report to someone for correction
             i=0
-            rootname = p.name.replace(' ','.')
+            rootname = utilities.sanitize_userid(p.name)
+            if not rootname:
+                rootname = "Member"
             
             mname =None
             while not mname:
@@ -189,13 +267,15 @@ def addMissingMembers(missing):
             nameparts = utilities.nameToFirstLast(rootname)
             mm.firstname = nameparts['first']
             mm.lastname = nameparts['last']
-            mm.alt_email = p.email
+            mm.alt_email = p.email.strip() if p.email else p.email
             mm.active = p.active
             mm.plan = p.plan
             mm.stripe_name = p.name # TODO BKG FIX - Depricate - use first and last names only
             mm.time_created = p.created_date
             mm.time_updated = p.created_date
             mm.email_confirmed_at = datetime.now()
+            if getattr(p, 'group', None) and p.group:
+                mm.group = p.group.strip()
             db.session.add(mm)
             db.session.flush()
             s = Subscription.query.filter(Subscription.email==p.email).filter(Subscription.name==p.name).one()
@@ -213,6 +293,41 @@ def googleEmailExists(m):
   return (len(search) > 0)
   
   
+def _forwarding_worker(makeitlabs_email, forward_to_email, initial_delay=30, max_retries=3, retry_delay=30):
+    """Background worker: waits for Gmail to be provisioned, then sets up forwarding.
+    Runs in a daemon thread so it won't block the web request or prevent shutdown."""
+    import time
+    time.sleep(initial_delay)
+    for attempt in range(1, max_retries + 1):
+        try:
+            google.setupEmailForwarding(makeitlabs_email, forward_to_email)
+            logger.info("Background forwarding setup succeeded for %s -> %s (attempt %d)" %
+                        (makeitlabs_email, forward_to_email, attempt))
+            return
+        except BaseException as e:
+            if "Invalid forwarding address" in str(e) and "400" in str(e):
+                logger.info("Background forwarding 'Invalid forwarding address' error ignored for %s -> %s (treated as success)" %
+                            (makeitlabs_email, forward_to_email))
+                return
+            logger.warning("Background forwarding attempt %d/%d failed for %s -> %s: %s" %
+                           (attempt, max_retries, makeitlabs_email, forward_to_email, str(e)))
+            if attempt < max_retries:
+                time.sleep(retry_delay)
+    logger.error("All %d background forwarding attempts failed for %s -> %s" %
+                 (max_retries, makeitlabs_email, forward_to_email))
+
+def _start_forwarding_background(makeitlabs_email, forward_to_email):
+    """Kick off email forwarding setup in a background thread.
+    Returns immediately so the caller (web request) is not blocked."""
+    t = threading.Thread(
+        target=_forwarding_worker,
+        args=(makeitlabs_email, forward_to_email),
+        daemon=True
+    )
+    t.start()
+    logger.info("Started background forwarding thread for %s -> %s" %
+                (makeitlabs_email, forward_to_email))
+
 def createMissingMemberAccounts(members,isTest=True,searchGoogle=False):
     """For any Member without a Member ID, create one (includes Google Domain account). If we can't, notify admins"""
     
@@ -229,18 +344,30 @@ def createMissingMemberAccounts(members,isTest=True,searchGoogle=False):
         if isTest:
             logger.warn("Need to see if we really need an account for %s (%s) or if this is a data issue" % (m.member,m.alt_email))
         else:
-            nameparts = utilities.nameToFirstLast(m.member)
+            userid = utilities.sanitize_userid(m.member)
+            nameparts = utilities.nameToFirstLast(userid)
             # - Use first portion of name as Firstname, all remaining as Familyname
-            password = "%s%d%d" % (nameparts['last'],random.randint(1,100000),len(nameparts['last']))
+            first = nameparts['first'] or "Member"
+            last = nameparts['last'] or first
+            alt_email = m.alt_email.strip() if m.alt_email else ""
+            password = "%s%d%d" % (last,random.randint(100000,999999),len(last))
             try:
-              google.createUser(nameparts['first'],nameparts['last'],m.member,m.alt_email,password)
-              m.email=m.member.lower()+"@makeitlabs.com"
-              google.sendWelcomeEmail(m.member,password,m.alt_email)
-              msg = "Created new Google account for %s %s" % (m.member,m.alt_email)
+              google.createUser(first,last,userid,alt_email,password)
+              m.email=userid.lower()+"@makeitlabs.com"
+              google.sendWelcomeEmail(userid,password,alt_email)
+              msg = "Created new Google account for %s %s" % (userid,alt_email)
               logger.warn(msg)
+              # Set up email forwarding in background thread (Gmail may not be
+              # ready immediately after account creation, so we delay and retry)
+              _start_forwarding_background(m.email, alt_email)
             except BaseException as e:
-              msg = "Failed createing Google account for %s: %s" % (m.alt_email,str(e))
+              msg = "Failed createing Google account for %s: %s" % (alt_email,str(e))
               logger.error(msg)
+            try:
+              google.addToGoogleGroup([m.email, alt_email])
+            except BaseException as e:
+              logger.warning("Non-fatal error adding %s / %s to active Google group: %s" % (m.email, alt_email, str(e)))
+            createMemberFolder(m)
         
 
         
@@ -331,4 +458,106 @@ Options:
         logger.info( "Non-production environments - no accounts will be created")
         isTest=True
 
-    syncWithSubscriptions(isTest)  
+    res = syncWithSubscriptions_with_retry(isTest)
+    if res != 0:
+      logger.error("cli_syncmemberpayments completed with status code %d" % res)
+
+def cli_createmembertest(cmd,**kwargs):
+    google.createUser("Testy","McTesterson","testy.testerson","test@example.com","test123abcd!")
+
+def cli_testgooglecreate(cmd,**kwargs):
+    """Test the full Google account creation + email forwarding pipeline.
+    Creates a real Google account (unless --test), sends welcome email,
+    and sets up email forwarding. Does NOT touch the database."""
+    args = cmd[1:]
+
+    if '--help' in args:
+        print("""
+Usage: testgooglecreate [firstname] [lastname] [alt_email] [--test]
+
+  Creates a Google account (firstname.lastname@makeitlabs.com), sends a
+  welcome email to alt_email, and sets up email forwarding from the new
+  makeitlabs.com address to alt_email.
+
+  Does NOT create any database records.
+
+  Options:
+    --test   Dry run: print what would happen but don't call Google APIs
+    --help   Show this help
+
+  Defaults to Testy McTesterson <test@example.com> if no args given.
+        """)
+        return
+
+    isTest = '--test' in args
+    args = [a for a in args if not a.startswith('--')]
+
+    firstname = utilities.sanitize_name(args[0] if len(args) > 0 else "Testy")
+    lastname  = utilities.sanitize_name(args[1] if len(args) > 1 else "McTesterson")
+    alt_email = (args[2] if len(args) > 2 else "test@example.com").strip()
+    userid = utilities.make_member_id(firstname, lastname)
+    makeitlabs_email = userid.lower() + "@makeitlabs.com"
+    password = "%s%d%d" % (lastname, random.randint(100000, 999999), len(lastname))
+
+    print("=== Google Account Creation Test ===")
+    print("  First name:    %s" % firstname)
+    print("  Last name:     %s" % lastname)
+    print("  User ID:       %s" % userid)
+    print("  MakeIt email:  %s" % makeitlabs_email)
+    print("  Alt email:     %s" % alt_email)
+    print("  Password:      %s" % password)
+    print("  Mode:          %s" % ("DRY RUN" if isTest else "LIVE"))
+    print()
+
+    if isTest:
+        print("[TEST] Would create Google user: %s" % userid)
+        print("[TEST] Would send welcome email to: %s" % alt_email)
+        print("[TEST] Would set up forwarding: %s -> %s" % (makeitlabs_email, alt_email))
+        print("\nDry run complete. No API calls made.")
+        return
+
+    # Step 1: Create Google account
+    print("Step 1: Creating Google account...")
+    try:
+        google.createUser(firstname, lastname, userid, alt_email, password)
+        print("  OK - Google account created for %s" % userid)
+    except BaseException as e:
+        print("  FAILED - %s" % str(e))
+        print("\nAborting (no account to forward from).")
+        return
+
+    # Step 2: Send welcome email
+    print("Step 2: Sending welcome email to %s..." % alt_email)
+    try:
+        google.sendWelcomeEmail(userid, password, alt_email)
+        print("  OK - Welcome email sent")
+    except BaseException as e:
+        print("  FAILED - %s" % str(e))
+        print("  (Continuing to forwarding setup...)")
+
+    # Step 3: Set up email forwarding (retry — Gmail may not be provisioned yet)
+    max_retries = 20
+    retry_delay = 10
+    print("Step 3: Setting up email forwarding %s -> %s..." % (makeitlabs_email, alt_email))
+    print("  (Will retry up to %d times, %d seconds apart)" % (max_retries, retry_delay))
+    for attempt in range(1, max_retries + 1):
+        try:
+            google.setupEmailForwarding(makeitlabs_email, alt_email)
+            print("  OK - Email forwarding enabled (attempt %d)" % attempt)
+            break
+        except BaseException as e:
+            if "Invalid forwarding address" in str(e) and "400" in str(e):
+                print("  OK - Ignoring 'Invalid forwarding address' error (treated as success)")
+                break
+            print("  Attempt %d/%d failed: %s" % (attempt, max_retries, str(e)))
+            if attempt < max_retries:
+                print("  Waiting %d seconds..." % retry_delay)
+                time.sleep(retry_delay)
+            else:
+                print("  FAILED - All %d attempts exhausted" % max_retries)
+
+    print("\nDone.")
+
+def cli_creatememberfoldertest(cmd,**kwargs):
+    bkg = Member.query.filter(Member.member=="Bradley.Goodman").one()
+    createMemberFolder(bkg)

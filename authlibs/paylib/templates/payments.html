@@ -1,5 +1,7 @@
 {% extends "layout_bootstrap.html" %}
 {% block body %}
+<script type="text/javascript">
+</script>
 <div>
   <h2>Payment System Management</h2>
 	<table class="table table-sm">
@@ -9,7 +11,10 @@
         <br>
         Test Connection<br>(10-15 seconds)</div>
         </td>
-        <td><div class="menubox"><a class="btn btn-primary" href="{{ url_for('payments.update_payments') }}">Update paysystem information</a>
+        <td><div class="menubox"><a class="btn btn-primary" role="status" href="{{ url_for('payments.update_payments') }}">
+				<span class="spinner-border spinner-border-sm" role="status"></span>
+				Update paysystem information
+		</a>
         <br>
         Update Payment Data<br>(10-30 Seconds)</div>
         </td>

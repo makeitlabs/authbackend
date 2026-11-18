@@ -10,6 +10,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app 
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import event as sa_event
 import logging
 import sys,os
 #import ConfigParser
@@ -169,6 +170,7 @@ class ConfigClass(object):
   USER_PASSLIB_CRYPTCONTEXT_SCHEMES=['pbkdf2_sha256']
   # Don;t want to include these, but it depends on them, so..
   USER_ENABLE_EMAIL = True        # Enable email authentication
+  USER_ENABLE_CONFIRM_EMAIL = False
   USER_ENABLE_USERNAME = False    # Disable username authentication
   USER_EMAIL_SENDER_NAME = USER_APP_NAME
   USER_EMAIL_SENDER_EMAIL = "noreply@example.com"
@@ -184,6 +186,30 @@ class ConfigClass(object):
   waiversystem = {}
   waiversystem['Apikey'] = Config.get('Smartwaiver','Apikey')
 
+# Flask-SQLAlchemy 2.5 does not set check_same_thread=False for file-based SQLite databases,
+# nor does it support dictionary configs in SQLALCHEMY_BINDS.
+# Hook apply_driver_hacks to ensure SQLite connections allow multi-threaded access.
+_orig_apply_driver_hacks = SQLAlchemy.apply_driver_hacks
+
+def _apply_driver_hacks(self, app, sa_url, options):
+  sa_url, options = _orig_apply_driver_hacks(self, app, sa_url, options)
+  if hasattr(sa_url, 'drivername') and sa_url.drivername.startswith('sqlite'):
+    connect_args = options.setdefault('connect_args', {})
+    connect_args['check_same_thread'] = False
+  return sa_url, options
+
+SQLAlchemy.apply_driver_hacks = _apply_driver_hacks
+
+def _set_sqlite_pragmas(dbapi_connection, connection_record):
+  """Enable WAL mode and set busy_timeout on every new SQLite connection.
+  WAL allows concurrent readers+writers. busy_timeout tells SQLite to wait
+  (up to 5 seconds) before raising 'database is locked' instead of failing
+  immediately."""
+  cursor = dbapi_connection.cursor()
+  cursor.execute("PRAGMA journal_mode=WAL")
+  cursor.execute("PRAGMA busy_timeout=5000")
+  cursor.close()
+
 def authbackend_init(name):
   app = Flask(name)
   app.config.from_object(__name__+'.ConfigClass')
@@ -192,4 +218,14 @@ def authbackend_init(name):
   authinit(app)
 
   db.init_app(app)
+
+  # Apply SQLite WAL mode to all database engines (main + logs)
+  with app.app_context():
+    for bind_key in [None, 'main', 'logs']:
+      try:
+        engine = db.get_engine(app, bind=bind_key)
+        sa_event.listen(engine, "connect", _set_sqlite_pragmas)
+      except Exception:
+        pass  # Skip binds that don't exist
+
   return app

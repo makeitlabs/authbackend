@@ -1,0 +1,17 @@
+{% extends "layout_public.html" %}
+{% block head %}
+{% endblock %}
+
+
+{% block widebody %}
+  <div class=body>
+	<div class="sectionhead">
+	  <h1>Oops!</h1>
+	</div>
+
+	<p>An error has occured. Please report the URL and the contents to follow to <a href="mailto:info@makeitlabs.com">info@makeitlabs.com</a>. This may have occured if you wanted to re-activate an old membership, but were actually signing up for a new one. No sweat - we'll get it right either way.</p>
+  <p>Please include the following in your message:</p>
+	<pre style="background-color:beige;padding:5px">{{ debug }} </pre>
+
+  </div>
+{% endblock %}

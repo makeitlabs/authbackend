@@ -8,7 +8,7 @@ from authlibs import ago
 from ..google_admin import genericEmailSender
 
 #import .crunchauto
-from .crunchauto import crunch_calendar
+from .crunchauto import crunch_calendar,do_payment
 
 blueprint = Blueprint("autoplot", __name__, template_folder='templates', static_folder="static",url_prefix="/autoplot")
 
@@ -43,8 +43,7 @@ def autoplot_logic(rundate=None,process_payment=False,process_invoice=False,debu
               data['Active']=sub.active
               if not data['Active']:
                   errors.append("Membership Inactive")
-              if data['Plan'] != "pro":
-                  errors.append("Not a pro member")
+              # if data['Plan'] != "pro": errors.append("Not a pro member")
           else:
               errors.append("Subscription Not Found")
       else:
@@ -64,7 +63,7 @@ def autoplot_logic(rundate=None,process_payment=False,process_invoice=False,debu
         data['pay_status']='already_paid'
       elif process_invoice:
         dopay = False
-        (pay_errors,pay_warnings,pay_debug,pay_status) = crunchauto.do_payment(data['Stripe ID'],price,data['lease-id'],data['title'],pay=process_payment)
+        (pay_errors,pay_warnings,pay_debug,pay_status) = do_payment(data['Stripe ID'],price,data['lease-id'],data['title'],pay=process_payment)
         if len(pay_errors) >0: errors += ['PAYMENT',]
         errors += pay_errors
         if len(pay_warnings) >0: warnings += ['PAYMENT',]

@@ -1,0 +1,43 @@
+{% extends "layout_bootstrap.html" %}
+{% block widebody %}
+{% with page="draft" %}
+{% include 'header.html' %}
+{% endwith %}
+	<h2>Pro Storage Draft Priority:  {{ members |length }}</h2>
+<div class="nodeslist" >
+	<form method="POST">
+	<table class="table supercompact table-sm subtle-hover-table">
+        <tr>
+            <th>Member</th>
+            <th>Member #</th>
+            <th>Utilization</th>
+            <th>Lands and Titles</th>
+            <th>Priority</th>
+        </tr>
+	{% for member in members %}
+	  <tr>
+			<td>
+				<a href="{{ url_for('members.members',id=member.id) }}">{{ member.member }}</a>
+			</td>
+			<td>
+				{{ member.id }}
+			</td>
+			<td>
+				{{ member.count }}
+			</td>
+			<td>
+				{{ member.comments }}
+			</td>
+			<td>
+				<input size=4 value="{{ member.draft }}" name="member-{{ member.id }}" />
+			</td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+
+<input type="submit" class="btn btn-primary" name="Submit" value="Submit" />
+</form>
+</div>
+{% endblock %}

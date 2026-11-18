@@ -1,0 +1,28 @@
+{% extends "layout_public.html" %}
+{% block head %}
+{% endblock %}
+
+
+{% block widebody %}
+  <div class=body>
+	<div class="sectionhead">
+		{% if title is not none %}
+		<h1>Membership</h1>
+		{% else %}
+		<h1>{{ title }}</h1>
+		{% endif %}
+	</div>
+
+	<p>{{ message }}<p>
+
+	{% if rawhtml is defined %}
+	{{ rawhtml | safe }}
+	{% endif %}
+
+	{% if debug is defined %}
+	<pre style="background-color:beige;padding:5px">{{ debug }} </pre>
+	{% endif %}
+	<p>For questions or further assistnace, please email <a href="mailto:info@makeitlabs.com">info@makeitlabs.com</a></p>
+
+  </div>
+{% endblock %}

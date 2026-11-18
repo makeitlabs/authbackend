@@ -61,7 +61,7 @@ if __name__ == '__main__':
       req = requests.Session()
       api_creds = (api_username,api_password)
       url = localurl+"/api/cron/nightly"
-      r = req.get(url, auth=api_creds)
+      r = req.get(url, auth=api_creds,verify=False)
       if r.status_code != 200:
         print ("WARNING - error in nightly cron API")
 

@@ -16,11 +16,27 @@ def get_raw_menu():
                     'importance':1000
             },
             {
+                    'checkfunc':rm_check,
+                    'url':url_for('resources.magic_authorize'),
+                    'img':url_for("static",filename="magic_wand.png"),
+                    'title':"Magic Authorize",
+                    'alt':"Quickly authorize recently denied users",
+                    'importance':1005
+            },
+            {
                     'url':url_for('members.members'),
                     'img':url_for("static",filename="office.png"),
                     'alt':"View, Create or Edit members and their access",
                     'title':"Members",
                     'importance':1010
+            },
+            {
+                    'privs':'Useredit',
+                    'url':url_for('members.orientation'),
+                    'title':"Orientation",
+                    'img':url_for("static",filename="orientation.png"),
+                    'alt':"Fast Member Orientation",
+                    'importance':10
             },
             {
                     'checkfunc':rm_check,
@@ -50,6 +66,13 @@ def get_raw_menu():
                     'alt':"Self-Training Portal",
                     'title':"Training",
                     'importance':1200
+            },
+            {
+                    'url':url_for('printerstatus.status'),
+                    'img':url_for("static",filename="3dprinter.png"),
+                    'alt':"View 3D Printer status and progress",
+                    'title':"3D Printer Status",
+                    'importance':1250
             },
             {
                     'url':url_for('memberFolders.folder'),
@@ -96,26 +119,33 @@ def get_raw_menu():
                     'title':"Logout (Soft)"
             },
             {
-                    'privs':'ProStore',
-                    'url':url_for('prostore.bins'),
+                    'url':url_for('resources.billable_resources'),
+                    'title':"Billable Resources",
+                    'img':url_for("static",filename="ResourceBilling.png"),
+            },
+            {
+                    'url':url_for('facility.minisplit'),
+                    'privs':'Facilities',
+                    'alt':"HVAC Controls",
+                    'img':url_for("static",filename="hvac.png"),
+                    'title':"HVAC"
+            },
+            {
+                    'url':url_for('finrep.finrep'),
+                    'privs':'Finance',
+                    'alt':"Financial Reports",
+                    'title':"Financial Reports"
+            },
+            {
+                    'url':url_for('prostore.grid'),
                     'img':url_for("static",filename="ProStoreBin.png"),
                     'alt':"Manage storage bins & locations",
-                    'title':"Pro Storage Bins"
+                    'title':"Pro Storage"
             },
             {
                     'privs':'Finance',
                     'url':url_for('members.notices'),
                     'title':"Member Notifications"
-            },
-            {
-                    'privs':'ProStore',
-                    'url':url_for('prostore.locations'),
-                    'title':"Pro Storage Locations"
-            },
-            {
-                    'privs':'ProStore',
-                    'url':url_for('prostore.grid'),
-                    'title':"Pro Storage Grid"
             },
             {
                     'privs':'Finance',
@@ -130,7 +160,7 @@ def get_raw_menu():
                     'importance':2000
             },
             {
-                    'privs':'Admin',
+                    'privs':'LeaseMgr',
                     'url':url_for('autoplot.autoplot'),
                     'title':"Auto Plot Billing",
                     'importance':2000
@@ -165,16 +195,75 @@ def get_raw_menu():
                     'alt':"Search for RFID Tag"
             },
             {
+                    'url':url_for('opendoors.opendoors'),
+                    'title':"Open Door",
+                    'alt':"Remote door open/unlock",
+                    'img':url_for("static",filename="OpenDoor.png"),
+            },
+            {
+                    'url':url_for('calendars.calendars'),
+                    'title':"Resource Calendars",
+                    'alt':"Reserve a Resource",
+                    'img':url_for("static",filename="calendar.png"),
+            },
+            {
+                    'privs':'Signpost',
+                    'url':url_for('signs.signs'),
+                    'title':"Lobby Sign",
+                    'alt':"Welcome sign messages"
+            },
+            {
+                    'privs':'Useredit',
+                    'url':url_for('signs.social_events'),
+                    'title':"Social Events Image",
+                    'alt':"Generate event graphics for social media"
+            },
+            {
                     'url':url_for('memberAudio.audio'),
-                    'title':"Entrance Audio",
-                    'img':url_for("static",filename="audioIcon.png"),
-                    'alt':"Entrance Audio Music"
+                    'title':"Member Info",
+                    'img':url_for("static",filename="member_info.png"),
+                    'alt':"Member Profile & Settings",
+                    'importance':1180
             },
             {
                     'url':url_for('vending.vending'),
                     'title':"Vending",
                     'img':url_for("static",filename="vending.png"),
                     'alt':"Vending and Payments"
+            },
+            {
+                    'url':url_for('purchasables.purchasables'),
+                    'title':"Purchasable Items",
+                    'img':url_for("static",filename="PurchasableIcon.png"),
+                    'alt':"Purchase Consumables"
+            },
+            {
+                    'privs':['Finance','Useredit'],
+                    'url':url_for('reports.reports'),
+                    'img':url_for("static",filename="data.png"),
+                    'alt':"View Reports",
+                    'title':"Reports",
+                    'importance':1150
+            },
+            {
+                    'url':url_for('classes.my_classes'),
+                    'title':"My Classes",
+                    'alt':"View your upcoming classes",
+                    'importance':1210
+            },
+            {
+                    'privs':['Admin','Classes'],
+                    'url':url_for('classes.admin'),
+                    'title':"Class Administration",
+                    'alt':"Administer Classes and Instructors",
+                    'importance':2010
+            },
+            {
+                    'privs':['Admin','Classes','Useredit'],
+                    'url':url_for('classes.social_promo'),
+                    'title':"Class Promo Graphic",
+                    'alt':"Generate social media promo graphics for featured classes",
+                    'importance':2015
             }
     ]
 
@@ -188,8 +277,12 @@ def main_menu():
     allow = False
     if 'checkfunc' in m and m['checkfunc'](current_user):
       allow = True
-    if 'privs' in m and  current_user.privs(m['privs']):
-      allow = True
+    if 'privs' in m:
+      if isinstance(m['privs'], (list, tuple)):
+        if current_user.privs(*m['privs']):
+          allow = True
+      elif current_user.privs(m['privs']):
+        allow = True
     if 'privs' not in m and 'checkfunc' not in m:
       allow = True
     if allow:
@@ -203,8 +296,12 @@ def index_page():
     if 'importance' not in m: m['importance']="zzz"
     if 'checkfunc' in m and m['checkfunc'](current_user):
       allow = True
-    elif 'privs' in m and current_user.privs(m['privs']):
-      allow = True
+    elif 'privs' in m:
+      if isinstance(m['privs'], (list, tuple)):
+        if current_user.privs(*m['privs']):
+          allow = True
+      elif current_user.privs(m['privs']):
+        allow = True
     if 'privs' not in m and 'checkfunc' not in m:
       allow = True
     if allow:

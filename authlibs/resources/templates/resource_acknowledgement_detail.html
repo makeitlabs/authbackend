@@ -1,0 +1,65 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div>
+<div class="sectionhead"><h3>Acknowledgement Details: {{ ack.title }}</h3></div>
+    <div class="mb-4">
+        <a href="{{ url_for('resources.resource_acknowledgements', resource=resource.name) }}" class="btn btn-secondary">Back to Acknowledgements</a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">{{ ack.title }}</h5>
+            <h6 class="card-subtitle mb-2 text-muted">Created: {{ ack.time_created.strftime('%Y-%m-%d %H:%M') }} | Enforce On: {{ ack.enforce_on.strftime('%Y-%m-%d %H:%M') if ack.enforce_on else 'Never' }}</h6>
+            <p class="card-text">{{ ack.message }}</p>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h4>User Status</h4>
+        <span class="badge badge-info" style="font-size: 1.1em;">{{ ack_count }} of {{ total_count }} acknowledgements received</span>
+    </div>
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Member</th>
+                <th>Sent</th>
+                <th>Acknowledged</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for au, member in users %}
+            <tr>
+                <td>{{ member.member }} ({{ member.firstname }} {{ member.lastname }})</td>
+                <td>{{ au.time_sent.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    {% if au.time_acknowledged %}
+                        <span class="badge badge-success">{{ au.time_acknowledged.strftime('%Y-%m-%d %H:%M') }}</span>
+                    {% else %}
+                        <span class="badge badge-warning">Pending</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="POST" action="{{ url_for('resources.resource_acknowledgement_detail', resource=resource.name, ack_id=ack.id) }}" class="d-inline">
+                        <input type="hidden" name="action" value="resend">
+                        <input type="hidden" name="member_id" value="{{ member.id }}">
+                        <button type="submit" class="btn btn-sm btn-primary">Resend</button>
+                    </form>
+                    {% if not au.time_acknowledged %}
+                    <form method="POST" action="{{ url_for('resources.resource_acknowledgement_detail', resource=resource.name, ack_id=ack.id) }}" class="d-inline">
+                        <input type="hidden" name="action" value="manual_ack">
+                        <input type="hidden" name="member_id" value="{{ member.id }}">
+                        <button type="submit" class="btn btn-sm btn-warning">Manual Ack</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4">No users found for this acknowledgement. Click "Send / Update" on the previous page to send to authorized users.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

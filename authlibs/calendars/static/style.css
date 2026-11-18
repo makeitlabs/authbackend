@@ -1,0 +1,703 @@
+:root {
+    --primary: #22c55e;
+    --primary-hover: #16a34a;
+    --primary-light: #dcfce7;
+    --text-main: #1f2937;
+    --text-muted: #6b7280;
+    --bg-app: #f3f4f6;
+    --bg-card: #ffffff;
+    --border: #e5e7eb;
+    --booked: #f3f4f6;
+    --booked-stripe: #e5e7eb;
+    --slot-height: 40px;
+    --radius-lg: 16px;
+    --radius-md: 8px;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-app);
+    color: var(--text-main);
+    line-height: 1.5;
+    height: 100vh;
+    height: 100dvh;
+    /* Use dynamic viewport height for better mobile support */
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+}
+
+.app-container {
+    max-width: 600px;
+    margin: 0 auto;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    /* Allow flex shrinking */
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    box-shadow: var(--shadow-md);
+}
+
+@media (min-width: 600px) {
+    .app-container {
+        height: 90vh;
+        margin-top: 5vh;
+        border-radius: var(--radius-lg);
+    }
+}
+
+/* Header */
+.header {
+    flex-shrink: 0;
+    /* Prevent header from shrinking */
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+    z-index: 30;
+    position: relative;
+    /* Fix for absolute positioning of popup */
+}
+
+.header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.subtitle {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* Booking Widget */
+.booking-widget {
+    flex: 1;
+    min-height: 0;
+    /* Critical for flexbox scrolling */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Date Navigation */
+.date-nav {
+    flex-shrink: 0;
+    /* Prevent date nav from shrinking */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+}
+
+.nav-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-main);
+    transition: all 0.2s;
+}
+
+.nav-btn:hover {
+    background: var(--bg-app);
+    border-color: var(--text-muted);
+}
+
+.current-date {
+    font-weight: 600;
+    font-size: 1.125rem;
+    cursor: pointer;
+    display: inline-block;
+    position: relative;
+    z-index: 2;
+}
+
+.current-date:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--text-muted);
+    text-underline-offset: 4px;
+}
+
+.current-date-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.date-picker-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 1;
+    pointer-events: none;
+    /* Let clicks pass through to the label */
+}
+
+/* Back Button */
+.back-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.back-btn:hover {
+    background-color: var(--bg-app);
+    color: var(--text-main);
+}
+
+/* Time Grid */
+.time-grid-wrapper {
+    flex: 1;
+    min-height: 0;
+    /* Critical for flexbox scrolling */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.scroll-hint {
+    position: absolute;
+    left: 40px;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 25;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--primary);
+    opacity: 0.8;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 50%;
+    box-shadow: var(--shadow-md);
+}
+
+.scroll-hint.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.scroll-hint svg {
+    animation: scroll-hint-bounce 1.5s infinite;
+}
+
+@keyframes scroll-hint-bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(10px);
+    }
+}
+
+.time-grid-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    /* Remove padding to let separators stick to top */
+    scroll-behavior: auto;
+    /* Disable smooth scroll for infinite scrolling manipulation */
+    /* Hide scrollbar for cleaner look */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.time-grid-scroll-area::-webkit-scrollbar {
+    display: none;
+}
+
+.time-grid {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    user-select: none;
+    /* Prevent text selection while dragging */
+}
+
+/* Day Section */
+.day-section {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 0;
+    position: relative;
+    border-bottom: 2px solid var(--border);
+}
+
+.day-separator {
+    grid-column: 1 / -1;
+    background-color: var(--bg-app);
+    color: var(--text-main);
+    font-weight: 700;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+/* Time Labels */
+.time-label {
+    height: var(--slot-height);
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding-right: 0.5rem;
+    padding-left: 5px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+    transform: translateY(-50%);
+    /* Center label on the line */
+    cursor: grab;
+}
+
+.time-label:active {
+    cursor: grabbing;
+}
+
+.time-label.start-of-day {
+    transform: translateY(0);
+    align-items: flex-start;
+    padding-top: 4px;
+    /* Slight buffer */
+}
+
+/* Slots */
+.slot-column {
+    position: relative;
+    border-left: 1px solid var(--border);
+}
+
+.time-slot {
+    height: var(--slot-height);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+
+.time-slot:first-child {
+    border-top: 1px solid var(--border);
+}
+
+/* Slot States */
+.time-slot.booked {
+    background: repeating-linear-gradient(45deg,
+            var(--booked),
+            var(--booked) 10px,
+            var(--booked-stripe) 10px,
+            var(--booked-stripe) 20px);
+    cursor: not-allowed;
+}
+
+.time-slot.selected {
+    background-color: var(--primary-light);
+    border-left: 3px solid var(--primary);
+}
+
+.time-slot.past-slot {
+    background-color: #f8f9fa;
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.time-slot.dragging {
+    opacity: 0.8;
+}
+
+/* Resize Handles */
+.resize-handle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 20px;
+    /* Increased from 10px for better hit area */
+    cursor: ns-resize;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.resize-handle::after {
+    content: '';
+    width: 40px;
+    height: 4px;
+    background-color: var(--primary);
+    border-radius: 2px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.resize-handle.top {
+    top: -10px;
+}
+
+.resize-handle.bottom {
+    bottom: -10px;
+}
+
+/* Action Bar */
+.action-bar {
+    flex-shrink: 0;
+    /* Keep footer at bottom */
+    padding: 1.5rem;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 -4px 6px -1px rgb(0 0 0 / 0.05);
+}
+
+.selection-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.selection-info .label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.selection-info .value {
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 1rem;
+}
+
+.book-btn {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    box-shadow: 0 2px 4px rgb(99 102 241 / 0.3);
+}
+
+.book-btn:hover:not(:disabled) {
+    background-color: var(--primary-hover);
+}
+
+.book-btn:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.book-btn:disabled {
+    background-color: var(--border);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.delete-btn {
+    background-color: #ef4444;
+    /* Red-500 */
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    box-shadow: 0 2px 4px rgb(239 68 68 / 0.3);
+}
+
+.delete-btn:hover {
+    background-color: #dc2626;
+    /* Red-600 */
+}
+
+.delete-btn:active {
+    transform: scale(0.98);
+}
+
+.cancel-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+    background: var(--bg-app);
+    color: var(--text-main);
+}
+
+.cancel-btn.hidden {
+    display: none;
+}
+
+.hidden-editing {
+    display: none !important;
+}
+
+.selection-label {
+    position: absolute;
+    top: 5px;
+    left: 8px;
+    right: 8px;
+    pointer-events: none;
+    z-index: 15;
+    font-size: 0.75rem;
+    color: #14532d;
+    /* Dark green text to match active selection */
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* My Bookings UI */
+.my-bookings-btn {
+    background: transparent;
+    border: 1px solid #0ea5e9;
+    color: #0ea5e9;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.my-bookings-btn:hover {
+    background: #e0f2fe;
+}
+
+.my-bookings-list {
+    position: absolute;
+    top: 80px;
+    /* Below header */
+    right: 1.5rem;
+    width: 300px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    z-index: 50;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.my-bookings-list.hidden {
+    display: none;
+}
+
+.my-booking-item {
+    padding: 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.1s;
+    border-bottom: 1px solid var(--border);
+}
+
+.my-booking-item:last-child {
+    border-bottom: none;
+}
+
+.my-booking-item:hover {
+    background-color: var(--bg-app);
+}
+
+.my-booking-time {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-main);
+}
+
+.my-booking-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Booking Event Card */
+.booking-event {
+    background-color: #e0f2fe;
+    /* Light blue (default/others) */
+    border-left: 3px solid #0ea5e9;
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin: 1px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    z-index: 5;
+    pointer-events: none;
+}
+
+.booking-event.mine {
+    background-color: #e0f2fe;
+    /* Light Blue */
+    border-left-color: #0ea5e9;
+    pointer-events: auto;
+    /* Allow clicking for edit */
+    cursor: pointer;
+}
+
+.booking-event.mine .booking-user {
+    color: #0369a1;
+}
+
+.booking-event.mine .booking-desc {
+    color: #0c4a6e;
+}
+
+.booking-user {
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: #0369a1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.booking-desc {
+    font-size: 0.7rem;
+    color: #0c4a6e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Modals */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 1;
+    transition: opacity 0.2s;
+}
+
+.modal-overlay.hidden {
+    display: none;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.modal {
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    width: 90%;
+    max-width: 400px;
+    animation: modalIn 0.2s ease-out;
+}
+
+@keyframes modalIn {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.modal h2 {
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    color: var(--text-main);
+}
+
+.modal p {
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-input:focus {
+    border-color: var(--primary);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}

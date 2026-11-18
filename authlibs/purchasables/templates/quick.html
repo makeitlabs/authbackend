@@ -1,0 +1,79 @@
+{% block head %}
+<script src="https://www.google.com/recaptcha/api.js"></script>
+ <script>
+   function onSubmit(token) {
+     document.getElementById("demo-form").submit();
+   }
+ </script>
+{% endblock %}
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+	<h2>Purchase</h2>
+
+  <p>
+  Please confirm that you wish to make a purchase for <strong>{{ purchasable.name }}</strong> {{ ident }}.
+  {% if cost != 0 %}
+  <br/>This will charge <strong>${{ chargeStr }}</strong> to the card you have on file with your MakeIt Labs Membership.
+  {% endif %}
+  </p>
+
+
+  <form id="purchase_form" method="POST" action="{{ url_for('purchasables.purchasable_purchase') }}">
+	  <input type="hidden" name="purchase_item_id" value="{{ purchasable.id }}" />
+	  
+	  {% if cost != 0 %}
+	      <input type="hidden" name="pricestr" value="{{ chargeStr }}" />
+          <button type="submit" name="Purchase" value="Purchase" class="btn btn-danger" onclick="this.disabled=true; this.form.submit();">Purchase</button>
+	  {% else %}
+	      <div class="form-group row mb-4 mt-4">
+	          <label class="col-sm-2 col-form-label" style="font-weight:bold;">Amount ($):</label>
+	          <div class="col-sm-4">
+	              <input type="number" step="0.01" min="0.50" class="form-control" name="pricestr" id="pricestr_input" required placeholder="0.00">
+	          </div>
+	      </div>
+          <button type="button" class="btn btn-danger" onclick="confirmCustomPrice()">Continue</button>
+	  {% endif %}
+	  <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+  </form>
+
+  <!-- Modal for Custom Price Confirmation -->
+  <div class="modal fade" id="confirmModal" tabindex="-1" role="dialog" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirmModalLabel">Confirm Purchase</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to charge <strong id="modal_price_display"></strong> to your card on file for {{ purchasable.name }} {{ ident }}?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="modal_confirm_btn" onclick="submitCustomPrice()">Confirm Purchase</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function confirmCustomPrice() {
+        var price = document.getElementById('pricestr_input').value;
+        if (!price || parseFloat(price) <= 0) {
+            alert("Please enter a valid amount.");
+            return;
+        }
+        document.getElementById('modal_price_display').innerText = "$" + parseFloat(price).toFixed(2);
+        $('#confirmModal').modal('show');
+    }
+    
+    function submitCustomPrice() {
+        var btn = document.getElementById('modal_confirm_btn');
+        btn.disabled = true;
+        btn.innerText = "Processing...";
+        document.getElementById('purchase_form').submit();
+    }
+  </script>
+
+{% endblock %}

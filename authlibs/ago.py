@@ -26,7 +26,9 @@ def whichday(then):
 	when += then.strftime("%I:%M %p")
 	return when
 	
-def ago(tm,since=datetime.datetime.now()):
+def ago(tm,since=None):
+	if since is None:
+		since = datetime.datetime.now()
 	daysago = since-tm
 	return delta(daysago,tm)
 

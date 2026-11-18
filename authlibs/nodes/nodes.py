@@ -3,7 +3,7 @@
 
 from ..templateCommon import  *
 from authlibs.comments import comments
-from datetime import datetime
+from datetime import datetime, timedelta
 from authlibs import ago
 
 blueprint = Blueprint("nodes", __name__, template_folder='templates', static_folder="static",url_prefix="/nodes")
@@ -28,7 +28,16 @@ def nodes():
 			acl = ago.ago(now,x.last_update)
 			axx=x.last_update.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
 			acl=ago.ago(axx,datetime.now())
-		nodes.append({'id':x.id,'name':x.name,'mac':x.mac,'when':a[0],'ago':a[1],'strength':x.strength,'when_acl':acl[0],'ago_acl':acl[1]})
+
+		# Determine if this always-on node should be flagged as offline
+		is_always_on = (x.always_on or 0) == 1
+		offline_alert = False
+		if is_always_on:
+			ping_stale = (x.last_ping is None) or (datetime.utcnow() - x.last_ping > timedelta(hours=1))
+			acl_stale = (x.last_update is None) or (datetime.utcnow() - x.last_update > timedelta(hours=24))
+			offline_alert = ping_stale or acl_stale
+
+		nodes.append({'id':x.id,'name':x.name,'mac':x.mac,'when':a[0],'ago':a[1],'strength':x.strength,'when_acl':acl[0],'ago_acl':acl[1],'always_on':is_always_on,'offline_alert':offline_alert})
 	access = {}
 	resources=Resource.query.all()
 	return render_template('nodes.html',nodes=sorted(nodes,key=lambda x:x['name']),editable=True,node={},resources=resources)
@@ -41,6 +50,10 @@ def nodes_create():
     r = Node()
     r.name = (request.form['input_name'])
     r.mac = (request.form['input_mac'])
+    if ('input_always_on' in request.form):
+        r.always_on = 1
+    else:
+        r.always_on = 0
     db.session.add(r)
     db.session.commit()
     flash("Created.")
@@ -118,6 +131,10 @@ def nodes_update(node):
                     return redirect(url_for('nodes.nodes'))
         r.name = (request.form['input_name'])
         r.mac = (request.form['input_mac'])
+        if ('input_always_on' in request.form):
+            r.always_on = 1
+        else:
+            r.always_on = 0
         for x in request.form:
             if x.startswith("key_orig_"):
                 kid=x.split("_")[-1]

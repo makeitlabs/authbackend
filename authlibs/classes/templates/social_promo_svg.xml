@@ -1,0 +1,286 @@
+<svg width="{{ svg_width|default(1080) }}" height="{{ svg_height|default(1350) }}" viewBox="0 0 {{ svg_width|default(1080) }} {{ svg_height|default(1350) }}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; width: 100%; height: auto; max-width: 100%;">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B132B" />
+      <stop offset="50%" stop-color="#111D35" />
+      <stop offset="100%" stop-color="#080E1C" />
+    </linearGradient>
+
+    <!-- Card Gradient -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#15243E" />
+      <stop offset="100%" stop-color="#101B2E" />
+    </linearGradient>
+
+    <!-- Orange Gradient for accents & badges -->
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F58220" />
+      <stop offset="100%" stop-color="#FF9B42" />
+    </linearGradient>
+
+    <!-- Cyan Gradient for buttons -->
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284C7" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+
+    <!-- Subtle glow filter -->
+    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.35" />
+    </filter>
+
+    <!-- Clip Paths for images -->
+    {% for e in events %}
+      <clipPath id="imgClip-{{ loop.index }}">
+        <rect x="{{ e.clip_x }}" y="{{ e.clip_y }}" width="{{ e.clip_w }}" height="{{ e.clip_h }}" rx="{{ e.clip_rx }}" />
+      </clipPath>
+    {% endfor %}
+  </defs>
+
+  <style>
+    .font-sans { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  </style>
+
+  <!-- Canvas Background -->
+  <rect width="100%" height="100%" fill="url(#bgGrad)" />
+
+  <!-- Ambient background glow -->
+  <circle cx="200" cy="180" r="300" fill="#0284C7" opacity="0.08" filter="blur(60px)" />
+  <circle cx="880" cy="900" r="340" fill="#F58220" opacity="0.06" filter="blur(70px)" />
+
+  <!-- Top Accent Bar -->
+  <rect x="0" y="0" width="1080" height="6" fill="url(#orangeGrad)" />
+
+  <!-- ==================== HEADER ==================== -->
+  <g id="headerGroup">
+    {% if logo_svg_inner %}
+      <g id="headerLogo" transform="translate(310, 32) scale(0.623277)">
+        {{ logo_svg_inner|safe }}
+      </g>
+    {% elif logo_data_uri %}
+      <image x="310" y="32" width="460" height="82" preserveAspectRatio="xMidYMid meet" href="{{ logo_data_uri }}" xlink:href="{{ logo_data_uri }}" />
+    {% else %}
+      <text x="540" y="85" fill="#F58220" font-size="44" font-weight="900" letter-spacing="2" text-anchor="middle" class="font-sans">MAKEIT LABS</text>
+    {% endif %}
+
+    <!-- Main Title -->
+    <text x="540" y="162" fill="#FFFFFF" font-size="34" font-weight="800" letter-spacing="1" text-anchor="middle" class="font-sans">
+      {{ headline|default("UPCOMING WORKSHOPS &amp; CLASSES")|upper }}
+    </text>
+
+    <!-- Subtitle / Date Header -->
+    <text x="540" y="200" fill="#38BDF8" font-size="21" font-weight="600" text-anchor="middle" class="font-sans">
+      {{ subhead|default("Hands-on Making • Open to the Public • Nashua, NH") }}
+    </text>
+  </g>
+
+  <!-- ==================== EVENT CARDS ==================== -->
+  {% if events|length == 2 %}
+    {# ---------------- 2 CLASSES LAYOUT ---------------- #}
+    {% for e in events %}
+      {% set card_y = 240 + loop.index0 * 505 %}
+      <g class="event-card" filter="url(#cardShadow)">
+        <!-- Card Base -->
+        <rect x="40" y="{{ card_y }}" width="1000" height="475" rx="20" fill="url(#cardGrad)" stroke="#223756" stroke-width="2" />
+
+        <!-- Image -->
+        {% if e.image_data_uri %}
+          <image x="65" y="{{ card_y + 25 }}" width="425" height="425" preserveAspectRatio="xMidYMid slice" href="{{ e.image_data_uri }}" xlink:href="{{ e.image_data_uri }}" clip-path="url(#imgClip-{{ loop.index }})" />
+        {% else %}
+          <rect x="65" y="{{ card_y + 25 }}" width="425" height="425" rx="16" fill="#1C2E4A" />
+          <text x="277" y="{{ card_y + 245 }}" fill="#64748B" font-size="24" font-weight="700" text-anchor="middle" class="font-sans">MakeIt Labs Class</text>
+        {% endif %}
+
+        <!-- Category Pill Overlay on Image -->
+        {% if e.category %}
+          <rect x="80" y="{{ card_y + 40 }}" width="{{ e.cat_pill_w|default(140) }}" height="32" rx="6" fill="#F58220" />
+          <text x="{{ 80 + (e.cat_pill_w|default(140))/2 }}" y="{{ card_y + 62 }}" fill="#FFFFFF" font-size="15" font-weight="800" text-anchor="middle" class="font-sans">{{ e.category|upper }}</text>
+        {% endif %}
+
+        <!-- Content on Right -->
+        <!-- Date Badge -->
+        <g transform="translate(520, {{ card_y + 65 }})">
+          <rect x="0" y="0" width="480" height="42" rx="8" fill="#1A2D48" stroke="#334E77" stroke-width="1.5" />
+          <text x="20" y="27" fill="#FDBA74" font-size="20" font-weight="700" class="font-sans">{{ e.date_str }}</text>
+        </g>
+
+        <!-- Title -->
+        <text x="520" y="{{ card_y + 155 }}" fill="#FFFFFF" font-size="31" font-weight="800" class="font-sans">
+          {% for line in e.title_lines %}
+            <tspan x="520" dy="{{ '0' if loop.first else '38' }}">{{ line }}</tspan>
+          {% endfor %}
+        </text>
+
+        <!-- Teaser Description -->
+        {% if e.summary_lines %}
+          <text x="520" y="{{ card_y + 290 }}" fill="#94A3B8" font-size="20" font-weight="400" class="font-sans">
+            {% for line in e.summary_lines %}
+              <tspan x="520" dy="{{ '0' if loop.first else '28' }}">{{ line }}</tspan>
+            {% endfor %}
+          </text>
+        {% endif %}
+
+        <!-- Action Pill -->
+        <g transform="translate(520, {{ card_y + 415 }})">
+          <rect x="0" y="0" width="270" height="42" rx="8" fill="url(#cyanGrad)" />
+          <text x="135" y="27" fill="#FFFFFF" font-size="16" font-weight="700" text-anchor="middle" class="font-sans">REGISTER ON EVENTBRITE &#8594;</text>
+        </g>
+      </g>
+    {% endfor %}
+
+  {% elif events|length == 3 %}
+    {# ---------------- 3 CLASSES LAYOUT ---------------- #}
+    {% for e in events %}
+      {% set card_y = 236 + loop.index0 * 338 %}
+      <g class="event-card" filter="url(#cardShadow)">
+        <!-- Card Base -->
+        <rect x="40" y="{{ card_y }}" width="1000" height="318" rx="18" fill="url(#cardGrad)" stroke="#223756" stroke-width="2" />
+
+        <!-- Image -->
+        {% if e.image_data_uri %}
+          <image x="60" y="{{ card_y + 20 }}" width="380" height="278" preserveAspectRatio="xMidYMid slice" href="{{ e.image_data_uri }}" xlink:href="{{ e.image_data_uri }}" clip-path="url(#imgClip-{{ loop.index }})" />
+        {% else %}
+          <rect x="60" y="{{ card_y + 20 }}" width="380" height="278" rx="14" fill="#1C2E4A" />
+          <text x="250" y="{{ card_y + 165 }}" fill="#64748B" font-size="22" font-weight="700" text-anchor="middle" class="font-sans">MakeIt Labs Class</text>
+        {% endif %}
+
+        <!-- Category Pill Overlay on Image -->
+        {% if e.category %}
+          <rect x="75" y="{{ card_y + 35 }}" width="{{ e.cat_pill_w|default(130) }}" height="30" rx="6" fill="#F58220" />
+          <text x="{{ 75 + (e.cat_pill_w|default(130))/2 }}" y="{{ card_y + 56 }}" fill="#FFFFFF" font-size="14" font-weight="800" text-anchor="middle" class="font-sans">{{ e.category|upper }}</text>
+        {% endif %}
+
+        <!-- Content Right -->
+        <!-- Date Tag -->
+        <text x="465" y="{{ card_y + 52 }}" fill="#FDBA74" font-size="20" font-weight="700" class="font-sans">
+          {{ e.date_str }}
+        </text>
+
+        <!-- Title -->
+        <text x="465" y="{{ card_y + 95 }}" fill="#FFFFFF" font-size="27" font-weight="800" class="font-sans">
+          {% for line in e.title_lines %}
+            <tspan x="465" dy="{{ '0' if loop.first else '34' }}">{{ line }}</tspan>
+          {% endfor %}
+        </text>
+
+        <!-- Teaser Description -->
+        {% if e.summary_lines %}
+          <text x="465" y="{{ card_y + 195 }}" fill="#94A3B8" font-size="18.5" font-weight="400" class="font-sans">
+            {% for line in e.summary_lines %}
+              <tspan x="465" dy="{{ '0' if loop.first else '26' }}">{{ line }}</tspan>
+            {% endfor %}
+          </text>
+        {% endif %}
+
+        <!-- Bottom Link / Status -->
+        <text x="465" y="{{ card_y + 290 }}" fill="#38BDF8" font-size="16.5" font-weight="700" class="font-sans">
+          REGISTER ON EVENTBRITE &#8594;
+        </text>
+      </g>
+    {% endfor %}
+
+  {% elif events|length == 4 %}
+    {# ---------------- 4 CLASSES (2x2 GRID) LAYOUT ---------------- #}
+    {% for e in events %}
+      {% set col = loop.index0 % 2 %}
+      {% set row = loop.index0 // 2 %}
+      {% set card_x = 40 + col * 515 %}
+      {% set card_y = 236 + row * 515 %}
+      <g class="event-card" filter="url(#cardShadow)">
+        <!-- Card Base -->
+        <rect x="{{ card_x }}" y="{{ card_y }}" width="485" height="495" rx="18" fill="url(#cardGrad)" stroke="#223756" stroke-width="2" />
+
+        <!-- Image (Top of card) -->
+        {% if e.image_data_uri %}
+          <image x="{{ card_x + 15 }}" y="{{ card_y + 15 }}" width="455" height="235" preserveAspectRatio="xMidYMid slice" href="{{ e.image_data_uri }}" xlink:href="{{ e.image_data_uri }}" clip-path="url(#imgClip-{{ loop.index }})" />
+        {% else %}
+          <rect x="{{ card_x + 15 }}" y="{{ card_y + 15 }}" width="455" height="235" rx="12" fill="#1C2E4A" />
+          <text x="{{ card_x + 242 }}" y="{{ card_y + 135 }}" fill="#64748B" font-size="20" font-weight="700" text-anchor="middle" class="font-sans">MakeIt Labs Class</text>
+        {% endif %}
+
+        <!-- Category Pill Overlay -->
+        {% if e.category %}
+          <rect x="{{ card_x + 28 }}" y="{{ card_y + 28 }}" width="{{ e.cat_pill_w|default(120) }}" height="28" rx="6" fill="#F58220" />
+          <text x="{{ card_x + 28 + (e.cat_pill_w|default(120))/2 }}" y="{{ card_y + 47 }}" fill="#FFFFFF" font-size="13" font-weight="800" text-anchor="middle" class="font-sans">{{ e.category|upper }}</text>
+        {% endif %}
+
+        <!-- Content Below Photo -->
+        <!-- Date Tag -->
+        <text x="{{ card_x + 20 }}" y="{{ card_y + 284 }}" fill="#FDBA74" font-size="18.5" font-weight="700" class="font-sans">
+          {{ e.date_str }}
+        </text>
+
+        <!-- Title -->
+        <text x="{{ card_x + 20 }}" y="{{ card_y + 322 }}" fill="#FFFFFF" font-size="23" font-weight="800" class="font-sans">
+          {% for line in e.title_lines %}
+            <tspan x="{{ card_x + 20 }}" dy="{{ '0' if loop.first else '29' }}">{{ line }}</tspan>
+          {% endfor %}
+        </text>
+
+        <!-- Teaser Description -->
+        {% if e.summary_lines %}
+          {% set summary_y = card_y + 322 + (e.title_lines|length) * 29 + 14 %}
+          <text x="{{ card_x + 20 }}" y="{{ summary_y }}" fill="#94A3B8" font-size="16.5" font-weight="400" class="font-sans">
+            {% for line in e.summary_lines %}
+              <tspan x="{{ card_x + 20 }}" dy="{{ '0' if loop.first else '23' }}">{{ line }}</tspan>
+            {% endfor %}
+          </text>
+        {% endif %}
+
+        <!-- Link -->
+        <text x="{{ card_x + 20 }}" y="{{ card_y + 478 }}" fill="#38BDF8" font-size="15" font-weight="700" class="font-sans">
+          REGISTER ON EVENTBRITE &#8594;
+        </text>
+      </g>
+    {% endfor %}
+
+  {% else %}
+    {# ---------------- 1 CLASS HERO LAYOUT ---------------- #}
+    {% for e in events %}
+      <g class="event-card" filter="url(#cardShadow)">
+        <rect x="40" y="240" width="1000" height="990" rx="20" fill="url(#cardGrad)" stroke="#223756" stroke-width="2" />
+
+        {% if e.image_data_uri %}
+          <image x="65" y="265" width="950" height="520" preserveAspectRatio="xMidYMid slice" href="{{ e.image_data_uri }}" xlink:href="{{ e.image_data_uri }}" clip-path="url(#imgClip-1)" />
+        {% endif %}
+
+        {% if e.category %}
+          <rect x="85" y="285" width="{{ e.cat_pill_w|default(150) }}" height="36" rx="8" fill="#F58220" />
+          <text x="{{ 85 + (e.cat_pill_w|default(150))/2 }}" y="310" fill="#FFFFFF" font-size="16" font-weight="800" text-anchor="middle" class="font-sans">{{ e.category|upper }}</text>
+        {% endif %}
+
+        <text x="65" y="840" fill="#FDBA74" font-size="24" font-weight="700" class="font-sans">{{ e.date_str }}</text>
+
+        <text x="65" y="900" fill="#FFFFFF" font-size="36" font-weight="800" class="font-sans">
+          {% for line in e.title_lines %}
+            <tspan x="65" dy="{{ '0' if loop.first else '44' }}">{{ line }}</tspan>
+          {% endfor %}
+        </text>
+
+        {% if e.summary_lines %}
+          <text x="65" y="1030" fill="#94A3B8" font-size="22" font-weight="400" class="font-sans">
+            {% for line in e.summary_lines %}
+              <tspan x="65" dy="{{ '0' if loop.first else '30' }}">{{ line }}</tspan>
+            {% endfor %}
+          </text>
+        {% endif %}
+
+        <g transform="translate(65, 1150)">
+          <rect x="0" y="0" width="300" height="50" rx="10" fill="url(#cyanGrad)" />
+          <text x="150" y="32" fill="#FFFFFF" font-size="18" font-weight="700" text-anchor="middle" class="font-sans">REGISTER ON EVENTBRITE &#8594;</text>
+        </g>
+      </g>
+    {% endfor %}
+  {% endif %}
+
+  <!-- ==================== FOOTER ==================== -->
+  <g id="footerGroup">
+    <line x1="40" y1="1275" x2="1040" y2="1275" stroke="#1E2F4A" stroke-width="2" />
+    <circle cx="540" cy="1275" r="5" fill="#F58220" />
+
+    <text x="540" y="1312" fill="#64748B" font-size="17" font-weight="700" letter-spacing="1.5" text-anchor="middle" class="font-sans">
+      {{ footer_text|default("MAKEITLABS.COM • 25 CROWN ST, NASHUA, NH • DETAILS AT MAKEITLABS.COM")|upper }}
+    </text>
+  </g>
+</svg>

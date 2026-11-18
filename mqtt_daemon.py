@@ -20,12 +20,15 @@ import json
 import subprocess
 import configparser,sys,os
 import paho.mqtt.client as mqtt
-import paho.mqtt.subscribe as sub
+# NO import paho.mqtt.subscribe as sub
 from datetime import datetime
 from authlibs.init import authbackend_init, createDefaultUsers
 import requests,urllib
 import logging, logging.handlers
 from  authlibs import eventtypes
+import redis
+
+global client
 
 
 ## SETUP LOGGING
@@ -34,8 +37,6 @@ for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 
 logger=logging.getLogger()
-handler = logging.handlers.RotatingFileHandler(
-    "/tmp/mqtt_daemon.log", maxBytes=(1048576*5), backupCount=7)
 handler.setLevel(logging.DEBUG)
 format = logging.Formatter("%(asctime)s:%(levelname)s:%(module)s:%(message)s")
 handler.setFormatter(format)
@@ -50,9 +51,69 @@ logger.addHandler(handler)
 Config = configparser.ConfigParser({})
 Config.read('makeit.ini')
 slack_token = Config.get('Slack','BOT_API_TOKEN')
+speakbot_slack_token = Config.get('Speakbot','slack_token')
 
 # This is to remember last time user was announced via door entry audio
 lastMemberAccess = {}
+
+
+def custom_decoder(obj):
+    if 'time' in obj:
+        obj['time']= datetime.fromisoformat(obj['time'])
+    return obj
+
+# Minisplit temperatures
+def ingest_record(minisplit,r,src):
+    rr= r.get("minisplit_data/"+minisplit)
+    if rr is None:
+        datapoints = []
+    else:
+        datapoints = json.loads(rr, object_hook=custom_decoder)
+    dest = {}
+    dest['time'] = datetime.strptime(src['time'], "%a %b %d %H:%M:%S %Y")
+    dest['setpoint'] = src['setpoint']
+    dest['roomTemp'] = src['roomTemp']
+    dest['operating'] = 0 if src['operating']=='OFF' else 1
+    #print ("DEST",dest)
+    datapoints.append(dest)
+    datapoints = datapoints[-90:]
+    #print ("DATAPOINTS:", datapoints)
+
+    rr= r.get("minisplit_hours/"+minisplit)
+    if rr is None:
+        hours = []
+    else:
+        hours = json.loads(rr, object_hook=custom_decoder)
+
+
+    if (len(hours) == 0) or (dest['time'] >= hours[-1]['time'].replace(minute=59,second=59,microsecond=999999)):
+        hour = {}
+        hour['time'] =  dest['time'].replace(minute=0,second=0,microsecond=0)
+        hours.append(hour)
+
+    #print ("HOURS:", hours)
+    # Re-average last hour
+    count=0
+    setpoint=0
+    roomTemp=0
+    operating=0
+    starttime = hours[-1]['time']
+    endtime = hours[-1]['time'].replace(minute=59,second=59,microsecond=999999)
+    for e in datapoints:
+        if (starttime <= e['time']) and (e['time'] <= endtime):
+            count += 1
+            roomTemp += e['roomTemp']
+            setpoint += e['setpoint']
+            operating += e['operating']
+    if count == 0: count=1
+    hours[-1]['roomTemp'] = roomTemp/count
+    hours[-1]['setpoint'] = setpoint/count
+    hours[-1]['operating'] = operating/count
+
+    hours = hours[-(24*14):]
+
+    r.set("minisplit_data/"+minisplit,json.dumps(datapoints, default=str))
+    r.set("minisplit_hours/"+minisplit,json.dumps(hours,default=str))
 
 def get_mqtt_opts(app):
   Config = configparser.ConfigParser({})
@@ -89,18 +150,30 @@ def send_slack_message(towho,message):
   sc = SlackClient(slack_token)
   if sc.rtm_connect():
     print ("SLACK-SEND",towho,message)
-    res = sc.chat_postMessage(
-        channel=towho,
-        text=message
-        )
+  res = sc.api_call(
+    "chat.postMessage",
+    json = {
+        'channel':towho,
+        'text':message
+    }
+  )
+  if res['ok'] == False:
+    logger.error("Slack MQTT test message failed: %s"%res['error'])
 
 def convert_into_uppercase(a):
     return a.group(1) + a.group(2).upper()
     
+def on_connect(client,userdata,flags,res):
+    print ("MQTT CONNECTED")
+    client.subscribe("ratt/#")
+    client.subscribe("facility/minisplit/report/#")
+    client.subscribe("facility/alarm/system")
+    client.publish("displayboard/read/status","CONNECTED")
 # The callback for when a PUBLISH message is received from the server.
 # 2019-01-11 17:09:01.736307
 #def on_message(msg):
 def on_message(client,userdata,msg):
+    global verbose
     tool_cache={}
     resource_cache={}
     member_cache={}
@@ -109,14 +182,18 @@ def on_message(client,userdata,msg):
     try:
         with app.app_context():
             log=Logs()
-            print ("FROM WIRE",msg.topic,msg.payload)
-            message = json.loads(msg.payload)
+            if (verbose>=2): print ("FROM WIRE",msg.topic,msg.payload)
+            try:
+                message = json.loads(msg.payload)
+            except:
+                message = {'payload':  msg.payload}
             topic=msg.topic.split("/")
 
             # Is this a RATT status message?
             toolname=None
             member=None
             memberId=None
+            memberNickname=None
             toolId=None
             toolDisplay=None
             nodename=None
@@ -130,7 +207,47 @@ def on_message(client,userdata,msg):
             send_slack_log_text=True
             send_slack_public=False
             send_slack_admin=True
+            send_mqtt_event=None
+            send_mqtt_status=None
             
+            if topic[0]=="facility" and topic[1]=="alarm" and topic[2]=="system":
+                print ("Facility Alarm:",message)
+                if message['payload']=="armed":
+                    speech = "Attention: Alarm Activated"
+                    url = 'http://cgimisc:8091/slack'
+                    data = {
+                        'command': 'flash',
+                        'text': speech,
+                        'token':speakbot_slack_token
+                    }
+                    urllib.request.urlopen(url,data)
+                    
+            elif topic[0]=="printers":
+                #printers/00m09d470802228 {"name": "MakeIt Left", "status": "RUNNING", "percent": 40, "min_remaining": 20, "reported": "2026-06-09T17:36:42.238514", "job": "AJ_HATHAWAY-Foxy"}
+                #printers/00M09D470802228 {"name": "MakeIt Left", "status": "FINISH", "percent": 100, "min_remaining": 0, "reported": "2026-06-15T09:45:55.293886", "job": "jay_briand-JASK\u00d3\u0141KA_MOLD"}
+                #printers/00M09D462500690 {"name": "MakeIt Right", "status": "FINISH", "percent": 100, "min_remaining": 0, "reported": "2026-06-15T09:45:06.713445", "job": "jay_briand-PRED8_VIBE_mold"}
+                #printers/0938aj632500655 {"name": "Gamera", "status": "FAILED", "percent": 0, "min_remaining": 0, "reported": "2026-06-09T17:36:42.425520", "job": "dose_divider3_v12"}
+                #printers/0938AJ632500655 {"name": "Gamera", "status": "FINISH", "percent": 100, "min_remaining": 0, "reported": "2026-06-15T09:45:36.165388", "job": "Tom_Doucet_P-T800_T_121_body"}
+                #printers/0948AB510700445 {"name": "Godzilla", "status": "IDLE", "percent": 0, "min_remaining": 0, "reported": "2026-06-09T22:11:14.196290", "job": ""}
+                r = redis.Redis()
+                j = json.loads(msg.payload)
+                printer = topic[1]
+                r.set("printer/"+printer,msg.payload)
+                return
+
+            elif topic[0]=="facility" and topic[1]=="minisplit" and topic[2]=="report":
+                r = redis.Redis()
+                minisplit = topic[3]
+                #print ("GOT",minisplit,message)
+                r.set("minisplit/"+minisplit,msg.payload)
+
+                # minisplit-class {'power': 'ON', 'setpoint': 66, 'roomTemp': 66, 'mode': 'HEAT', 'fan': 'AUTO', 'ip': '10.25.6.207', 'rssid': -52, 'fw': '0.0.9', 'time': 'Tue Mar 26 12:07:26 2024', 'managed': 'HEAT', 'managed_setpoint': 67, 'override_setpoint': 72, 'override_time': 120, 'override_end': '', 'managed_setpoint_unoccupied': 52, 'ir_interval': 15, 'operating': 'ON', 'alarm': 'Disarmed', 'last_ir': 'Tue Mar 26 12:01:15 2024'}
+                j = json.loads(msg.payload)
+                ingest_record(minisplit,r,j)
+
+                # We return here because we would get an index error below looking up subtopic
+                return
+
             # base_topic+"/control/broadcast/acl/update"
             if topic[0]=="ratt" and topic[1]=="control" and topic[2]=="broadcast" and topic[3]=="acl" and topic[4]=="update":
                 tool_cache={}
@@ -138,7 +255,7 @@ def on_message(client,userdata,msg):
                 member_cache={}
             elif topic[0]=="ratt" and topic[1]=="status":
                 if topic[2]=="node":
-                    print (topic)
+                    if (verbose >= 1): print ("RATT Node Status",topic)
                     n=Node.query.filter(Node.mac == topic[3]).one_or_none()
                     t=Tool.query.join(Node,((Node.id == Tool.node_id) & (Node.mac == topic[3]))).one_or_none()
                     if t is None:
@@ -152,6 +269,7 @@ def on_message(client,userdata,msg):
                     toolname=topic[3]
 
             subt=topic[4]
+            if subt=="ping": return
             sst=topic[5]
             member=None
             if 'toolId' in message: toolId=message['toolId']
@@ -169,14 +287,16 @@ def on_message(client,userdata,msg):
             elif toolname:
                 t = db.session.query(Tool.id,Tool.resource_id,Tool.displayname).filter(Tool.name==toolname)
                 t = t.join(Resource,Resource.id == Tool.resource_id)
-                t = t.add_column(Resource.slack_chan)
-                t = t.add_column(Resource.slack_admin_chan)
-                t = t.add_column(Resource.slack_info_text)
+                t = t.add_columns(Resource.slack_chan)
+                t = t.add_columns(Resource.slack_admin_chan)
+                t = t.add_columns(Resource.slack_info_text)
+                t = t.add_columns(Resource.event_mqtt_topic)
                 t = t.one_or_none()
                 if t:
                     tool_cache[toolname]={"id":t.id,"displayname":t.displayname, "resource_id":t.resource_id,"data": {
                         'slack_public_chan':t.slack_chan,
                         'slack_admin_chan':t.slack_admin_chan,
+                        'event_mqtt_topic':t.event_mqtt_topic,
                         'slack_info_text':t.slack_info_text}}
                     toolId = tool_cache[toolname]['id']
                     toolDisplay = tool_cache[toolname]['displayname']
@@ -187,6 +307,7 @@ def on_message(client,userdata,msg):
             if member and member in member_cache:
                 memberId = member_cache[member]['id']
                 memberSlackId = member_cache[member]['slack']
+                memberNickname = member_cache[member]['nickname']
                 #print "CACHE",memberId,"FROM",member
             elif member:
                 q = Member.query.filter(Member.member==member)
@@ -195,8 +316,9 @@ def on_message(client,userdata,msg):
                 #print "RETURNED",m.id
                 if m:
                     #print "CACHE",member,"=",m.id
-                    member_cache[member]={'id':m.id,'slack':m.slack}
+                    member_cache[member]={'id':m.id,'slack':m.slack,'nickname':m.nickname}
                     memberId=m.id
+                    memberNickname = m.nickname
                     memberSlackId=m.slack
 
 
@@ -209,7 +331,7 @@ def on_message(client,userdata,msg):
                     if n:
                       n.last_ping=datetime.utcnow()
                       n.strength=message['level'];
-                      n.ip_addr = message['ip'] if 'ip' else ""
+                      n.ip_addr = message['ip'] if 'ip'  in message else ""
                       db.session.commit()
                     pass
             elif topic[0]=="ratt" and topic[1]=="status" and subt=="acl" and sst=="update":
@@ -228,7 +350,9 @@ def on_message(client,userdata,msg):
 
                     fw_name = message['fw_name']
 
-                    if fw_name=='ratt':
+                    if fw_name=='goratt':
+                        log_text = 'Application Started (' + fw_name + ' firmware ' + message['fw_version']  + ')'
+                    elif fw_name=='ratt':
                         log_text = 'Application Started (' + fw_name + ' firmware ' + message['fw_version'] + ' mender artifact ' + message['mender_artifact'] + ')'
                     elif fw_name=='uratt':
                         reset_reasons = {
@@ -251,9 +375,14 @@ def on_message(client,userdata,msg):
                     
                 elif sst=="power":
                     state = message['state']  # lost | restored | shutdown
-                    if state == "lost": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_LOST.id
-                    elif state == "restored": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_RESTORED.id
-                    elif state == "shutdown": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_SHUTDOWN.id
+                    if state == "lost": 
+                        log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_LOST.id
+                        send_mqtt_status={}
+                    elif state == "restored": 
+                        log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_RESTORED.id
+                    elif state == "shutdown": 
+                        log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_SHUTDOWN.id
+                        send_mqtt_status={}
                     else: 
                         log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_OTHER.id
                         send_slack = False
@@ -280,20 +409,29 @@ def on_message(client,userdata,msg):
                     log_event_type = RATTBE_LOGEVENT_TOOL_SAFETY.id
                     log_text = reason
 
+                elif sst == 'storagepass':
+                    log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_STORAGEPASS.id
+                    log_text = "Temporary Storage Pass Issued"
                 elif sst=="access":
                     if 'error' in message and message['error'] == True:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
-                        log_text = message['errorText'] + ' ' + message['errorExt']
-                        send_slack = False
+                        #log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
+                        #log_text = message['errorText'] + ' ' + message['errorExt']
+                        #send_slack = False
+                        pass
                     elif message['allowed']:
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id
                         if resourceId == 1:
-                            if memberId not in lastMemberAccess or ((datetime.now() - lastMemberAccess[memberId]).total_seconds() > (3600*3)):
+                            if memberId not in lastMemberAccess or ((datetime.now() - lastMemberAccess[memberId]).total_seconds() > (3600*18)):
                                 print ("DOOR ENTRY FOR",memberId)
                                 lastMemberAccess[memberId] = datetime.now()
-                                subprocess.Popen(
-                                    ["/var/www/authbackend/doorentry",str(memberId)], shell=False, stdin=None, stdout=None, stderr=None,
-                                    close_fds=True)
+                                opts = []
+                                now = datetime.now()
+                                if (now.weekday() ==3) and ((now.hour >= 16) and (now.hour <= 22)):
+                                    opts += [ "--quiet" ]
+                                else:
+                                    subprocess.Popen(
+                                      ["/var/www/authbackend/doorentry",str(memberId)]+opts, shell=False, stdin=None, stdout=None, stderr=None,
+                                      close_fds=True)
                     else:
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED.id
 
@@ -321,8 +459,12 @@ def on_message(client,userdata,msg):
                 elif sst=="lockout":
                     state = message['state'] # pending | locked | unlocked
                     if state=="pending": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_PENDING.id
-                    elif state=="locked": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED.id
-                    elif state=="unlocked": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED.id
+                    elif state=="locked": 
+                        log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED.id
+                        send_mqtt_event={'status':"Lockout","text":reason}
+                    elif state=="unlocked": 
+                        log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED.id
+                        send_mqtt_event={}
                     else: log_event_type=RATTBE_LOGEVENT_TOOL_LOCKOUT_OTHER.id
                     log_text = reason
                     send_slack_public = True
@@ -332,13 +474,15 @@ def on_message(client,userdata,msg):
                     if powered:
                         log_event_type = RATTBE_LOGEVENT_TOOL_POWERON.id
                     else:
+                        send_mqtt_status={}
                         log_event_type = RATTBE_LOGEVENT_TOOL_POWEROFF.id
 
                 elif sst=="login":
                     if 'error' in message and message['error'] == True:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
-                        log_text = message['errorText']
-                        send_slack = False
+                        #log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
+                        #log_text = message['errorText']
+                        #send_slack = False
+                        pass
                     else:
                         # member
                         usedPassword = False
@@ -353,6 +497,11 @@ def on_message(client,userdata,msg):
                                 send_slack_message(memberSlackId,toolSlackInfoText)
                         elif allowed and not usedPassword:
                             log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN.id
+                            send_mqtt_event={'Title':"In-Use",'Timeout':30}
+                            m=""
+                            if member:
+                              m= re.sub("(^|\s)(\S)", convert_into_uppercase, member.replace(".", " "))
+                            send_mqtt_status={'status':"In-Use","text":m}
                         elif not allowed and not usedPassword:
                             log_event_type = RATTBE_LOGEVENT_TOOL_PROHIBITED.id
                             if toolSlackInfoText and memberSlackId:
@@ -367,6 +516,10 @@ def on_message(client,userdata,msg):
                     enabledSecs = message['enabledSecs']
                     activeSecs = message['activeSecs']
                     idleSecs = message['idleSecs']
+                    payTier = 0
+
+                    if 'payTier' in message:
+                        payTier = message['payTier']
 
                     reasons = {
                         "explicit" : "Logged out",
@@ -384,6 +537,10 @@ def on_message(client,userdata,msg):
                         seconds_to_timespan(enabledSecs),
                         seconds_to_timespan(activeSecs),
                         reason.upper())
+                    if (payTier == 1):
+                        log_text += f" - Free Tier"
+                    elif (payTier > 0):
+                        log_text += f" - Tier {payTier}"
                     usage= UsageLog()
                     usage.member_id = memberId
                     usage.tool_id = toolId
@@ -391,10 +548,13 @@ def on_message(client,userdata,msg):
                     usage.enabledSecs = enabledSecs
                     usage.activeSecs = activeSecs
                     usage.idleSecs = idleSecs
+                    usage.payTier = payTier
                     usage.time_reported = datetime.utcnow()
                     usage.time_logged = datetime.utcnow()
                     db.session.add(usage)
                     db.session.commit()
+                    send_mqtt_event={'Title':"Finished",'Timeout':30,"Message":reason}
+                    send_mqtt_status={}
 
                     send_slack_public = True
 
@@ -412,10 +572,54 @@ def on_message(client,userdata,msg):
                 # Do slack notification
                 if not toolDisplay:
                     toolDisplay = toolname
+
                     
+                if send_mqtt_event is not None and associated_resource['event_mqtt_topic']:
+                    m = re.sub("(^|\s)(\S)", convert_into_uppercase, member.replace(".", " "))
+                    if 'Message' in send_mqtt_event:
+                        send_mqtt_event['Message'] = send_mqtt_event['Message'].replace('{member}',m)
+                    else:
+                        send_mqtt_event['Message'] = m
+                    client.publish(associated_resource['event_mqtt_topic'],json.dumps(send_mqtt_event,indent=2))
+
+                # displayboard MQTT event bus
+                if send_slack:
+                    try:
+                        mqttevt = {}
+                        mqttevt['color']='#777777'
+                        mqttevt['eventcode']=log_event_type
+                        if log_event_type in userdata['events']:
+                            mqttevt['eventstr']=userdata['events'][log_event_type]
+                        if log_event_type in userdata['icons']: 
+                          mqttevt['icon'] = userdata['icons'][log_event_type]
+
+                        if member:
+                          mqttevt['member'] = re.sub("(^|\s)(\S)", convert_into_uppercase, member.replace(".", " "))
+                          if memberNickname is not None and memberNickname.strip() != "":
+                            mqttevt['nickname'] = re.sub("(^|\s)(\S)", convert_into_uppercase, memberNickname.replace(".", " "))
+                        mqttevt['tool'] = str(toolDisplay)
+                        client.publish("displayboard/read/event",json.dumps(mqttevt,indent=2))
+                    except BaseException as e:
+                        logger.error ("Send MQTT Failed %s" % str(e))
+
+                if send_mqtt_status is not None and toolname is not None:
+                    logger.error(f"Update Displayboard Status for {toolname} {toolDisplay} {send_mqtt_status}")
+                    try:
+                        if send_mqtt_status:
+                            send_mqtt_status['name']=toolDisplay
+                            client.publish("displayboard/read/status/"+toolname,json.dumps(send_mqtt_status,indent=2),retain=True)
+                        else:
+                            # If dictionary is empty, send an empty payload with retain flag to CLEAR the retained message
+                            client.publish("displayboard/read/status/"+toolname,"",retain=True)
+                    except BaseException as e:
+                        logger.error ("Send MQTT status Failed %s"%str(e))
+                    
+
+
                 if send_slack and log_event_type and toolDisplay and associated_resource and associated_resource['slack_admin_chan'] and allow_slack_log:
                   try:
                     slacktext=""
+                    rawtext=""
                     icon = ""
                     
                     if log_event_type in userdata['icons']: 
@@ -424,13 +628,16 @@ def on_message(client,userdata,msg):
                     if member:
                       m = re.sub("(^|\s)(\S)", convert_into_uppercase, member.replace(".", " "))
                       slacktext += "*" + m + "* "
+                      rawtext += m+" "
                         
                     
                     if log_event_type in userdata['events']:
                       if member:
                           t = "was %s at %s" % (userdata['events'][log_event_type].lower(), str(toolDisplay))
+                          rawtext += t
                       else:
                           t = "*%s* at %s" % (userdata['events'][log_event_type].upper(), str(toolDisplay))
+                          rawtext += "%s at %s" % (userdata['events'][log_event_type].upper(), str(toolDisplay))
                       slacktext += t
                       
                     else:
@@ -449,16 +656,21 @@ def on_message(client,userdata,msg):
 
                     # TODO FIEME This should be "send_slack_admin" - but Ham wanted only "public" messagse on their "admin" channel??
                     if send_slack_public and associated_resource['slack_admin_chan']:
-                        #res = sc.api_call(
-                        res = sc.chat_postMessage(
-                            'chat.postMessage',
-                            channel=associated_resource['slack_admin_chan'],
-                            blocks=json.dumps(blocks),
-                            as_user=True
-                        )
-                        
-                        if not res['ok']:
-                            logger.error("error doing postMessage to \"%s\" admin chan: %s" % (associated_resource['slack_admin_chan'],res))
+                        for chan in associated_resource['slack_admin_chan'].split(","):
+                            res = sc.api_call(
+                              "chat.postMessage",
+                              json = {
+                                  'channel':chan,
+                                  'blocks': blocks,
+                                  #'text': icon + " " + time + " " + slacktext,
+                                  'as_user':True
+                              }
+                            )
+                            
+                            if not res['ok']:
+                                logger.error("error doing postMessage to \"%s\" admin chan: %s" % (associated_resource['slack_admin_chan'],res))
+                        if rawtext != "":
+                            client.publish("displayboard/read/resource/post",json.dumps({"Message":rawtext},indent=2))
 
                     """
                     if send_slack_public and associated_resource['slack_public_chan']:
@@ -475,7 +687,8 @@ def on_message(client,userdata,msg):
 
                             
                   except BaseException as e:
-                    logger.error("ERROR=%s" % e)
+                    exc_type, exc_obj, exc_tb = sys.exc_info()
+                    logger.error("LOG ERROR=%s LINE=%d TOPIC=%s PAYLOAD=%s" %(e,exc_tb.tb_lineno,msg.topic,msg.payload))
 
                 db.session.add(logevent)
                 db.session.commit()
@@ -484,14 +697,25 @@ def on_message(client,userdata,msg):
                 #logger.warn('user_data_set end')
                 
     except BaseException as e:
-        logger.error("LOG ERROR=%s PAYLOAD=%s" %(e,msg.payload))
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        logger.error("LOG ERROR=%s LINE=%d TOPIC=%s PAYLOAD=%s" %(e,exc_tb.tb_lineno,msg.topic,msg.payload))
 
+
+def on_connect(client, userdata, flags, rc):
+    client.subscribe("ratt/#")
+    client.subscribe("facility/minisplit/report/#")
+    client.subscribe("facility/alarm/system")
+    client.subscribe("printers/#")
 
 if __name__ == '__main__':
+    global verbose
+    red = redis.Redis()
     parser=argparse.ArgumentParser()
     parser.add_argument("--command",help="Special command",action="store_true")
+    parser.add_argument("--verbose","-v",help="Verbosity",action="count",default=0)
     (args,extras) = parser.parse_known_args(sys.argv[1:])
 
+    verbose = args.verbose
     app=authbackend_init(__name__)
 
     with app.app_context():
@@ -500,9 +724,12 @@ if __name__ == '__main__':
       sc = SlackClient(slack_api_token)
       # TODO BKG BUG change channel
       try:
-              res = sc.chat_postMessage(
-                channel="#team-authit-devs",
-                text="AuthIt Slack/MQTT daemon is on the air... :tada:"
+              res = sc.api_call(
+                "chat.postMessage",
+                json = {
+                    'channel':"#team-authit-devs",
+                    'text':"AuthIt Slack/MQTT daemon is on the air... :tada:"
+                }
               )
               if res['ok'] == False:
                 logger.error("Slack MQTT test message failed: %s"%res['error'])
@@ -514,8 +741,8 @@ if __name__ == '__main__':
               #)
               #if res['ok'] == False:
               #  logger.error("Slack MQTT test message failed: %s"%res['error'])
-      except:
-        pass
+      except BaseException as e:
+        print ("TRY POST MESSAGE EXCEPT",e)
       while True:
           # TODO BKG BUG re-add error-safe logic here
           try:
@@ -524,15 +751,22 @@ if __name__ == '__main__':
             callbackdata['icons']=eventtypes.get_event_slack_icons()
             callbackdata['colors']=eventtypes.get_event_slack_colors()
             callbackdata['msg_track'] = {}
-            
-            sub.callback(on_message, "ratt/#",userdata=callbackdata, **opts)
+            #print (opts)
+            sub = mqtt.Client(userdata=callbackdata)
+            sub.tls_set(**opts['tls'])
+            sub.connect(opts['hostname'],port=opts['port'],keepalive=opts['keepalive'])
+            #sub.callback(on_message, "ratt/#",userdata=callbackdata, **opts)
+            sub.on_message = on_message
+            sub.on_connect = on_connect
             sub.loop_forever()
+            print ("THIS SHOLD NEVER HAPPEN!")
             sub.loop_misc()
             time.sleep(1)
             msg = sub.simple("ratt/#", hostname=host,port=port,**opts)
-            print("%s %s" % (msg.topic, msg.payload))
+            print("%so %s" % (msg.topic, msg.payload))
           except KeyboardInterrupt:    #on_message(msg)
             sys.exit(0)
-          #except BaseException as e:
-          #  print ("EXCEPT",e)
+          except BaseException as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            logger.error("LOG ERROR=%s LINE=%d" %(e,exc_tb.tb_lineno))
             time.sleep(1)

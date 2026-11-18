@@ -136,6 +136,19 @@
 			>{{ subscription.active }}
 			</div>
 	</div>
+	{% if current_user.privs("Finance") and subscription %}
+	<div class="col-sm-4">
+		{% if subscription.active == 'true' or subscription.active == 1 or subscription.active == True %}
+			<button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#cancelSubscriptionModal">
+				Cancel Subscription
+			</button>
+		{% else %}
+			<button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#reactivateSubscriptionModal">
+				Reactivate Subscription
+			</button>
+		{% endif %}
+	</div>
+	{% endif %}
 </div>
 		 
 		
@@ -255,6 +268,58 @@
 								<form method="POST" action="{{ url_for("members.unassociate") }}">
 								<input type="hidden" name="memberid" value="{{ rec.id }}" />
 								<input class='btn btn-danger' type="submit" name="UnassociateMember" value="Unassociate Membership" />
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+
+		{# CANCEL SUBSCRIPTION MODAL #}
+
+				<!-- Modal -->
+				<div class="modal fade" id="cancelSubscriptionModal" tabindex="-1" role="dialog" aria-labelledby="cancelSubscriptionModalLabel" aria-hidden="true">
+					<div class="modal-dialog" role="document">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h5 class="modal-title" id="cancelSubscriptionModalLabel">Cancel Subscription for {{ rec.member }}</h5>
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+									<span aria-hidden="true">&times;</span>
+								</button>
+							</div>
+							<div class="modal-body">
+								<p>This will permanently cancel the user's active Stripe subscription.</p>
+								<p>If you are <i>positive</i> that this is the correct thing to do, please confirm.</p>
+							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+								<form method="POST" action="{{ url_for('members.member_cancel_subscription', id=rec.id) }}">
+								<input class='btn btn-danger' type="submit" name="CancelSubscription" value="Cancel Subscription" />
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+
+		{# REACTIVATE SUBSCRIPTION MODAL #}
+
+				<!-- Modal -->
+				<div class="modal fade" id="reactivateSubscriptionModal" tabindex="-1" role="dialog" aria-labelledby="reactivateSubscriptionModalLabel" aria-hidden="true">
+					<div class="modal-dialog" role="document">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h5 class="modal-title" id="reactivateSubscriptionModalLabel">Reactivate Subscription for {{ rec.member }}</h5>
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+									<span aria-hidden="true">&times;</span>
+								</button>
+							</div>
+							<div class="modal-body">
+								<p>This will create a new subscription in Stripe for this user, matching their previous most-recent plan.</p>
+								<p>If you are <i>positive</i> that this is the correct thing to do, please confirm.</p>
+							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+								<form method="POST" action="{{ url_for('members.member_reactivate_subscription', id=rec.id) }}">
+								<input class='btn btn-success' type="submit" name="ReactivateSubscription" value="Reactivate Subscription" />
 								</form>
 							</div>
 						</div>

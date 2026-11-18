@@ -1,0 +1,19 @@
+{% extends "layout_bootstrap.html" %}
+{% block search %}
+  <div class=body>
+
+        <div class="container">
+          <div class="btn-group my-2" role="group" aria-label="Minisplit Graphs">
+            <button onclick='location.href="{{ url_for("facility.graphs",minisplit=minisplit,data="hours") }}";'  type="button" class="btn btn-{% if data!="hours" %}outline-{% endif %}info">2-Week</button>
+            <button onclick='location.href="{{ url_for("facility.graphs",minisplit=minisplit,data="day") }}";'  type="button" class="btn btn-{% if data!="day" %}outline-{% endif %}info">24-Hour</button>
+            <button onclick='location.href="{{ url_for("facility.graphs",minisplit=minisplit,data="data") }}";'  type="button" class="btn btn-{% if data!="data" %}outline-{% endif %}info">Recent</button>
+          </div>
+        </div>
+
+        <div class="container">
+    <!-- Reference the external SVG using xlink:href -->
+    <object data="{{ url_for('facility.tempgraph',minisplit=minisplit,data=data) }}" type="image/svg+xml"></object>
+        </div>
+
+   </div>
+{% endblock %}

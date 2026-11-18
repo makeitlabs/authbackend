@@ -1,0 +1,162 @@
+{% extends "layout_public.html" %}
+{% block head %}
+{% endblock %}
+
+
+{% block widebody %}
+    <div class="body">
+        <h2 class="mb-4">Membership Registration</h2>
+	<p><b>Thank you for joining MakeIt Labs!</b></p>
+	{% if isError == False %}
+	<p>You should be receiving an email at {{ email }} very soon. Please check your inbox and spam folder. It will contain important information on setting up your MakeIt accounts, attending orientation so you can get access to the lab. If you do not hear back within a day, please email <a href="mailto:info@makeitlabs.com">info@makeitlabs.com</a> for help, or come to one of our orientation sessions <b>Thursdays at 7:00pm</b>. We look forward to seeing you soon!
+	</p>
+	{% elif isDuplicate %}
+	<p><strong>Welcome back!</strong> We found your existing membership and have reactivated it with your new subscription.</p>
+	<p>You should receive a confirmation email at {{ email }} shortly. If you have any questions, email <a href="mailto:info@makeitlabs.com">info@makeitlabs.com</a>.</p>
+	{% else %}
+	<p>Your payment was processed - but something went wrong activating your membership. Please email <a href="mailto:info@makeitlabs.com">info@makeitlabs.com</a> for help, and we will get this fixed immediately - or come to one of our orientation sessions <b>Thursdays at 7:00pm</b>. Please provide the name and email you used in registration.
+	</p>
+	{% endif %}
+
+
+		<hr />
+	    <!-- How did you hear?? -->
+
+    <form method="POST" action="{{ url_for("signup.survey") }}">
+	  <div class="container"> <!-- Big Container -->
+                <p>
+                    Please help us improve our community by letting us know abour your interests in MakeIt Labs by answering a few quick questions.
+                </p>
+
+
+
+<!-- START -->
+<div class="container my-3">
+<fieldset>
+  <legend class="h2">I am interested in:</legend>
+  <div class="row g-2">
+    {% for w in what %}
+    <div class="col-12 col-sm-6 col-md-4">  <!-- 1 col on xs, 2 on sm, 3 on md+ -->
+      <label class="list-group-item d-flex align-items-start gap-2" style="border:0">
+        <input class="form-check-input mt-1" type="checkbox" name="what_{{ w.name }}" value="{{ w.name }}">
+        <span class="mx-1">{{ w.text }}</span>
+      </label>
+    </div>
+    {% endfor %}
+  </div>
+</fieldset>
+
+	<div class="input-group my-3">
+	  <label class="input-group-text" for="otherTextWhat">Other</label>
+	  <input
+	    type="text"
+	    class="form-control"
+	    id="otherTextWhat"
+	    name="other_what"
+	    placeholder="Enter other option"
+	    aria-describedby="otherHelp"
+	  >
+	</div>
+</div>
+<!-- END -->
+
+
+<!-- START -->
+<hr />
+<div class="container my-3">
+<fieldset>
+  <legend class="h2">Where did you hear about MakeIt Labs?</legend>
+  <div class="row g-2">
+    {% for w in where %}
+    <div class="col-12 col-sm-6 col-md-4">  <!-- 1 col on xs, 2 on sm, 3 on md+ -->
+      <label class="list-group-item d-flex align-items-start gap-2" style="border:0">
+        <input class="form-check-input mt-1" type="checkbox" name="where_{{ w.name }}" value="{{ w.name }}">
+        <span class="mx-1">{{ w.text }}</span>
+      </label>
+    </div>
+    {% endfor %}
+  </div>
+</fieldset>
+
+	<div class="input-group my-3">
+	  <label class="input-group-text" for="otherTextWhere">Other</label>
+	  <input
+	    type="text"
+	    class="form-control"
+	    id="otherTextWhere"
+	    name="other_where"
+	    placeholder="Enter other option"
+	    aria-describedby="otherHelp"
+	  >
+	</div>
+</div>
+<!-- END -->
+
+<hr />
+<!-- START -->
+<div class="container my-3">
+<fieldset>
+  <legend class="h2">I am interested in participating in:</legend>
+  <div class="row g-2">
+    {% for w in stuff %}
+    <div class="col-12 col-sm-6 col-md-4">  <!-- 1 col on xs, 2 on sm, 3 on md+ -->
+      <label class="list-group-item d-flex align-items-start gap-2" style="border:0">
+        <input class="form-check-input mt-1" type="checkbox" name="stuff_{{ w.name }}" value="{{ w.name }}">
+        <span class="mx-1">{{ w.text }}</span>
+      </label>
+    </div>
+    {% endfor %}
+  </div>
+</fieldset>
+
+	<div class="input-group my-3">
+	  <label class="input-group-text" for="otherTextStuff">Other</label>
+	  <input
+	    type="text"
+	    class="form-control"
+	    id="otherTextStuff"
+	    name="other_stuff"
+	    placeholder="Enter other option"
+	    aria-describedby="otherHelp"
+	  >
+	</div>
+</div>
+<!-- END -->
+<!-- START -->
+<hr />
+<div class="container my-3">
+<fieldset>
+  <legend class="h2">I am a self-described:</legend>
+  <div class="row g-2">
+    {% for w in iam %}
+    <div class="col-12 col-sm-6 col-md-4">  <!-- 1 col on xs, 2 on sm, 3 on md+ -->
+      <label class="list-group-item d-flex align-items-start gap-2" style="border:0">
+        <input class="form-check-input mt-1" type="checkbox" name="iam_{{ w.name }}" value="{{ w.name }}">
+        <span class="mx-1">{{ w.text }}</span>
+      </label>
+    </div>
+    {% endfor %}
+  </div>
+</fieldset>
+
+	<div class="input-group my-3">
+	  <label class="input-group-text" for="otherTextIam">Other</label>
+	  <input
+	    type="text"
+	    class="form-control"
+	    id="otherTextIam"
+	    name="other_iam"
+	    placeholder="Enter other option"
+	    aria-describedby="otherHelp"
+	  >
+	</div>
+</div>
+<!-- END -->
+
+
+
+   <button type="submit" name="HowDidIHear" value="HowDidIHear" class="btn btn-primary">Submit</button>
+   </div> <!-- BigContainer -->
+ </form>
+    </div> <!-- End BODY -->
+{% endblock %}

@@ -51,7 +51,7 @@ print ( "BOT API TOKEN",slack_token)
 #sc = SlackClient(slack_token)
 rtmclient = RTMClient(token=slack_token)
 #rtmclient.setPresence(presence="auto")
-#print (dir(rtmclient))
+print (dir(rtmclient))
 
 
 def oxfordlist(lst,conjunction="or"):
@@ -555,10 +555,10 @@ def log_event(name,message):
 contexts={}
 @RTMClient.run_on(event='open')
 def onopen(**payload):
-    #print (payload)
+    print ("OPEN",payload)
     sc = payload['web_client']
     ret = sc.users_setPresence(presence="auto")
-    #print ("SET PRESENCE",ret)
+    print ("SET PRESENCE",ret)
     
 
 @RTMClient.run_on(event='message')
@@ -576,7 +576,7 @@ def say_hello(**payload):
       try:
         text="???"
         #print msg
-        #print "Message from ",msg['user'],msg['text'],msg['channel']
+        #print ("Message from ",msg['user'],msg['text'],msg['channel'])
         chan = data['channel']
         if chan not in contexts:
           contexts[chan]={}
@@ -627,4 +627,6 @@ def say_hello(**payload):
     sys.stdout.flush()
 
 
+print ("Starting RTMCLIENT")
 rtmclient.start()
+print ("Started RTMCLIENT")

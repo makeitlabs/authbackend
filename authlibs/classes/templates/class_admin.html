@@ -1,0 +1,143 @@
+{% extends "layout_bootstrap.html" %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h2>Class Administration</h2>
+        </div>
+        <div class="col-md-6 text-right">
+            <a href="{{ url_for('classes.social_promo') }}" class="btn btn-outline-info mr-1">Social Promo Graphic</a>
+            <button class="btn btn-warning" onclick="sendNotices()">Send Notices (Debug)</button>
+            <button class="btn btn-primary" onclick="syncEvents()">Sync Eventbrite Now</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if not events %}
+                <p>No events found. Have you synced with Eventbrite recently?</p>
+            {% else %}
+                <div class="accordion" id="eventsAccordion">
+                    {% for event in events %}
+                    <div class="card mb-3">
+                        <div class="card-header" id="heading-{{ event.id }}">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link text-left" type="button" data-toggle="collapse" data-target="#collapse-{{ event.id }}" aria-expanded="false" aria-controls="collapse-{{ event.id }}">
+                                    <strong>{{ event.name }}</strong> &nbsp; <span class="badge badge-secondary ml-2">{{ event.instructors.count() }} Instructors</span>
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapse-{{ event.id }}" class="collapse" aria-labelledby="heading-{{ event.id }}" data-parent="#eventsAccordion">
+                            <div class="card-body">
+                                
+                                <p>{{ event.description }}</p>
+                                <a href="{{ event.url }}" target="_blank" class="btn btn-sm btn-outline-info mb-3">View on Eventbrite</a>
+
+                                <hr>
+                                
+                                <h5>Assigned Instructors</h5>
+                                {% if event.instructors.count() == 0 %}
+                                    <p class="text-muted">No instructors assigned.</p>
+                                {% else %}
+                                    <ul class="list-group mb-3">
+                                        {% for ei in event.instructors %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                {{ ei.member.firstname }} {{ ei.member.lastname }} ({{ ei.member.email }})
+                                                <form method="POST" action="{{ url_for('classes.admin') }}" class="d-inline">
+                                                    <input type="hidden" name="action" value="unassign">
+                                                    <input type="hidden" name="event_id" value="{{ event.id }}">
+                                                    <input type="hidden" name="member_id" value="{{ ei.member_id }}">
+                                                    <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                                                </form>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+
+                                <button type="button" class="btn btn-success" onclick="openInstructorModal('{{ event.id }}')">
+                                    Assign Instructor
+                                </button>
+                                
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Instructor Search -->
+<div class="modal fade" id="instructorModal" tabindex="-1" role="dialog" aria-labelledby="instructorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="instructorModalLabel">Select Instructor</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+          {% with add_custom_button='Select' %}
+          {% include 'userlist.html' %}
+          {% endwith %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<form id="assignForm" method="POST" action="{{ url_for('classes.admin') }}" style="display:none;">
+    <input type="hidden" name="action" value="assign">
+    <input type="hidden" name="event_id" id="assign_event_id" value="">
+    <input type="hidden" name="member_id" id="assign_member_id" value="">
+</form>
+
+<script>
+let activeEventId = null;
+
+function openInstructorModal(eventId) {
+    activeEventId = eventId;
+    $('#instructorModal').modal('show');
+}
+
+function customButton(memberId) {
+    if(!activeEventId) return;
+    document.getElementById('assign_event_id').value = activeEventId;
+    document.getElementById('assign_member_id').value = memberId;
+    document.getElementById('assignForm').submit();
+}
+
+function syncEvents() {
+    if(!confirm('This will trigger an immediate sync with Eventbrite. Proceed?')) return;
+    
+    fetch("{{ url_for('classes.cron_sync') }}")
+        .then(response => response.json())
+        .then(data => {
+            if(data.status === 'ok') {
+                alert('Sync completed successfully.');
+                location.reload();
+            } else {
+                alert('Error syncing: ' + data.message);
+            }
+        })
+        .catch(err => alert('Network error during sync.'));
+}
+
+function sendNotices() {
+    if(!confirm('This will immediately send out the 48-hour notices to all instructors. Proceed?')) return;
+    
+    fetch("{{ url_for('classes.send_notices') }}")
+        .then(response => response.json())
+        .then(data => {
+            if(data.status === 'ok') {
+                alert('Notices sent successfully.');
+            } else {
+                alert('Error sending notices: ' + data.message);
+            }
+        })
+        .catch(err => alert('Network error during notice send.'));
+}
+</script>
+{% endblock %}

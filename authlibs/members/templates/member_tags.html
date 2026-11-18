@@ -67,6 +67,9 @@
 	<label class="my-1 mr-1" for="newtag">Tag ID</label>	
 	 <input  class="form-control mb-2 mr-sm-2" id="newtag" name="newtag" type="Text" value="" />
 	<input class="form-control mb-2 mr-sm-2 btn btn-primary" type="submit" value="Add new tag">
+	{% if recent_tag %}
+	<button type="button" class="btn btn-success mb-2 mr-sm-2" onclick="this.form.newtag.value='{{ recent_tag }}'; this.form.submit();">Swiped {{ recent_tag }}</button>
+	{% endif %}
   </form>
 
 	<script type="text/javascript">

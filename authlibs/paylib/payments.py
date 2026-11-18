@@ -21,6 +21,7 @@ from .. import membership
 from authlibs.templateCommon import *
 
 from sqlalchemy import case, DateTime
+from sqlalchemy.exc import OperationalError
 
 
 # You must call this modules "register_pages" with main app's "create_rotues"
@@ -149,15 +150,25 @@ def payment_membership(membership):
 @roles_required(['Admin','Finance'])
 def update_payments():
     """(Controller) Sync Payment data and update Member data (add missing, deactivate, etc)"""
-    # TODO: Error handling
-    pay.updatePaymentData()
-    isTest=False
-    if current_app.config['globalConfig'].DeployType.lower() != "production":
-      isTest=True
-      logger.error("Non-Production environment - NOT creating google/slack accounts")
-    membership.syncWithSubscriptions(isTest)
-    authutil.kick_backend()
-    flash("Payment and Member data adjusted")
+    try:
+        pay.updatePaymentData()
+        isTest=False
+        if current_app.config['globalConfig'].DeployType.lower() != "production":
+            isTest=True
+            logger.error("Non-Production environment - NOT creating google/slack accounts")
+        res = membership.syncWithSubscriptions(isTest)
+        if res == 2:
+            flash("Database is currently locked by another operation. Please try again in a few moments.", "warning")
+            return redirect(url_for('payments.payments'))
+        elif res == 1:
+            flash("Canary subscription check failed. Member sync aborted.", "danger")
+            return redirect(url_for('payments.payments'))
+        authutil.kick_backend()
+        flash("Payment and Member data adjusted")
+    except OperationalError as e:
+        logger.error("update_payments hit database lock: %s" % str(e))
+        db.session.rollback()
+        flash("Database is currently locked by another operation. Please try again in a few moments.", "warning")
     return redirect(url_for('payments.payments'))
 
 @blueprint.route('/<string:id>', methods=['GET'])
@@ -260,12 +271,12 @@ def relate():
 def relate_assign():
   if 'Create' in request.form:
       newm={
-        'first':request.form['firstname'],
-        'last':request.form['lastname'],
-        'email':request.form['email'],
+        'first':authutil.sanitize_name(request.form['firstname']),
+        'last':authutil.sanitize_name(request.form['lastname']),
+        'email':authutil.sanitize_userid(request.form['email']),
         'plan':request.form['plan'],
         'rate_plan':request.form['rate_plan'],
-        'alt_email':request.form['alt_email'],
+        'alt_email':request.form['alt_email'].strip(),
         'membership':request.form['membership'],
         'no_email':False
       }
@@ -290,7 +301,7 @@ def relate_assign():
       if not newm['no_email']:
         if current_app.config['globalConfig'].DeployType.lower() == "production":
           try:
-            users = google_admin.searchEmail(request.form['email'])
+            users = google_admin.searchEmail(newm['email'])
             if len(users) > 0:
               flash("Email address already exists in Google","warning")
               error=True
@@ -325,6 +336,9 @@ def relate_assign():
           try:
             user = google_admin.createUser(newm['first'],newm['last'],newm['email'],newm['alt_email'],password)
             google_admin.sendWelcomeEmail(user,password,newm['alt_email'])
+            # Set up email forwarding in background (Gmail needs time to provision)
+            makeitlabs_email = newm['email'].lower() + '@makeitlabs.com'
+            membership._start_forwarding_background(makeitlabs_email, newm['alt_email'])
           except BaseException as e:
             logger.error("Error create Google act: "+str(e))
             flash("Error create Google act: "+str(e),"warning")
@@ -335,6 +349,11 @@ def relate_assign():
         return render_template('newmember.html',member=newm)
       else:
         db.session.commit()
+        if not newm['no_email'] and current_app.config['globalConfig'].DeployType.lower() == "production":
+          try:
+            google_admin.addToGoogleGroup([newm['email'].lower() + '@makeitlabs.com', newm.get('alt_email')])
+          except BaseException as e:
+            logger.warning("Non-fatal error adding new member to active Google group: " + str(e))
         flash("Created","success") 
       # TODO Create Google
         return redirect(url_for('members.member_show',id=newm['email']))

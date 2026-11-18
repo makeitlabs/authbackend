@@ -1,0 +1,61 @@
+{% set max_events = 14 %}
+{% if events|length > max_events %}
+  {% set events = events[:max_events] %}
+{% endif %}
+{% set total_rows = (events|length + 1) // 2 %}
+{% set header_height = 180 %}
+{% set row_height = 125 %}
+{% set card_height = 110 %}
+{% set footer_margin = 20 %}
+{% set footer_height = 60 %}
+{% set footer_y = header_height + (total_rows * row_height) + footer_margin %}
+{% set target_height = 1187 %} <!-- 1080 * (744/677) -->
+{% set svg_height = footer_y + footer_height + 40 %}
+{% if svg_height < target_height %}
+  {% set footer_y = target_height - footer_height - 40 %}
+  {% set svg_height = target_height %}
+{% endif %}
+
+<svg width="1080" height="{{ svg_height }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 {{ svg_height }}">
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="#182A3A" />
+
+  <!-- Header -->
+  <!-- MakeIt Labs Logo (centered, correct 5.6:1 aspect ratio) -->
+  <image x="260" y="30" width="560" height="90" preserveAspectRatio="xMidYMid meet" href="{{ url_for('static', filename='MakeIt Labs Logo 2016.svg', _external=True) }}" />
+  
+  <text x="540" y="165" fill="white" font-size="44" font-family="sans-serif" font-weight="bold" text-anchor="middle">This week: {{ date_range }}</text>
+
+  <!-- Events -->
+  {% for e in events %}
+    {% set row = loop.index0 // 2 %}
+    {% set col = loop.index0 % 2 %}
+    {% set x = 30 + col * 520 %}
+    {% set y = header_height + row * row_height %}
+    
+    <g class="event-card">
+      <!-- Date Box (White background) -->
+      <path d="M {{ x+15 }} {{ y }} L {{ x+100 }} {{ y }} L {{ x+100 }} {{ y+card_height }} L {{ x+15 }} {{ y+card_height }} A 12 12 0 0 1 {{ x }} {{ y+card_height-12 }} L {{ x }} {{ y+12 }} A 12 12 0 0 1 {{ x+15 }} {{ y }} Z" fill="white" />
+      
+      <!-- Orange border (drawn on top) -->
+      <rect x="{{ x }}" y="{{ y }}" width="500" height="{{ card_height }}" rx="12" fill="none" stroke="#F58220" stroke-width="3" />
+      <text x="{{ x+50 }}" y="{{ y+35 }}" fill="#F58220" font-size="22" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_abbr }}</text>
+      <text x="{{ x+50 }}" y="{{ y+75 }}" fill="#F58220" font-size="42" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_day }}</text>
+      <text x="{{ x+50 }}" y="{{ y+100 }}" fill="#F58220" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_month }}</text>
+      
+      <!-- Details Box -->
+      {% if e.title2 %}
+        <text x="{{ x+115 }}" y="{{ y+40 }}" fill="white" font-size="20" font-family="sans-serif" font-weight="bold">{{ e.title1 }}</text>
+        <text x="{{ x+115 }}" y="{{ y+65 }}" fill="white" font-size="20" font-family="sans-serif" font-weight="bold">{{ e.title2 }}</text>
+        <text x="{{ x+115 }}" y="{{ y+95 }}" fill="#88D1D1" font-size="18" font-family="sans-serif" font-weight="bold">{{ e.time }}</text>
+      {% else %}
+        <text x="{{ x+115 }}" y="{{ y+50 }}" fill="white" font-size="22" font-family="sans-serif" font-weight="bold">{{ e.title1 }}</text>
+        <text x="{{ x+115 }}" y="{{ y+85 }}" fill="#88D1D1" font-size="18" font-family="sans-serif" font-weight="bold">{{ e.time }}</text>
+      {% endif %}
+    </g>
+  {% endfor %}
+
+  <!-- Footer -->
+  <line x1="100" y1="{{ footer_y }}" x2="980" y2="{{ footer_y }}" stroke="#F58220" stroke-width="4" />
+  <text x="540" y="{{ footer_y + 45 }}" fill="#F58220" font-size="36" font-family="sans-serif" font-weight="bold" text-anchor="middle">makeitlabs.com</text>
+</svg>

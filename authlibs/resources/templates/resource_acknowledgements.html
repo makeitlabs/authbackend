@@ -1,0 +1,68 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div>
+<div class="sectionhead"><h3>Acknowledgements for {{ resource.name }}</h3></div>
+
+    <div class="mb-4">
+        <a href="{{ url_for('resources.resource_show', resource=resource.name) }}" class="btn btn-secondary">Back to {{ resource.name }}</a>
+    </div>
+
+    <h4>Create New Acknowledgement</h4>
+    <form method="POST" action="{{ url_for('resources.resource_acknowledgements', resource=resource.name) }}" class="mb-4">
+        <input type="hidden" name="action" value="create">
+        <div class="form-group">
+            <label>Title (This will be the subject of the email)</label>
+            <input type="text" name="title" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Message</label>
+            <textarea name="message" class="form-control" rows="4" required></textarea>
+        </div>
+        <div class="form-group">
+            <label>Enforce In (Days from Creation - optional)</label>
+            <input type="number" name="enforce_days" class="form-control" placeholder="e.g. 14">
+            <small class="form-text text-muted">Leave empty to never lock out users who don't acknowledge.</small>
+        </div>
+        <p class="text-danger font-weight-bold">Note: Creating an acknowledgement does not automatically send emails. You must manually click "Send / Resend" below.</p>
+        <button type="submit" class="btn btn-primary">Create Acknowledgement</button>
+    </form>
+
+    <h4>Existing Acknowledgements</h4>
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Created</th>
+                <th>Enforce On</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ack in acks %}
+            <tr>
+                <td>{{ ack.title }}</td>
+                <td>{{ ack.time_created.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ ack.enforce_on.strftime('%Y-%m-%d %H:%M') if ack.enforce_on else 'Never' }}</td>
+                <td>
+                    <a href="{{ url_for('resources.resource_acknowledgement_detail', resource=resource.name, ack_id=ack.id) }}" class="btn btn-sm btn-info">View / Status</a>
+                    <form method="POST" action="{{ url_for('resources.resource_acknowledgements', resource=resource.name) }}" class="d-inline">
+                        <input type="hidden" name="action" value="send">
+                        <input type="hidden" name="ack_id" value="{{ ack.id }}">
+                        <button type="submit" class="btn btn-sm btn-success">Send / Resend</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('resources.resource_acknowledgements', resource=resource.name) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this acknowledgement?');">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="ack_id" value="{{ ack.id }}">
+                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4">No acknowledgements found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{# vim:tabstop=2:expandtab:shiftwidth=2 
+#}
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+{% endblock %}
+{% block body %}
+<div class="body"><h3>{{ resource.name }} Usage Reports</h3></div>
+
+<p>Month is {{ month }} Year is {{ year }}</p>
+
+<form method="POST">
+<table class="table table-sm">
+	<tr>
+		<th></th>
+		<th>Member</th>
+		<th>Time</th>
+		<th style="text-align:right">Price</th>
+		<th>Invoice ID</th>
+		<th>Invoice Number</th>
+		<th>Status</th>
+	</tr>
+	{% for t in table %}
+	<tr>
+		<td>
+			<button class="btn btn-secondary-outline glyphicon glyphicon-search" type="submit" name="memberDetail" value="{{ t['member_id'] }}">
+			</button>
+		</td>
+		<td>{{ t['member'] }}</td>
+		<td>{{ t.time }}</td>
+		<td style="text-align:right">{{ t.price }}</td>
+		<td>{{ t.invoice }}</td>
+		<td>{{ t.number }}</td>
+		<td>{{ t.status }}</td>
+	</tr>
+	{% endfor %}
+</table>
+
+	<select name="month">
+		<option value="1" {% if month==1 %}selected{% endif %}>January</option>
+		<option value="2" {% if month==2 %}selected{% endif %}>February</option>
+		<option value="3" {% if month==3 %}selected{% endif %}>March</option>
+		<option value="4" {% if month==4 %}selected{% endif %}>April</option>
+		<option value="5" {% if month==5 %}selected{% endif %}>May</option>
+		<option value="6" {% if month==6 %}selected{% endif %}>June</option>
+		<option value="7" {% if month==7 %}selected{% endif %}>July</option>
+		<option value="8" {% if month==8 %}selected{% endif %}>August</option>
+		<option value="9" {% if month==9 %}selected{% endif %}>September</option>
+		<option value="10" {% if month==10 %}selected{% endif %}>October</option>
+		<option value="11" {% if month==11 %}selected{% endif %}>November</option>
+		<option value="12" {% if month==12 %}selected{% endif %}>December</option>
+	</select>
+	<select name="year">
+	{% for x in range(2022,2035) %}
+	<option {% if year==x %}selected{% endif %} value="{{ x }}">{{ x }}</option>
+		{% endfor %}
+	</select>
+	<a href="{{ url_for('resources.billing_usage',resource=resource.name) }}" class="btn btn-primary">Edit Usage</a>
+	<input type="Submit" class="btn btn-danger" Value="Bill Usage" name="doBilling" />
+	<input type="checkbox" Value="Invoice & Collect" name="invoiceCollect" /> <label>Invoice &amp; Collect </label>
+	<input type="checkbox" Value="Debug" name="debug" /> <label>Debug</label>
+</form>
+<p>{{ resource.name }}</p>
+
+<p>
+{% for x in debug %}
+<pre> {{ x }} </pre>
+{% endfor %}
+</p>
+</div> {# Body #}
+
+{% endblock %}

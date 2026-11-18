@@ -1,0 +1,10 @@
+{% extends "layout_bootstrap.html" %}
+{% block search %}
+  <div class=body>
+
+    <h3>Calendar Debug</h3>
+    {% for x in debug %}
+    <pre> {{ x }} </pre>
+    {% endfor %}
+  </div>
+{% endblock %}

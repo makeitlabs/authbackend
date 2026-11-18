@@ -6,8 +6,10 @@
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.resource_showusers",resource=rec.name) }}" class="btn btn-link">Members</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.resource_usage",resource=rec.name) }}" class="btn btn-link">Usage Graphs</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.resource_usage_reports",resource=rec.name) }}" class="btn btn-link">Usage Reports</a>
+		<a class="btn btn-outline-secondary" href="{{ url_for("resources.billing",resource=rec.name) }}" class="btn btn-link">Billing</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.maintenance",resource=rec.name) }}" class="btn btn-link">Maintenance</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.message",resource=rec.name) }}" class="btn btn-link">Message Users</a>
+		<a class="btn btn-outline-secondary" href="{{ url_for("resources.resource_acknowledgements",resource=rec.name) }}" class="btn btn-link">Acknowledgements</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("training.approvals",resname=rec.name) }}" class="btn btn-link">Approve Auth</a>
 	</div>
   <form action={{ url_for('resources.resource_update',resource=rec.id) }} method="POST">
@@ -88,6 +90,47 @@
 		{% include 'maint_form.html' %}
 	</div>
 	</div> <!-- Maintenance Records -->
+
+	<hr />
+	<div class="container"> <!-- Notices -->
+	<h3>Notices and Announcements</h3>
+	{% if not notices %}
+		<p>There are no active notices</p>
+	{% else %}
+		<table class="table">
+			<tr>
+				<th>Title</th>
+				<th>Message</th>
+				<th>Created</th>
+				<th>Action</th>
+			</tr>
+	{% for n in notices %}
+			<tr>
+				<td>{{ n.title }}</td>
+				<td>{{ n.message }}</td>
+				<td>{{ n.time_created.strftime('%Y-%m-%d %H:%M') if n.time_created else '' }}</td>
+				<td>
+					{% if readonly is not defined or not readonly %}
+					<form action="{{ url_for('resources.delete_notice', resource=rec.name, notice_id=n.id) }}" method="POST" style="display:inline;">
+						<button type="submit" class="btn btn-sm btn-danger">Deactivate</button>
+					</form>
+					{% endif %}
+				</td>
+			</tr>
+	{% endfor %}
+		</table>
+	{% endif %}
+
+	{% if readonly is not defined or not readonly %}
+	<!-- Button trigger for Add Notice -->
+	<button type="button" class="btn btn-info" data-toggle="collapse" data-target="#addNoticeCollapse">
+		Add Notice
+	</button>
+	<div class="collapse" id="addNoticeCollapse" >
+		{% include 'add_notice_form.html' %}
+	</div>
+	{% endif %}
+	</div> <!-- Notices -->
 
 	<hr />
 	<div class="container"> <!-- Tools -->

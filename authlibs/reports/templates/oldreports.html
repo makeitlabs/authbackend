@@ -1,0 +1,104 @@
+{% extends "layout_bootstrap.html" %}
+<h2>Resources</h2>
+{% block body %}
+<div class="resourcelist">
+	<h2>Reports</h2>
+	<div class="sectionhead">Data in need of manual review and correction</div>
+	{% if stats.duplicate_payments|length > 0 %}
+		<div class="error">ERROR - {{ stats.duplicate_payments|length }} Duplicate Member IDs in Payments table</div>
+		<div class="protip">Fix this first! Manually review their data and add old, invalid customer ids to Blacklist table</div>
+		{% for u in stats.duplicate_payments %}
+		<li><a href="{{ url_for('payments_member',id=u.member) }}">{{ u.member }} {{ u.customerid }} (Exp: {{ u.expires_date }})</a></li>
+		{% endfor %}
+	{% else %}
+		<div class="okay">OKAY - No duplicate Member IDs in Payments table</div>
+	{% endif %}
+	{% if stats.payments_nomembers|length > 0 %}
+		<div class="error">FAIL - {{ stats.payments_nomembers|length }} User(s) in Payments table but not in Members table</div>
+		<div class="protip">This is a BAD thing, it means someone may not get what they pay for.</div>
+		{% for u in stats.payments_nomembers %}
+			<li>Name in Payments: {{ u.member }}</li>
+		{% endfor %}
+	{% else %}
+		<div class="okay">OKAY - All valid members in Payments table are in Members table. Huzzah.</div>
+	{% endif %}
+	{% if stats.access_nomembers|length > 0 %}
+		<div class="error">FAIL - {{ stats.access_nomembers|length }} User(s) in Accessbymember table but not in Members table</div>
+		<div class="protip">This is an unsafe thing - it means someone has access that is incorrectly tracked.</div>
+		<div class="protip">Most likely cause: 'member' column string mismatch ('Rob' vs 'Robert', etc)</div>
+		<div class="protip">Other likely cause: Member may have an alias, maybe a group member?</div>
+		{% for u in stats.access_nomembers %}
+		<li><a href="{{ url_for('member_editaccess',id=u.member) }}">{{ u.member }}</a></li>
+		{% endfor %}
+	{% else %}
+		<div class="okay">OKAY - Everyone with Access is in Members table. Huzzah.</div>
+	{% endif %}
+	{% if stats.access_noresource|length > 0 %}
+		<div class="error">FAIL - Resources in Accessbymember table but not in Resources table</div>
+		{% for u in stats.access_noresource %}
+		<li>{{ u.resource }}</li>
+		{% endfor %}
+	{% else %}
+		<div class="okay">OKAY - All Resources in Accessbymember are in Resources table</div>
+	{% endif %}
+	
+	{% if stats.members_nopayments|length > 0 %}
+		<div class="warning">WARNING - {{ stats.members_nopayments|length }} Users in Members table but not in Payments table</div>
+		<div class="protip">This normally means someone was entered manually, it may be okay.</div>
+		{% for u in stats.members_nopayments %}
+		<li><a href="{{ url_for('member_show',id=u.member) }}">{{ u.member }}</a></li>
+		{% endfor %}
+	{% else %}
+		<div class="okay">OKAY - Everyone in Members table is in Payments Table. Huzzah.</div>
+	{% endif %}
+	{% if stats.tags_nomembers|length > 0 %}
+		<div class="warning">WARNING - {{ stats.tags_nomembers|length }} Users in Tagsbymember table not in Members table</div>
+		<div class="protip">These are mismatches between Pinpayments screenname and member ID, or old data.</div>
+		{% for u in stats.tags_nomembers %}
+		<li><a href="{{ url_for('member_tags',id=u.member) }}">{{ u.member }}</a></li>
+		{% endfor %}
+	{% else %}
+		<div class="okay">OKAY - All members with tags matches with someone in Members table. Huzzah.</div>
+	{% endif %}
+	{% if stats.paid_noaccess|length > 0 %}
+		<div class="warning">WARNING - {{ stats.paid_noaccess|length }}  Unexpired members in Payments table but not in Accessbymember table</div>
+		<div class="protip">This could be bad, but may just mean the person hasn't had orientation for 25 Crown. </div>
+		{% for u in stats.paid_noaccess %}
+		<li><a href="{{ url_for('payments_member',id=u.member) }}">{{ u.member }} (Email: {{ u.email }})</a></li>
+		{% endfor %}
+	{% else %}
+		<div class="okay">OKAY - All paid in Payments table are in Accessbymember table. Huzzah.</div>
+	{% endif %}
+	{% if stats.access_expired|length > 0 %}
+		<div class="warning">WARNING - {{ stats.access_expired|length }}  Expired members are in the Accessbymember table</div>
+		<div class="protip">This may be okay, but check in here for people you see around frequently..</div>
+		{% for u in stats.access_expired %}
+		<li><a href="{{ url_for('payments_member',id=u.member) }}">{{ u.member }} (Expiration: {{ u.expires_date }})</a></li>
+		{% endfor %}
+	{% else %}
+		<div class="okay">Pretty amazing... No one in the accessbymember table is expired..</div>
+	{% endif %}
+	{% if stats.recently_expired|length > 0 %}
+		<div class="warning">WARNING - {{ stats.recently_expired|length }}  Expired members in the last 60 days</div>
+		<div class="protip">Seen any of these folks in lately? May want to remind them to renew!</div>
+		{% for u in stats.recently_expired %}
+		<li><a href="{{ url_for('payments_member',id=u.member) }}">{{ u.member }}</a></li>
+		{% endfor %}
+	{% else %}
+		<div class="okay">Awesome! No one has expired in the last 60 days</div>
+	{% endif %}
+	
+	
+	
+	<div class="sectionhead">Quick links - Predefined Reports</div>
+	<ul>
+		<li>View Member Summary</li>
+		<li>View Members expired in the last 60 days</li>
+		<li>View Members added in the last 60 days</li>
+		<li>View Resource Use summary (req integration with resource logger</li>
+	</ul>
+	<div class="Sectionhead">General Summary</div>
+	<div class="sectionhead">Mix and Match</div>
+	TBD
+	
+{% endblock %}

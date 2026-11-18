@@ -25,6 +25,36 @@ import logging
 logger = logging.getLogger(__name__)
 
 setupDone = False
+_pre_sync_active_members = None
+
+def is_sub_active(sub, now=None):
+    """Check if a subscription record is considered active in the payment system."""
+    if not sub:
+        return False
+    act = str(sub.active).strip().lower()
+    if act not in ('true', '1'):
+        return False
+    return True
+
+def snapshot_active_members():
+    """Snapshot member IDs who currently have an active subscription before payment sync."""
+    global _pre_sync_active_members
+    now = datetime.datetime.utcnow()
+    try:
+        subs = Subscription.query.filter(Subscription.member_id != None).all()
+        _pre_sync_active_members = set(s.member_id for s in subs if is_sub_active(s, now))
+        logger.info("Snapshotted %d active members before payment update" % len(_pre_sync_active_members))
+    except BaseException as e:
+        logger.warning("Could not snapshot active members before payment update: %s" % str(e))
+        _pre_sync_active_members = None
+
+def get_pre_sync_active_members():
+    global _pre_sync_active_members
+    return _pre_sync_active_members
+
+def clear_pre_sync_active_members():
+    global _pre_sync_active_members
+    _pre_sync_active_members = None
 
 
 def getLastUpdatedDate():
@@ -195,6 +225,7 @@ def addSubscriptionData(subs,module):
 
 def updatePaymentData(modules=None):
     setupPaymentSystems()
+    snapshot_active_members()
     if modules is None:
         modules = config.payments['modules']
     for module in modules.split(","):
@@ -210,9 +241,37 @@ def updatePaymentData(modules=None):
         logger.info(subs)
         fsubs = filterSubscriptions(subs)
         logger.info(fsubs)
+        # Snapshot existing subscription -> member_id links before clearing so
+        # nightly sync never drops an already-linked member association.
+        existing_subs = Subscription.query.filter(
+            Subscription.paysystem == module,
+            Subscription.member_id != None
+        ).all()
+        links_by_subid = {}
+        links_by_membership = {}
+        for es in existing_subs:
+            if es.subid:
+                links_by_subid[(es.subid, (es.email or '').strip().lower())] = es.member_id
+            if es.membership:
+                links_by_membership[es.membership] = es.member_id
+
         # TODO - Make sure retrieval and filtering is working
         clearSubscriptionData(module)
         addSubscriptionData(fsubs['valid'],module)
+
+        restored = 0
+        for ns in Subscription.query.filter(
+            Subscription.paysystem == module,
+            Subscription.member_id == None
+        ).all():
+            mid = links_by_subid.get((ns.subid, (ns.email or '').strip().lower()))
+            if mid is None and ns.membership:
+                mid = links_by_membership.get(ns.membership)
+            if mid is not None:
+                ns.member_id = mid
+                restored += 1
+        if restored:
+            logger.info("Restored %d existing subscription->member links for %s" % (restored, module))
 
 
 ## Call with python ./authserver.py --command updatepayments instead
@@ -239,7 +298,9 @@ def cli_updatepayments(cmd,**kwargs):
         #pinpay.chargeFee('5689127638925312','WorkspaceRental','Rental for June','Workspace','37.50','yes')
         #
         updatePaymentData()
-        membership.syncWithSubscriptions(True)
+        res = membership.syncWithSubscriptions_with_retry(True)
+        if res != 0:
+            logger.error("cli_updatepayments sync failed with status code %d" % res)
         #db.session.commit()
 
 

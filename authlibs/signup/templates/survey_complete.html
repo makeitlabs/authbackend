@@ -1,0 +1,24 @@
+{% extends "layout_public.html" %}
+{% block head %}
+{% endblock %}
+
+
+{% block widebody %}
+    <div class="body">
+        <h2 class="mb-4">Membership Registration</h2>
+	<p><b>Thanks again!</b></p>
+	<p>We look forward to seeing you at an orientation session <b>Thursdays at 7:00pm</b> - where you will complete your onboarding. 
+	</p>
+
+	<p>
+	In the meantime, please click the button below to sign your member waiver. Building access will not be premitted until waiver is signed.
+	{% if mtype == "produo" %} Plase make sure <b>both</b> members have executed waivers.{% endif %}
+	</p>
+	    <a href="https://waiver.smartwaiver.com/w/5626bfb9a69fd/web/" class="btn btn-info" target="_blank">Member Waiver...</a>
+
+
+	    <!--
+	    <pre>{{ results }}</pre>
+	    -->
+    </div>
+{% endblock %}

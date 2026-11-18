@@ -1,0 +1,170 @@
+{% extends "layout_bootstrap.html" %}
+
+{% block head %}
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  .printer-cam-container {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #f8fafc;
+    margin-top: 20px;
+    margin-bottom: 40px;
+    text-align: center;
+  }
+  .dashboard-header {
+    margin-bottom: 30px;
+    border-bottom: 2px solid #334155;
+    padding-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .cam-img {
+    max-width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    border: 1px solid #334155;
+    background-color: #0f172a;
+    min-height: 200px;
+  }
+
+  /* Toggle Switch */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 24px;
+  }
+  .switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #334155;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  input:checked + .slider {
+    background-color: #10b981;
+  }
+  input:focus + .slider {
+    box-shadow: 0 0 1px #10b981;
+  }
+  input:checked + .slider:before {
+    -webkit-transform: translateX(22px);
+    -ms-transform: translateX(22px);
+    transform: translateX(22px);
+  }
+  .slider.round {
+    border-radius: 24px;
+  }
+</style>
+{% endblock %}
+
+{% block widebody %}
+<div class="container printer-cam-container">
+  <div class="dashboard-header">
+    <div style="flex-grow: 1; text-align: left;">
+      <h2 style="margin-bottom: 0px; font-weight: 600; color: #38bdf8;">Live Camera View: {{ name }}</h2>
+    </div>
+    <div style="display: flex; align-items: center;">
+      <span style="font-size: 14px; font-weight: 500; color: #94a3b8; margin-right: 10px;">Auto Refresh: <span id="autoRefreshStatus" style="font-weight: bold; color: #64748b; transition: color 0.3s ease;">Off</span></span>
+      <label class="switch" style="position: relative; display: inline-block; width: 46px; height: 24px; margin: 0; vertical-align: middle;">
+        <input type="checkbox" id="autoRefreshToggle" style="opacity: 0; width: 0; height: 0;">
+        <span class="slider round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; -webkit-transition: .4s; transition: .4s; border-radius: 24px;"></span>
+      </label>
+    </div>
+  </div>
+
+  <div>
+    <img id="cameraImage" src="{{ url_for('printerstatus.cam_image', serialno=serialno) }}" class="cam-img" alt="Camera Feed" onerror="this.onerror=null; this.src=''; this.alt='Camera feed unavailable';" />
+  </div>
+  
+  <div style="margin-top: 30px;">
+    <a href="{{ url_for('printerstatus.status') }}" class="btn btn-secondary" style="background-color: #334155; border-color: #475569;">Back to Dashboard</a>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function() {
+    var toggle = document.getElementById('autoRefreshToggle');
+    var statusText = document.getElementById('autoRefreshStatus');
+    var refreshTimer = null;
+    var camImage = document.getElementById('cameraImage');
+
+    function updateStatusUI(isOn) {
+      if (isOn) {
+        statusText.textContent = 'On';
+        statusText.style.color = '#10b981';
+      } else {
+        statusText.textContent = 'Off';
+        statusText.style.color = '#64748b';
+      }
+    }
+
+    function startTimer() {
+      if (refreshTimer) clearInterval(refreshTimer);
+      refreshTimer = setInterval(function() {
+        if (camImage) {
+          var url = new URL(camImage.src, window.location.origin);
+          url.searchParams.set('t', new Date().getTime());
+          camImage.src = url.toString();
+        }
+      }, 60000); // 60 seconds refresh for camera stream
+    }
+
+    function stopTimer() {
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+    }
+
+    // Check URL parameters to see if auto-refresh is active
+    var urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('autorefresh') === 'on') {
+      toggle.checked = true;
+      updateStatusUI(true);
+      startTimer();
+    } else {
+      toggle.checked = false;
+      updateStatusUI(false);
+    }
+
+    // Handle toggle change
+    $(toggle).on('change', function() {
+      var url = new URL(window.location.href);
+      if (this.checked) {
+        url.searchParams.set('autorefresh', 'on');
+        window.history.replaceState({}, '', url.toString());
+        updateStatusUI(true);
+        startTimer();
+      } else {
+        url.searchParams.delete('autorefresh');
+        window.history.replaceState({}, '', url.toString());
+        updateStatusUI(false);
+        stopTimer();
+      }
+    });
+  });
+</script>
+{% endblock %}

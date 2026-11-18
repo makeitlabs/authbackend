@@ -1,0 +1,205 @@
+{% extends "layout_public.html" %}
+{% block head %}
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+    integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"
+    integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+    integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+    crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"
+    integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+    crossorigin="anonymous"></script>
+{% endblock %}
+
+
+{% block body %}
+<div class="body">
+    <div class="container">
+        <h2 class="mb-4">Membership Registration</h2>
+        <form method="POST" action="https://auth.makeitlabs.com/authit/signup/payment">
+            <div class="mb-3">
+                <p>
+                    Please enter information below for the individual signing up for membership. Select the
+                    basic membership type below. Any discounts (such as military, ProDuo, etc.) will be applied
+                    to successive billing cycles during orientation. You may cancel at any time, effective at
+                    the beginning of the next-months billing cycle. By signing up you are agreeing to be
+                    automatically billed for membership each month, in addition to any incedental (vending,
+                    materials) charges/purchases you may opt for.
+                </p>
+            </div>
+
+
+            <!-- Membership Columns -->
+            <!-- Script for visual activation of buttons -->
+            <script>
+                $(document).ready(function () {
+                    $('input[name="membershipType"]').change(function () {
+                        $('.membership-select-btn').removeClass('active');
+                        $(this).closest('label').addClass('active');
+                    });
+                });
+            </script>
+            <div class="row mb-4">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title text-center"><strong>Hobbyist</strong><br>$49.95/mo</h5>
+                            <ul>
+                                <li>24/7 building access</li>
+                                <li>No project storage space - 'pack in, pack out'</li>
+                                <li>Not eligible for rentals</li>
+                                <li>Small discounts on certain classes</li>
+                            </ul>
+                        </div>
+                        <div class="card-footer bg-transparent border-top-0">
+                            <div class="btn-group-toggle">
+                                <label class="btn btn-outline-primary btn-block membership-select-btn"
+                                    data-target=".collapseOne.show" data-toggle="collapse">
+                                    <input type="radio" name="membershipType" id="option1" value="hobbyist"
+                                        autocomplete="off" required> Select
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title text-center"><strong>Pro</strong><br>$64.95/mo</h5>
+                            <ul>
+                                <li>24/7 building access</li>
+                                <li>Project storage bin</li>
+                                <li>Small locker space</li>
+                                <li>Eligible for space rentals</li>
+                                <li>Large discounts on certain classes (Free in many cases)</li>
+                            </ul>
+                        </div>
+                        <div class="card-footer bg-transparent border-top-0">
+                            <div class="btn-group-toggle">
+                                <label class="btn btn-outline-primary btn-block membership-select-btn"
+                                    data-target=".collapseOne.show" data-toggle="collapse">
+                                    <input type="radio" name="membershipType" id="option2" value="pro"
+                                        autocomplete="off">
+                                    Select
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title text-center"><strong>Pro Duo</strong><br>$109.95/mo</h5>
+                            <ul>
+                                <li>$20 off the price of 2 Pro memberships</li>
+                                <li>All the benefits of a normal Pro membership, just for 2 people!</li>
+                                <li>Make stuff with your significant other, partner, or friend!</li>
+                            </ul>
+                        </div>
+                        <div class="card-footer bg-transparent border-top-0">
+                            <div class="btn-group-toggle">
+                                <label class="btn btn-outline-primary btn-block membership-select-btn"
+                                    data-target=".collapseOne:not(.show)" data-toggle="collapse">
+                                    <input type="radio" name="membershipType" id="option3" value="produo"
+                                        autocomplete="off" data-target=".collapse.show"> Select
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title text-center"><strong>Military Pro</strong><br>$49.95/mo</h5>
+                            <ul>
+                                <li>Pro membership for the cost of Hobbyist</li>
+                                <li>All past and present military personnel are eligible - thank you to everyone
+                                    that has served.</li>
+                            </ul>
+                        </div>
+                        <div class="card-footer bg-transparent border-top-0">
+                            <div class="btn-group-toggle">
+                                <label class="btn btn-outline-primary btn-block membership-select-btn"
+                                    data-target=".collapseOne.show" data-toggle="collapse">
+                                    <input type="radio" name="membershipType" id="option4" value="militarypro"
+                                        autocomplete="off"> Select
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <h4>Member Information:</h4>
+
+            <!-- First Name -->
+            <div class="input-group mb-3">
+                <label for="firstName" class="input-group-text mb-2">First Name</label>
+                <input type="text" class="form-control mb-2" name="firstname" id="firstName"
+                    placeholder="Enter your first name" required="">
+                <label for="lastName" class="input-group-text mb-2">Last Name</label>
+                <input type="text" class="form-control mb-2" name="lastname" id="lastName"
+                    placeholder="Enter your last name" required="">
+            </div>
+
+
+            <!-- email -->
+            <div class="input-group mb-3">
+                <label for="email" class="input-group-text mb-2">email</label>
+                <input type="tel" class="form-control mb-2" name="email" id="email"
+                    placeholder="Enter your email address" required="">
+                <label for="phoneNumber" class="input-group-text  mb-2">Phone Number</label>
+                <input type="tel" class="form-control mb-2" name="phone" id="phoneNumber"
+                    placeholder="Enter your phone number" required="">
+            </div>
+
+
+
+            <!-- Second Member -->
+            <div class="collapseOne collapse" id="secondMember">
+                <hr>
+                <h4>Second Member Information:</h4>
+                <div class="card card-body" style="background:none;border:none">
+                    <!-- Begin second member info -->
+                    <!-- First Name -->
+                    <div class="input-group mb-3">
+                        <label for="firstName" class="input-group-text mb-2">First Name</label>
+                        <input type="text" class="form-control mb-2" name="firstname2" id="firstName2"
+                            placeholder="Additional Member&#39;s First Name">
+                        <label for="lastName" class="input-group-text mb-2">Last Name</label>
+                        <input type="text" class="form-control mb-2" name="lastname2" id="lastName2"
+                            placeholder="Addiotnal Member&#39;s Last Name">
+                    </div>
+
+
+                    <!-- email -->
+                    <div class="input-group mb-3">
+                        <label for="email" class="input-group-text mb-2">email</label>
+                        <input type="tel" class="form-control mb-2" name="email2" id="email2"
+                            placeholder="Additional Member&#39;s Email Address">
+                        <label for="phoneNumber" class="input-group-text  mb-2">Phone Number</label>
+                        <input type="tel" class="form-control mb-2" name="phone2" id="phoneNumber2"
+                            placeholder="Additional Member&#39;s Phone Number">
+                    </div>
+                    <!-- End second member info -->
+                </div>
+                <hr>
+
+            </div>
+
+
+            <!-- Checkbox -->
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="termsAgreement" name="termsAgreement" required="">
+                <label class="form-check-label" for="termsAgreement">&nbsp;I agree to the terms and
+                    conditions</label>
+            </div>
+            <!-- Submit Button -->
+            <button type="submit" name="Payment" value="Payment" class="btn btn-primary">Continue to
+                Payment</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

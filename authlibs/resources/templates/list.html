@@ -1,0 +1,28 @@
+{# vim:tabstop=2:expandtab:shiftwidth=2 
+#}
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+{% endblock %}
+{% block body %}
+<div class="body">
+	<h2>Billable Resources</h2>
+
+{% if resources|length == 0 %}
+<p>You are not authorized on any billable resources</p>
+{% endif %}
+<table class="table table-sm">
+	<tr>
+		<th></th>
+		<th>Resource</th>
+	</tr>
+	{% for r in resources %}
+	<tr>
+		<td> <a class="btn btn-outline-secondary" href="{{ url_for("resources.mybilling",resource=r.name) }}" class="btn btn-link">Billing</a></td>
+		<td>{{ r.name }}</td>
+	</tr>
+	{% endfor %}
+</table>
+
+</div> {# Body #}
+
+{% endblock %}

@@ -17,7 +17,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from .db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, VendingLogs, \
-    Logs, ApiKey, Tool, KVopt, Node, NodeConfig, Blacklist, accessLevelToString, UsageLog, MaintSched, ProBin, ProLocation, QuizQuestion, Training, TempAuth
+    Logs, ApiKey, Tool, KVopt, Node, NodeConfig, Blacklist, accessLevelToString, UsageLog, MaintSched, ProBin, ProLocation, QuizQuestion, Training, TempAuth, Purchasable, StorageGrid, ProBinChoice, Sign, InventoryLog
 from functools import wraps
 import dateutil.tz
 import json

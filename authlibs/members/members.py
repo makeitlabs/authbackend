@@ -1,6 +1,7 @@
 # vim:shiftwidth=2:noexpandtab
 
 from ..templateCommon import  *
+import urllib.parse
 
 from authlibs.comments import comments
 import datetime
@@ -10,6 +11,9 @@ from .. import accesslib
 from .. import ago 
 from authlibs.members.notices import get_notices,sendnotices
 from authlibs.slackutils import add_user_to_channel
+from flask_dance.contrib.google import google
+from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials
 import stripe    
 
 ## TODO make sure member's w/o Useredit can't see other users' data or search for them
@@ -43,6 +47,11 @@ def stripNone(x):
 		return None
 	return x
 
+@blueprint.route('/site', methods = ['GET'])
+def member_site():
+        return redirect("https://accounts.google.com/AccountChooser?hd=makeitlabs.com&continue=https://sites.google.com/a/makeitlabs.com/members")
+
+
 @blueprint.route('/', methods = ['GET'])
 @login_required
 def members():
@@ -50,6 +59,292 @@ def members():
         if not current_user.privs('Useredit') and not accesslib.user_is_authorizor(member=current_user,level=AccessByMember.LEVEL_ARM):
             return redirect(url_for('members.member_show',id=current_user.member))
         return render_template('members.html',rec=members,page="all")
+
+@blueprint.route('/orientation', methods = ['GET'])
+@login_required
+@roles_required(['Admin','Finance','Useredit'])
+def orientation():
+    """Show recent members needing orientation"""
+    
+    import re
+    eastern = dateutil.tz.gettz('US/Eastern')
+    utc = dateutil.tz.gettz('UTC')
+    now = datetime.datetime.now().replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
+    
+    limit = 15
+    offset = 0
+    if 'limit' in request.values:
+        if request.values['limit'] != "all":
+            limit = int(request.values['limit'])
+        else:
+            limit = 200
+    if 'offset' in request.values:
+        offset = int(request.values['offset'])
+
+    hide_completed = request.values.get('hide_completed', '0') == '1'
+
+    all_log_entries = db.session.query(Logs)\
+        .filter(Logs.event_type == eventtypes.RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id)\
+        .order_by(Logs.time_logged.desc())\
+        .all()
+
+    filtered_entries = []
+    
+    # We will build member list and filter appropriately
+    # The member query matching is fast, getDoorAccess can be slower so we lazily check
+    if hide_completed:
+        for log in all_log_entries:
+            if not log.member_id:
+                continue
+            member = Member.query.filter(Member.id == log.member_id).one_or_none()
+            if not member:
+                continue
+            
+            # Skip mistaken/void records if an access reason is provided
+            if member.access_reason and member.access_reason.strip() != "":
+                continue
+                
+            if not member.access_enabled:
+                filtered_entries.append((log, member))
+                continue
+            member_waiver = Waiver.query.filter(
+                Waiver.member_id == member.id,
+                Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER
+            ).first()
+            if not member_waiver:
+                filtered_entries.append((log, member))
+                continue
+            tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
+            if len(tags) == 0:
+                filtered_entries.append((log, member))
+                continue
+            (warning,allowed,dooraccess) = getDoorAccess(member.id)
+            if not allowed:
+                filtered_entries.append((log, member))
+                continue
+    else:
+        for log in all_log_entries:
+            if not log.member_id:
+                continue
+            member = Member.query.filter(Member.id == log.member_id).one_or_none()
+            if not member:
+                continue
+            
+            # Skip mistaken/void records if an access reason is provided
+            if member.access_reason and member.access_reason.strip() != "":
+                continue
+                
+            filtered_entries.append((log, member))
+
+    count = len(filtered_entries)
+    paginated_entries = filtered_entries[offset:offset+limit]
+    
+    orientation_list = []
+    
+    for log, member in paginated_entries:
+        member_waiver = Waiver.query.filter(
+            Waiver.member_id == member.id,
+            Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER
+        ).first()
+        waiver_status = "On file" if member_waiver else "Not on file"
+        
+        tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
+        has_tag = len(tags) > 0
+        
+        (warning,allowed,dooraccess) = getDoorAccess(member.id)
+        
+        is_fully_enabled = (
+            member.access_enabled == 1 and 
+            member_waiver is not None and 
+            has_tag and 
+            allowed
+        )
+        
+        orientation_list.append({
+            'member': member,
+            'waiver_status': waiver_status,
+            'has_tag': has_tag,
+            'tags': tags,
+            'access_enabled': member.access_enabled == 1,
+            'door_access_allowed': allowed,
+            'is_fully_enabled': is_fully_enabled,
+            'access_warning': warning,
+            'time_logged': log.time_logged.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
+        })
+
+    nextoffset = offset+limit
+    if (offset >= count - limit):
+        nextoffset=None
+    else:
+        if re.search(r"[\?\&]offset=(\d+)",request.url):
+            nextoffset = re.sub(r"([\?\&])offset=(\d+)",r"\g<1>offset="+str(nextoffset),request.url)
+        else:
+            if request.url.find("?")  == -1:
+              nextoffset = request.url+"?offset="+str(nextoffset)
+            else:
+              nextoffset = request.url+"&offset="+str(nextoffset)
+
+    prevoffset = offset-limit
+    if (prevoffset < 0): prevoffset=0
+    if offset <= 0:
+      prevoffset = None
+    else:
+      if re.search(r"[\?\&]offset=(\d+)",request.url):
+          prevoffset = re.sub(r"([\?\&])offset=(\d+)",r"\g<1>offset="+str(prevoffset),request.url)
+      else:
+          if request.url.find("?")  == -1:
+            prevoffset = request.url+"?offset="+str(prevoffset)
+          else:
+            prevoffset = request.url+"&offset="+str(prevoffset)
+
+    if re.search(r"[\?\&]offset=(\d+)",request.url):
+        firstoffset = re.sub(r"([\?\&])offset=(\d+)",r"",request.url)
+    else:
+        firstoffset = request.url
+
+    lo = offset+limit
+    if (lo > count):
+        lo = count
+
+    lastoffset = count-limit
+    if (lastoffset < 0): lastoffset=0
+    if re.search(r"[\?\&]offset=(\d+)",request.url):
+        lastoffset = re.sub(r"([\?\&])offset=(\d+)",r"\g<1>offset="+str(lastoffset),request.url)
+    else:
+        if request.url.find("?") != -1:
+            lastoffset = request.url+"&offset="+str(lastoffset)
+        else:
+            lastoffset = request.url+"?offset="+str(lastoffset)
+            
+    if re.search(r"[\?\&]hide_completed=1",request.url):
+        toggle_hide_url = re.sub(r"([\?\&])hide_completed=1",r"\g<1>hide_completed=0",request.url)
+    elif re.search(r"[\?\&]hide_completed=0",request.url):
+        toggle_hide_url = re.sub(r"([\?\&])hide_completed=0",r"\g<1>hide_completed=1",request.url)
+    else:
+        if request.url.find("?") != -1:
+            toggle_hide_url = request.url+"&hide_completed=1"
+        else:
+            toggle_hide_url = request.url+"?hide_completed=1"
+
+    meta = {
+            'offset':offset,
+            'limit':limit,
+            'first':firstoffset,
+            'prev':prevoffset,
+            'next':nextoffset,
+            'last':lastoffset,
+            'count':count,
+            'displayoffset':offset+1 if count > 0 else 0,
+            'lastoffset':lo,
+            'hide_completed': hide_completed,
+            'toggle_hide_url': toggle_hide_url
+    }
+    
+    import redis
+    r = redis.Redis()
+    recent_tag = r.get('orientation_recent_tag')
+    if recent_tag:
+        recent_tag = recent_tag.decode('utf-8')
+    else:
+        recent_tag = None
+    
+    return render_template('orientation.html', orientation_list=orientation_list, page="orientation", ago=ago, meta=meta, recent_tag=recent_tag)
+
+@blueprint.route('/orientation', methods = ['POST'])
+@login_required
+@roles_required(['Admin','Finance','Useredit'])
+def orientation_add_tag():
+    """Handle tag assignment from orientation page"""
+    member_id = request.form.get('member_id')
+    tag_ident = request.form.get('tag_ident')
+    
+    if not member_id or not tag_ident:
+        flash("Member ID and Tag ID are required", "danger")
+        return redirect(url_for('members.orientation'))
+    
+    # Validate RFID tag
+    tag_ident = authutil.rfid_validate(tag_ident)
+    if tag_ident is None:
+        flash("ERROR: The specified RFID tag is invalid, must be 10-digit all-numeric", "danger")
+        return redirect(url_for('members.orientation'))
+    
+    # Get member
+    member = Member.query.filter(Member.id == member_id).one_or_none()
+    if not member:
+        flash("Member not found", "danger")
+        return redirect(url_for('members.orientation'))
+    
+    # Check if member has waiver on file
+    member_waiver = Waiver.query.filter(
+        Waiver.member_id == member.id,
+        Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER
+    ).first()
+    
+    # Add tag using existing function
+    if add_member_tag(member_id, tag_ident, "rfid", tag_ident):
+        import redis
+        r = redis.Redis()
+        r.delete('orientation_recent_tag')
+        # Grant frontdoor access whenever a tag is added
+        frontdoor_resource = Resource.query.filter(Resource.name == "frontdoor").one_or_none()
+        if frontdoor_resource:
+            # Check if member already has access
+            existing_access = AccessByMember.query.filter(
+                AccessByMember.member_id == member.id,
+                AccessByMember.resource_id == frontdoor_resource.id
+            ).one_or_none()
+            
+            if not existing_access:
+                # Create new access record
+                new_access = AccessByMember(
+                    member_id=member.id,
+                    resource_id=frontdoor_resource.id,
+                    level=AccessByMember.LEVEL_USER,  # Basic access level
+                    active=1
+                )
+                db.session.add(new_access)
+                authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,
+                           resource_id=frontdoor_resource.id,
+                           member_id=member.id, doneby=current_user.id, commit=0)
+                flash_message = "Tag added and frontdoor access granted"
+            else:
+                # Enable existing access if it was disabled
+                if not existing_access.active:
+                    existing_access.active = 1
+                    existing_access.level = AccessByMember.LEVEL_USER
+                    authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,
+                               resource_id=frontdoor_resource.id,
+                               member_id=member.id, doneby=current_user.id, commit=0)
+                    flash_message = "Tag added and frontdoor access enabled"
+                else:
+                    flash_message = "Tag added (frontdoor access already exists)"
+        else:
+            flash_message = "Tag added, but frontdoor resource not found"
+        
+        # If waiver is on file, also enable member access
+        if member_waiver:
+            # Enable member access if not already enabled
+            if member.access_enabled != 1:
+                member.access_enabled = 1
+                member.access_reason = None
+                authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id, 
+                           message="Orientation completed - tag assigned", 
+                           member_id=member.id, doneby=current_user.id, commit=0)
+                flash_message += " and member access enabled"
+            else:
+                flash_message += " (member access already enabled)"
+        else:
+            flash_message += " (waiver not on file - member access not enabled)"
+        
+        flash(flash_message, "success")
+        
+        # Commit all changes and kick backend
+        db.session.commit()
+        authutil.kick_backend()
+    else:
+        flash("Error: That tag is already associated with a user", "danger")
+    
+    return redirect(url_for('members.orientation'))
 
 @blueprint.route('/', methods= ['POST'])
 @login_required
@@ -59,7 +354,7 @@ def member_add():
                         
     member = {}
     mandatory_fields = ['firstname','lastname','memberid','plan','payment']
-    optional_fields = ['alt_email','phone','dob','nickname']
+    optional_fields = ['alt_email','phone','dob','nickname', 'plates', 'group']
     for f in mandatory_fields:
         member[f] = ''
         if f in request.form:
@@ -217,8 +512,11 @@ def member_edit(id):
           else:
             flash("Invalid Date of Birth Format - must be \"MM/DD/YYYY\"","danger")
             nocommit=True
+        m.plates= f['input_plates'].strip()
         m.slack= f['input_slack'].strip()
         m.memberFolder= stripNone(f['input_memberFolder'])
+        if 'input_group' in f:
+          m.group = stripNone(f['input_group'])
         m.alt_email= f['input_alt_email'].strip()
         m.email= f['input_email'].strip()
         if 'input_access_enabled' in f:
@@ -267,12 +565,16 @@ def member_edit(id):
 @login_required
 def member_show(id):
    """Controller method to Display or modify a single user"""
-   #TODO: Move member query functions to membership module
+   #TODO: Move member query functions to membership query functions
    meta = {}
    access = {}
+   # URL-decode the member ID to handle quotes and special characters
+   id = urllib.parse.unquote(id)
    mid = authutil._safestr(id)
-   member=db.session.query(Member,Subscription)
-   member = member.join(Subscription).outerjoin(Waiver).filter(Member.member==mid)
+   member=db.session.query(Member)
+   member = member.outerjoin(Subscription,Subscription.member_id==mid)
+   member = member.add_columns(Subscription)
+   member = member.outerjoin(Waiver).filter(Member.member==mid)
    res = member.one_or_none()
 
    if (not current_user.privs('Useredit')) and res[0].member != current_user.member:
@@ -282,9 +584,12 @@ def member_show(id):
        return redirect(url_for('members.members'))
  
    (warning,allowed,dooraccess)=(None,None,None)
+
  
+   print ("RES IS",res,dir(res))
    if res:
      (member,subscription) = res
+     subscription = Subscription.query.filter(Subscription.member_id == member.id).one_or_none()
 
      utc = dateutil.tz.gettz('UTC')
      eastern = dateutil.tz.gettz('US/Eastern')
@@ -610,7 +915,16 @@ def member_tags(id):
     if not member:
       flash("Invalid Tag","danger")
       return redirect(url_for('members.members'))
-    return render_template('member_tags.html',mid=mid,tags=tags,rec=member,page="tags")
+      
+    import redis
+    r = redis.Redis()
+    recent_tag = r.get('orientation_recent_tag')
+    if recent_tag:
+        recent_tag = recent_tag.decode('utf-8')
+    else:
+        recent_tag = None
+        
+    return render_template('member_tags.html',mid=mid,tags=tags,rec=member,page="tags", recent_tag=recent_tag)
 
 @blueprint.route('/updatebackends', methods = ['GET'])
 @login_required
@@ -660,6 +974,9 @@ def member_tagadd(id):
         flash("ERROR: The specified RFID tag is invalid, must be 10-digit all-numeric",'danger')
     else:
         if add_member_tag(mid,ntag,ntagtype,ntagname):
+            import redis
+            r = redis.Redis()
+            r.delete('orientation_recent_tag')
             authutil.kick_backend()
             flash("Tag added.",'success')
         else:
@@ -979,6 +1296,54 @@ def admin_page():
 
     return render_template('admin_page.html',privs=p,roles=roles)
 
+@blueprint.route('/calendar', methods=['GET'])
+@login_required
+def docal():
+    debug=[]
+    debug.append("This is a test")
+    if "google_token" not in session:
+        logger.error ("Invalidate and redirect calendar session")
+        session.clear()
+        logout_user()
+        return redirect(url_for("members.docal"))
+    print("My authorized is",session["google_token"])
+    """
+    if google.authorized == False:
+        new_credentials = google.refresh_token(
+            blueprint.client_id, blueprint.client_secret, session["google_token"]["refresh_token"])
+        # update the token in the user session
+        google.token = new_credentials.to_json()
+
+    print("My token is",google.token)
+    """
+    print("My keys toekn is",session["google_token"].keys())
+    print("My access toekn is",session["google_token"]["access_token"])
+    #print("My referesn toekn is",session["refresh_token"])
+    #creds = Credentials.from_authorized_user_info(info=session["google_token"])
+    creds = Credentials(session["google_token"]["access_token"])
+    service = build('calendar', 'v3', credentials=creds)
+    now = datetime.datetime.utcnow().isoformat() + 'Z'
+    events_result = service.events().list(calendarId='primary', timeMin=now,
+                                              maxResults=10, singleEvents=True,
+                                              orderBy='startTime').execute()
+    events = events_result.get('items', [])
+    for x in events:
+        resources = []
+        if x['kind'] == "calendar#event" and x['status'] == "confirmed":
+            for a in x['attendees']:
+                if a['email'] == 'makeitlabs.com_3133373236393938363631@resource.calendar.google.com' and a['responseStatus'] == "accepted":
+                    resources.append("Laser/Epilog")
+                if a['email'] == 'c_1886b6dkec306jdkk38lsbpbejeo8@resource.calendar.google.com' and a['responseStatus'] == "accepted":
+                    resources.append("Laser/MOPA")
+
+
+            rr = ", ".join(resources)
+            if len(rr) > 0:
+                debug.append(f"EVENT {rr} {x['summary']} {x['start']['dateTime']} {x['end']['dateTime']}")
+
+        #debug.append(json.dumps(x,indent=2))
+    return render_template('docal.html',debug=debug)
+
 def _createMember(m):
     """Add a member entry to the database"""
     sqlstr = "Select member from members where member = '%s'" % m['memberid']
@@ -986,13 +1351,19 @@ def _createMember(m):
     if members:
         return {'status': 'error','message':'That User ID already exists'}
     else:
-        sqlstr = """insert into members (member,firstname,lastname,phone,dob,plan,nickname,access_enabled,active)
-                    VALUES ('%s','%s','%s','%s','','%s',0,0)
-                 """ % (m['memberid'],m['firstname'],m['lastname'],m['phone'],m['dob'],m['nickname'])
+        group_val = m.get('group')
+        if group_val:
+            sqlstr = """insert into members (member,firstname,lastname,phone,dob,plan,nickname,access_enabled,active,"group")
+                        VALUES ('%s','%s','%s','%s','%s','','%s',0,0,'%s')
+                     """ % (m['memberid'],m['firstname'],m['lastname'],m['phone'],m['dob'],m['nickname'],group_val)
+        else:
+            sqlstr = """insert into members (member,firstname,lastname,phone,dob,plan,nickname,access_enabled,active)
+                        VALUES ('%s','%s','%s','%s','','%s',0,0)
+                     """ % (m['memberid'],m['firstname'],m['lastname'],m['phone'],m['dob'],m['nickname'])
         execute_db(sqlstr)
         get_db().commit()
-    return {'status':'success','message':'Member %s was created' % m['memberid']}
     authutil.kick_backend()
+    return {'status':'success','message':'Member %s was created' % m['memberid']}
 
 def getDoorAccess(id):
   r = db.session.query(Resource.id).filter(Resource.name == "frontdoor").one_or_none()
@@ -1008,6 +1379,138 @@ def getDoorAccess(id):
 
   (warning,allowed) = accesslib.determineAccess(acc,"Door access pending orientation")
   return (warning,allowed.lower()=='allowed',acc)
+
+@blueprint.route('/webhook', methods=['POST','GET'])
+def webhook():
+    event = None
+    payload = request.data
+    sig_header = request.headers['STRIPE_SIGNATURE']
+
+    stripe.apk_key = current_app.config['globalConfig'].Config.get('Stripe','webhook_apk_key')
+    endpoint_secret =  current_app.config['globalConfig'].Config.get('Stripe','webhook_endpoint_secret')
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
+        # Handle the event
+        logger.warning(f"Stripe Webhook Success {event}")
+        logger.warning(f'Object {event["data"]["eventect"]}')
+        logger.warning(f'Type {event["type"]}')
+        logger.warning(f'ID {event["data"]["eventect"]["id"]}')
+        logger.warning(f'Product {event["data"]["eventect"]["plan"]["product"]}')
+        logger.warning(f'Active {event["data"]["eventect"]["plan"]["active"]}')
+        logger.warning(f'Name {event["data"]["eventect"]["plan"]["name"]}')
+
+    except ValueError as e:
+        # Invalid payload
+        logger.error(f"Stripe Webook Value error: {e}")
+        return json_dump({'success':True},indent=2), 200, {'Content-type': 'application/json'}
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        logger.error(f"Stripe Webook Signature verification error: {e}")
+        return json_dump({'success':True},indent=2), 200, {'Content-type': 'application/json'}
+    except BaseException as e:
+        logger.error(f"Stripe Webook error: {e}")
+        return json_dump({'success':True},indent=2), 200, {'Content-type': 'application/json'}
+
+    if ((obj["data"]["object"] == "customer.subscription.created") and (obj["type"] == "customer.subscription.created")):
+        pass
+
+    # We meed to add (comma separated string) "names" and "emails" to Subscription metadata
+    return json_dump({'success':True},indent=2), 200, {'Content-type': 'application/json'}
+
+
+@blueprint.route('/<string:id>/subscription/cancel', methods=['POST'])
+@login_required
+@roles_required(['Admin','Finance'])
+def member_cancel_subscription(id):
+    mid = safestr(id)
+    member = Member.query.filter(Member.id == mid).one_or_none()
+    if not member:
+        flash("Member not found", "warning")
+        return redirect(url_for('members.members'))
+    
+    sub = Subscription.query.filter(Subscription.member_id == member.id).one_or_none()
+    if not sub or not sub.subid:
+        flash("Subscription not found", "warning")
+        return redirect(url_for('members.member_show', id=member.member))
+        
+    try:
+        stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
+        stripe.Subscription.delete(sub.subid)
+        
+        # Log and update backend
+        authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id, message="Subscription canceled manually via UI", member_id=member.id, doneby=current_user.id, commit=0)
+        authutil.log(eventtypes.RATTBE_LOGEVENT_CONFIG_SUB_CANCELED_PAYSYS.id, message="Subscription canceled manually via UI", member_id=member.id, doneby=current_user.id, commit=0)
+        
+        # Set to inactive
+        sub.active = 0
+        db.session.commit()
+        authutil.kick_backend()
+        
+        flash("Subscription canceled successfully", "success")
+    except BaseException as e:
+        flash(f"Error canceling subscription in Stripe: {e}", "danger")
+        
+    return redirect(url_for('members.member_show', id=member.member))
+
+@blueprint.route('/<string:id>/subscription/reactivate', methods=['POST'])
+@login_required
+@roles_required(['Admin','Finance'])
+def member_reactivate_subscription(id):
+    from authlibs.signup.update import fixMemberSubscription
+    mid = safestr(id)
+    member = Member.query.filter(Member.id == mid).one_or_none()
+    if not member:
+        flash("Member not found", "warning")
+        return redirect(url_for('members.members'))
+    
+    sub = Subscription.query.filter(Subscription.member_id == member.id).one_or_none()
+    if not sub or not sub.customerid:
+        flash("Subscription not found", "warning")
+        return redirect(url_for('members.member_show', id=member.member))
+        
+    try:
+        stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
+        
+        # Find the most recent ended subscription
+        ss = stripe.Subscription.list(customer=sub.customerid, status="ended")
+        recent = None
+        mostrecent = None
+        for s in ss['data']:
+            if s.ended_at is not None and (recent is None or s.ended_at > recent):
+                recent = s.ended_at
+                mostrecent = s
+            if s.canceled_at is not None and (recent is None or s.canceled_at > recent):
+                recent = s.canceled_at
+                mostrecent = s
+                
+        if mostrecent is None:
+            flash("Could not find a previous subscription to reactivate.", "danger")
+            return redirect(url_for('members.member_show', id=member.member))
+            
+        newsub = stripe.Subscription.create(
+            customer=sub.customerid,
+            metadata=mostrecent.get('metadata', {}),
+            description="Membership renewal",
+            collection_method="charge_automatically",
+            items=[
+                {
+                    "price": mostrecent.plan.id,
+                }
+            ],
+        )
+        
+        # Update local database
+        fixMemberSubscription(newsub)
+        flash("Subscription successfully reactivated", "success")
+        
+    except BaseException as e:
+        flash(f"Error reactivating subscription: {e}", "danger")
+        
+    return redirect(url_for('members.member_show', id=member.member))
+
 
 def register_pages(app):
   app.register_blueprint(blueprint)

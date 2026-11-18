@@ -1,0 +1,69 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+
+<!-- script type="text/javascript" src="{{ url_for("purchasables.static",filename="purchasableedit.js") }}"></script> -->
+<script type="text/javascript"> IMG_BASE = "{{ url_for("static",filename="") }}";</script>
+<div>
+  <div class="sectionhead">
+    <h3>Edit Purchasable</h3>
+  </div>
+  <form action={{ url_for('purchasables.purchasables_update',purchasable=purchasable.id) }} method="POST">
+    {% include 'purchasable_form.html' %}
+
+
+
+    <br />
+    <div class="container">
+      {% if readonly is not defined or not readonly %}
+      <input type=submit class="btn btn-primary" value="Save changes">
+      {% endif %}
+      </dif>
+
+  </form>
+  {% if readonly is not defined or not readonly %}
+  <div class="sectionhead">
+    <p />
+  </div>
+
+  {% if purchasable.resource_id %}
+  <a href="{{ url_for('inventory.store', purchasable_id=purchasable.id) }}" class="btn btn-info mb-3">
+    <i class="fa fa-shopping-cart"></i> Store / Inventory Page
+  </a>
+  <br/>
+  {% endif %}
+  
+  <a href="{{ url_for('purchasables.quick', purchasable=purchasable.id) }}" class="btn btn-success mb-3">
+    <i class="fa fa-bolt"></i> Quick Pay URL
+  </a>
+  <br/>
+
+  <!-- Button trigger for "Delete" modal -->
+  <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
+    Delete Purchasable
+  </button>
+
+  <!-- Modal for Delete resource confirmation -->
+  <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          Are you really sure you want to delete {{ purchasable.name }}??
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+          <form action={{ url_for('purchasables.purchasable_delete',purchasable=purchasable.id) }} method="post">
+            <input class="btn btn-danger" type=submit value="Delete">
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %} <!-- We have premissions to delete -->
+
+  {% endblock %}

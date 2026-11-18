@@ -1,0 +1,91 @@
+{#    This is meant to be INCLUDED by another page.
+			Wrap this inside another div class-content block, 
+			and inside a form (if desiered)
+
+			This template is used for THREE different thins:
+			Create, Edit, or Display a record
+	
+			{% include 'template.html' %}
+
+			Or to include checkbox columns:
+
+			{% with add_checkboxes='1' %}
+			{% include 'userlist.html' %}
+			{% endwith %}
+
+#}
+
+<!-- Import any "with" parameters -->
+{% if member_url %}
+<script type="text/javascript">var MEMBER_URL="{{ url_for("members.member_show",id="") }}";</script>
+{% else %}
+<script type="text/javascript">var MEMBER_URL=null;</script>
+{% endif %}
+
+
+{% if readonly is defined and readonly  %}
+{% set ro="readonly" %}
+{% endif %}
+
+{% if rec is not defined %}
+{% set rec={} %}
+{% endif %}
+
+
+{% macro input(name, label, placeholder='', small='', type='text') -%}
+			{% if readonly is not defined %}
+			{% set ph = placeholder %}
+			{% endif %}
+      <label for="input_{{ name }}">{{ label }}</label>
+      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ purchasable[name] }}">
+			{% if small != '' %}
+			<small>{{ small }}</small>
+			{% endif %}
+{%- endmacro %}
+
+<div class="container">
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('name',"Item Name",'Some Tool',small="Name item") }}
+    </div>
+	</div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('description',"Description",'',small="Short Description of item") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('pricestr',"Price $",'',small="If blank, allows user to decide") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('product',"Product Code",'prod_XX',small="Product code from Stripe") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('stripe_desc',"Stripe Description",'',small="Description of item on Stripe invoice") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('slack_admin_chan',"Slack Admin Channel",'#myadmins',small="Slack channel to post purchases on") }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-2">
+      <label for="input_resource_id">Resource Group</label>
+			<select {{ ro }} class="form-control" name="input_resource_id">
+				<option name="- None -" value="-1">- None -</option>
+				{% for r in resources %}
+					<option name="{{ r.name }}" value="{{ r.id }}"
+					{% if purchasable.resource_id == r.id %}selected{% endif %}
+					>{{ r.name }}</option>
+				{% endfor %}
+			</select>
+			<small>For logging purposes only</small>
+    </div>
+  </div>
+</div>

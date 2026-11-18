@@ -1,0 +1,177 @@
+{% extends "layout_bootstrap.html" %}
+<h2>Resources</h2>
+{% block head %}
+{% if show_swipe_unlock %}
+<style>
+.swipe-container {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+.swipe-btn {
+    position: relative;
+    width: 280px;
+    height: 60px;
+    background: linear-gradient(to right, #dc3545 0%, #dc3545 50%, #28a745 50%, #28a745 100%);
+    border-radius: 30px;
+    overflow: hidden;
+    touch-action: pan-x;
+    user-select: none;
+}
+.swipe-btn-text {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 1;
+}
+.swipe-btn-slider {
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    width: 50px;
+    height: 50px;
+    background: white;
+    border-radius: 50%;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    z-index: 2;
+    transition: left 0.1s ease-out;
+}
+.swipe-btn-slider:active {
+    cursor: grabbing;
+}
+.swipe-btn-slider svg {
+    width: 24px;
+    height: 24px;
+    fill: #666;
+}
+.swipe-btn.unlocked {
+    background: #28a745;
+}
+.swipe-btn.unlocked .swipe-btn-slider {
+    left: calc(100% - 55px);
+}
+</style>
+{% endif %}
+{% endblock %}
+
+{% block body %}
+<div class="toolslist">
+	<h1>Open Doors</h2>
+	{% if tools|length == 0 %}
+	<h3>There are no doors available to remote-open</h3>
+	{% endif %}
+  {{ banner | safe }}
+
+	{% if show_swipe_unlock %}
+	<div class="swipe-container">
+		<div class="swipe-btn" id="swipeBtn">
+			<span class="swipe-btn-text">Swipe right to unlock &rarr;</span>
+			<div class="swipe-btn-slider" id="swipeSlider">
+				<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+			</div>
+		</div>
+	</div>
+	{% endif %}
+
+	<table class="table table-sm" id="doorsTable">
+	{% for tool in tools %}
+	  <tr>
+    {% if disable %}
+		<td><button disabled class="btn btn-secondary door-btn" style="font-size:xx-large;padding:20px" data-href="{{ url_for('opendoors.open',tool=tool.id) }}">{{ tool.name }}</button></td>
+    {% else %}
+		<td><a class="btn btn-primary door-btn" style="font-size:xx-large;padding:20px" href="{{ url_for('opendoors.open',tool=tool.id) }}">{{ tool.name }}</a></td>
+    {% endif %}
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+{% if show_swipe_unlock %}
+<script>
+(function() {
+    const btn = document.getElementById('swipeBtn');
+    const slider = document.getElementById('swipeSlider');
+    const btnWidth = 280;
+    const sliderWidth = 50;
+    const padding = 5;
+    const maxLeft = btnWidth - sliderWidth - padding * 2;
+    let isDragging = false;
+    let startX = 0;
+    let currentLeft = 0;
+
+    function getEventX(e) {
+        return e.touches ? e.touches[0].clientX : e.clientX;
+    }
+
+    function startDrag(e) {
+        isDragging = true;
+        startX = getEventX(e) - currentLeft;
+        slider.style.transition = 'none';
+    }
+
+    function doDrag(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        let x = getEventX(e) - startX;
+        x = Math.max(0, Math.min(x, maxLeft));
+        currentLeft = x;
+        slider.style.left = (x + padding) + 'px';
+    }
+
+    function endDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        slider.style.transition = 'left 0.2s ease-out';
+        
+        if (currentLeft >= maxLeft * 0.85) {
+            // Unlocked
+            currentLeft = maxLeft;
+            slider.style.left = (maxLeft + padding) + 'px';
+            btn.classList.add('unlocked');
+            btn.querySelector('.swipe-btn-text').textContent = 'Unlocked!';
+            enableButtons();
+        } else {
+            // Reset
+            currentLeft = 0;
+            slider.style.left = padding + 'px';
+        }
+    }
+
+    function enableButtons() {
+        document.querySelectorAll('.door-btn').forEach(function(el) {
+            if (el.tagName === 'BUTTON') {
+                // Replace disabled button with enabled link
+                const name = el.textContent;
+                const toolId = el.getAttribute('data-tool-id');
+                const link = document.createElement('a');
+                link.className = 'btn btn-primary door-btn';
+                link.style.cssText = 'font-size:xx-large;padding:20px';
+                link.href = el.getAttribute('data-href');
+                link.textContent = name;
+                el.parentNode.replaceChild(link, el);
+            }
+        });
+    }
+
+    slider.addEventListener('mousedown', startDrag);
+    slider.addEventListener('touchstart', startDrag, {passive: true});
+    document.addEventListener('mousemove', doDrag);
+    document.addEventListener('touchmove', doDrag, {passive: false});
+    document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchend', endDrag);
+})();
+</script>
+{% endif %}
+
+{% endblock %}

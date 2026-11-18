@@ -1,0 +1,329 @@
+{% block head %}
+<link href="{{ url_for('static', filename='css/spinner.css') }}" rel="stylesheet">
+<script type="text/javascript">
+    function updateTotal() {
+        var total = 0;
+        var items = document.querySelectorAll('.purchase-qty');
+        items.forEach(function (item) {
+            var qty = parseInt(item.value) || 0;
+            var price = parseInt(item.dataset.price) || 0;
+            total += qty * price;
+        });
+        document.getElementById('totalPrice').innerText = '$' + (total / 100.0).toFixed(2);
+        var purchaseBtn = document.getElementById('purchaseBtn');
+        if (purchaseBtn) {
+            purchaseBtn.disabled = (total <= 0);
+        }
+    }
+
+    function confirmPurchase() {
+        var total = document.getElementById('totalPrice').innerText;
+        var items = [];
+        document.querySelectorAll('.purchase-qty').forEach(function (item) {
+            var qty = parseInt(item.value) || 0;
+            if (qty > 0) {
+                items.push(qty + 'x ' + item.dataset.name);
+            }
+        });
+        if (items.length === 0) {
+            alert('No items selected');
+            return false;
+        }
+        return confirm('Confirm purchase of ' + items.join(', ') + ' for ' + total + '?\n\nThis will be charged to the credit card on file for your MakeIt Labs membership.');
+    }
+
+    function confirmPull() {
+        var items = [];
+        document.querySelectorAll('.pull-qty').forEach(function (item) {
+            var qty = parseInt(item.value) || 0;
+            if (qty > 0) {
+                items.push(qty + 'x ' + item.dataset.name);
+            }
+        });
+        if (items.length === 0) {
+            alert('No items selected');
+            return false;
+        }
+        return confirm('Pull ' + items.join(', ') + ' from inventory (zero cost)?');
+    }
+</script>
+{% endblock %}
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+
+<div class="container-fluid">
+    <h2><i class="fa fa-shopping-cart"></i> {{ resource.name }} Store</h2>
+    {% if resource.description %}
+    <p class="text-muted">{{ resource.description }}</p>
+    {% endif %}
+
+    {% if tracked | length > 0 or untracked | length > 0 %}
+    <!-- Purchase Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fa fa-credit-card"></i> Purchase Items</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('inventory.store_purchase', purchasable_id=purchasable_id) }}"
+                onsubmit="return confirmPurchase();">
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Description</th>
+                            <th>Price</th>
+                            <th>In Stock</th>
+                            <th style="width:80px">Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in tracked %}
+                        <tr>
+                            <td><strong>{{ item.name }}</strong></td>
+                            <td>{{ item.description }}</td>
+                            <td>{{ item.pricestr }}</td>
+                            <td>
+                                {% if item.current_qty is not none %}
+                                {% if item.current_qty > 0 %}
+                                <span class="badge badge-success">{{ item.current_qty }}</span>
+                                {% else %}
+                                <span class="badge badge-danger">0</span>
+                                {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm purchase-qty"
+                                    name="qty_{{ item.id }}" value="0" min="0"
+                                    max="{{ item.current_qty if item.current_qty is not none else 999 }}"
+                                    data-price="{{ item.priceval }}" data-name="{{ item.name }}"
+                                    onchange="updateTotal()" oninput="updateTotal()">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% for item in untracked %}
+                        <tr>
+                            <td><strong>{{ item.name }}</strong></td>
+                            <td>{{ item.description }}</td>
+                            <td>{{ item.pricestr }}</td>
+                            <td>
+                                <span class="text-muted"><small>Not Tracked</small></span>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm purchase-qty"
+                                    name="qty_{{ item.id }}" value="0" min="0" max="999"
+                                    data-price="{{ item.priceval }}" data-name="{{ item.name }}"
+                                    onchange="updateTotal()" oninput="updateTotal()">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="form-group">
+                    <label>Comment <small class="text-muted">(optional)</small></label>
+                    <input type="text" class="form-control" name="comment" placeholder="Optional comment">
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <h4>Total: <span id="totalPrice">$0.00</span></h4>
+                    <button type="submit" id="purchaseBtn" class="btn btn-success btn-lg" disabled>
+                        <i class="fa fa-credit-card"></i> Purchase
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        No purchasable items configured for this resource.
+    </div>
+    {% endif %}
+
+    {% if is_arm %}
+    <!-- ARM Section -->
+    <hr>
+    <h3><i class="fa fa-cog"></i> Resource Manager Tools</h3>
+
+    {% if tracked | length > 0 %}
+    <!-- Pull Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0"><i class="fa fa-arrow-down"></i> Pull Items (Zero Cost)</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('inventory.store_pull', purchasable_id=purchasable_id) }}"
+                onsubmit="return confirmPull();">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>In Stock</th>
+                            <th style="width:80px">Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in tracked %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.current_qty }}</td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm pull-qty"
+                                    name="pull_qty_{{ item.id }}" value="0" min="0"
+                                    max="{{ item.current_qty if item.current_qty is not none else 999 }}"
+                                    data-name="{{ item.name }}">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="form-group">
+                    <label>Comment <small class="text-muted">(optional)</small></label>
+                    <input type="text" class="form-control" name="comment" placeholder="Reason for pull">
+                </div>
+                <button type="submit" class="btn btn-warning mt-2"><i class="fa fa-arrow-down"></i> Pull Items</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Restock Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fa fa-plus-circle"></i> Restock (Add Inventory)</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('inventory.store_restock', purchasable_id=purchasable_id) }}">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Current Stock</th>
+                            <th style="width:100px">Add +</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in tracked %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.current_qty }}</td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm"
+                                    name="restock_qty_{{ item.id }}" value="0" min="0">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="form-group">
+                    <label>Comment <small class="text-muted">(optional)</small></label>
+                    <input type="text" class="form-control" name="comment" placeholder="e.g. Supplier delivery">
+                </div>
+                <button type="submit" class="btn btn-info mt-2"><i class="fa fa-plus-circle"></i> Restock</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Adjust Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="fa fa-edit"></i> Adjust Inventory (Set Absolute Count)</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('inventory.store_adjust', purchasable_id=purchasable_id) }}">
+                <p class="text-muted">Leave blank to skip. Enter a number to set the actual count.</p>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Current Count</th>
+                            <th style="width:100px">Actual =</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in tracked %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.current_qty }}</td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm"
+                                    name="adjust_qty_{{ item.id }}" value="" min="0"
+                                    placeholder="{{ item.current_qty }}">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="form-group">
+                    <label>Comment <small class="text-muted">(optional)</small></label>
+                    <input type="text" class="form-control" name="comment" placeholder="e.g. Physical count correction">
+                </div>
+                <button type="submit" class="btn btn-secondary mt-2"><i class="fa fa-edit"></i> Adjust</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if untracked | length > 0 %}
+    <!-- Initialize Untracked Items -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fa fa-play-circle"></i> Set Initial Inventory</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted">These items are in this resource group but don't have inventory tracking yet. Set an
+                initial count to start tracking them.</p>
+            <form method="POST" action="{{ url_for('inventory.store_init', purchasable_id=purchasable_id) }}">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Description</th>
+                            <th>Price</th>
+                            <th style="width:100px">Initial Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in untracked %}
+                        <tr>
+                            <td><strong>{{ item.name }}</strong></td>
+                            <td>{{ item.description }}</td>
+                            <td>{{ item.pricestr }}</td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm" name="init_qty_{{ item.id }}"
+                                    value="" min="0" placeholder="0">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="form-group">
+                    <label>Comment <small class="text-muted">(optional)</small></label>
+                    <input type="text" class="form-control" name="comment" placeholder="e.g. Initial physical count">
+                </div>
+                <button type="submit" class="btn btn-primary mt-2"><i class="fa fa-play-circle"></i> Set Initial
+                    Inventory</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Report Link -->
+    <div class="mb-4">
+        <a href="{{ url_for('inventory.store_report', purchasable_id=purchasable_id) }}" class="btn btn-outline-dark">
+            <i class="fa fa-bar-chart"></i> View Inventory Report
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<div id="spinner" style="display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+    <div class="lds-roller">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,327 @@
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+
+  <script type="text/javascript" src="static/polyfill.js"></script> 
+  
+  <script type="text/javascript" src="static/cv.js"></script> 
+  <script type="text/javascript" src="static/aruco.js"></script> 
+  <script type="text/javascript" src="static/aruco_4x4_1000.js"></script> 
+
+  <script>
+    var video, canvas, context, imageData, detector;
+
+    function onLoad(){
+      video = document.getElementById("video");
+      canvas = document.getElementById("canvas");
+      context = canvas.getContext("2d");
+
+	//findCamera();
+    
+      canvas.width = parseInt(canvas.style.width);
+      canvas.height = parseInt(canvas.style.height);
+      
+      if (navigator.mediaDevices === undefined) {
+        navigator.mediaDevices = {};
+      }
+      
+      if (navigator.mediaDevices.getUserMedia === undefined) {
+        navigator.mediaDevices.getUserMedia = function(constraints) {
+          var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+          
+          if (!getUserMedia) {
+            return Promise.reject(new Error('getUserMedia is not implemented in this browser'));
+          }
+
+          return new Promise(function(resolve, reject) {
+            getUserMedia.call(navigator, constraints, resolve, reject);
+          });
+        }
+      }
+ 
+	const constraints = {
+			  video: {facingMode: "environment"}
+		  }
+     navigator.mediaDevices.getUserMedia(constraints)
+        .then(function(stream) {
+          if ("srcObject" in video) {
+            video.srcObject = stream;
+          } else {
+            video.src = window.URL.createObjectURL(stream);
+          }
+     var canvasNode = document.getElementById('canvas');
+    canvasNode.style.width = canvasNode.parentNode.clientWidth;
+    canvasNode.height = canvasNode.parentNode.clientHeight;
+        })
+        .catch(function(err) {
+          console.log(err.name + ": " + err.message);
+        }
+      );
+	 
+        
+      detector = new AR.Detector({
+        dictionaryName: 'ARUCO_4X4_1000'
+      });
+
+      requestAnimationFrame(tick);
+    }
+    
+    function tick(){
+      requestAnimationFrame(tick);
+      
+      if (video.readyState === video.HAVE_ENOUGH_DATA){
+        snapshot();
+
+        var markers = detector.detect(imageData);
+        drawCorners(markers);
+        drawId(markers);
+        bkg(markers);
+
+      }
+    }
+
+    // Aruco IDs
+    var lastBin,lastLoc;
+	lastLoc=0;
+	lastBin=0;
+
+    function bkg(markers){
+      for (i = 0; i !== markers.length; ++ i){
+                        var highest = -999;
+                        var lowest = 999;
+                        for (c = 0; c !== markers[i].corners.length; ++ c){
+                                          if (markers[i].corners[c].y < lowest) {
+                                                            lowest = markers[i].corners[c].y;
+                                          }
+                                          if (markers[i].corners[c].y > highest) {
+                                                            highest = markers[i].corners[c].y;
+                                          }
+                        }
+                                markers[i].highest = highest;
+                                markers[i].lowest = lowest;
+                                //console.log("MARKER",markers[i].id,markers[i],lowest,highest);
+      }
+
+     var bin_id,loc_id;
+	 loc_id=0;
+	 bin_id=0;
+      for (i = 0; i !== markers.length; ++ i){
+		if ((markers[i].id >= 1) &&  (markers[i].id <= 499)) {
+				  bin_id=markers[i].id;
+		}
+		else if ((markers[i].id >= 500) &&  (markers[i].id <= 999)) {
+				  loc_id=markers[i].id;
+		}
+	}
+		      gotMarkers(bin_id,loc_id);
+
+	}
+	function gotMarkers(bin_id,loc_id) {
+	if ((bin_id != 0) && (loc_id != 0)) {
+		if ((bin_id != lastBin) || (loc_id != lastLoc)) {
+				doquery(bin_id,loc_id)
+		}
+	  }
+        if ((bin_id != 0) && (bin_id != lastBin)) {
+		document.getElementById("toptext").innerHTML=bin_id;
+		doquery_bin(bin_id)
+		lastBin = bin_id;
+        }
+        if ((loc_id != 0) && (loc_id != lastLoc)) {
+		document.getElementById("bottomtext").innerHTML=loc_id;
+		doquery_loc(loc_id)
+		lastLoc = loc_id;
+        }
+     }
+
+    
+
+
+    function snapshot(){
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    }
+          
+    function drawCorners(markers){
+      var corners, corner, i, j;
+    
+      context.lineWidth = 3;
+
+      for (i = 0; i !== markers.length; ++ i){
+        corners = markers[i].corners;
+        
+        context.strokeStyle = "red";
+        context.beginPath();
+        
+        for (j = 0; j !== corners.length; ++ j){
+          corner = corners[j];
+          context.moveTo(corner.x, corner.y);
+          corner = corners[(j + 1) % corners.length];
+          context.lineTo(corner.x, corner.y);
+        }
+
+        context.stroke();
+        context.closePath();
+        
+        context.strokeStyle = "green";
+        context.strokeRect(corners[0].x - 2, corners[0].y - 2, 4, 4);
+      }
+    }
+
+    function drawId(markers){
+      var corners, corner, x, y, i, j;
+      
+      context.strokeStyle = "blue";
+      context.lineWidth = 1;
+      
+      for (i = 0; i !== markers.length; ++ i){
+        corners = markers[i].corners;
+        
+        x = Infinity;
+        y = Infinity;
+        
+        for (j = 0; j !== corners.length; ++ j){
+          corner = corners[j];
+          
+          x = Math.min(x, corner.x);
+          y = Math.min(y, corner.y);
+        }
+
+        context.strokeText(markers[i].id, x, y)
+      }
+    }
+
+  function doquery_loc(loc) {
+	  fetch('aruco_query_loc/'+loc, {
+	  method: 'GET', // or 'POST', 'PUT', 'DELETE'
+	  headers: {
+	    'Content-Type': 'application/json'
+	  }
+	})
+	.then(response => response.json())
+	.then(data => {
+	  console.log(data);
+	document.getElementById("loc_querytext").innerHTML=data['text'];
+		var b = document.getElementById("loc_button");
+		if ('bin_id' in data ) {
+			b.style="display:block";
+			b.href="bin/"+data['bin_id'];
+		} else {
+			b.style="display:none";
+		  }
+		b = document.getElementById("loc_id");
+		if ('loc_id' in data ) {
+			b.innerHTML=data['loc_id'];
+		} else {
+			b.innerHTML="";
+		  }
+	})
+	.catch(error => {
+	  console.error('There was a problem with the fetch operation:', error);
+	});
+  }
+  function doquery_bin(bin) {
+	  fetch('aruco_query_bin/'+bin, {
+	  method: 'GET', // or 'POST', 'PUT', 'DELETE'
+	  headers: {
+	    'Content-Type': 'application/json'
+	  }
+	})
+	.then(response => response.json())
+	.then(data => {
+	  console.log(data);
+	document.getElementById("bin_querytext").innerHTML=data['text'];
+	var b = document.getElementById("bin_button");
+			  if (('status' in data) && ('bin_id' in data['status'])) {
+				b.style="display:block";
+				b.href="bin/"+data['status']['bin_id'];
+				    } else {
+				b.style="display:none";
+					      }
+		b = document.getElementById("bin_id");
+		if (('status' in data) && ('bin_id' in data['status']) ) {
+			b.innerHTML=data['status']['bin_id'];
+		} else {
+			b.innerHTML="";
+		  }
+	})
+	.catch(error => {
+	  console.error('There was a problem with the fetch operation:', error);
+	});
+  }
+
+  function doquery(bin,loc) {
+	  fetch('aruco_query/'+bin+"/"+loc, {
+	  method: 'GET', // or 'POST', 'PUT', 'DELETE'
+	  headers: {
+	    'Content-Type': 'application/json'
+	  }
+	})
+	.then(response => response.json())
+	.then(data => {
+	  console.log(data);
+		document.getElementById("querytext").innerHTML=data['text'];
+	})
+	.catch(error => {
+	  console.error('There was a problem with the fetch operation:', error);
+	});
+  }
+
+    window.onload = onLoad;
+  </script>
+
+{% endblock %}
+
+{% block body %}
+{% with page="aruco" %}
+{% include 'header.html' %}
+{% endwith %}
+<body style="font-family: monospace;">
+
+	<h1>ProBin Aruco Scanner</h1>
+
+	<table class="table greenbar-table">
+		<tr>
+			<th />
+			<th>Aruco</th>
+			<th>ID</th>
+			<th></th>
+			<th></th>
+
+		</tr>
+		<tr>
+			<th>Bin:</th>
+			<td><span id="toptext"/></td>
+			<td><span id="bin_id" /></td>
+			<td><span id="bin_querytext" /></td>
+			<td>
+				<a id="bin_button" style="display:none" href="/" class="btn btn-primary">Edit Bin</a>
+			</td>
+		</tr>
+		<tr>
+			<th>Loc:</th>
+			<td><span id="bottomtext"/></td>
+			<td ><span id="loc_id" /></td>
+			<td ><span id="loc_querytext" /></td>
+			<td>
+				<a id="loc_button" style="display:none" href="/" class="btn btn-primary">Edit Bin at Loc</a>
+			</td>
+		</tr>
+		<tr>
+			<th>Status:</th>
+			<td />
+			<td />
+			<td colspan=1><span id="querytext" /></td>
+			<td>
+				<a id="move_button" style="display:none" href="/" class="btn btn-primary">Move to Loc</a>
+			</td>
+		</tr>
+	</table>
+  <center>
+    <div id="canvas_div" style="width:100%">
+    <video id="video" playsinline playinline  autoplay="true" style="xxdisplay:none;xxheight:10px;width:100%;"></video>
+    <canvas id="canvas" style="display:none;width:480px; height:640px;"></canvas>
+    </div>
+  </center>
+
+{% endblock %}
+  

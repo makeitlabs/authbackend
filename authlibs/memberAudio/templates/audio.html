@@ -3,34 +3,90 @@
 	<script type="text/javascript" src="{{ url_for("static",filename="js/sorttable.js") }}"></script>
 {% endblock %}
 {% block body %}
-<div class="body"> <!-- BASE contrainer -->
+<div class="container my-4">
+  <h2>Member Info & Settings</h2>
 
-		
-<div class="my-2 container"> {# Outer container #}
-  <h3>Member Audio for {{ member.firstname }} {{ member.lastname}} </h3>
+  <div class="card mb-4 mt-3">
+    <div class="card-header font-weight-bold bg-light">
+      Member Details
+    </div>
+    <div class="card-body">
+      <form method="post" action="{{ url_for("memberAudio.setNickname") }}">
+        <div class="form-group row">
+          <label for="member_name" class="col-sm-3 col-form-label"><strong>Name:</strong></label>
+          <div class="col-sm-9">
+            <input type="text" readonly class="form-control-plaintext" id="member_name" value="{{ member.firstname }} {{ member.lastname }} ({{ member.member }})">
+          </div>
+        </div>
+        <div class="form-group row">
+          <label for="nickname" class="col-sm-3 col-form-label"><strong>Nickname:</strong></label>
+          <div class="col-sm-9">
+            <input type="text" class="form-control" id="nickname" name="nickname" value="{{ nickname }}">
+            <small class="form-text text-muted">Used for entrance greeting and display name.</small>
+          </div>
+        </div>
+        <div class="form-group row">
+          <label for="phone" class="col-sm-3 col-form-label"><strong>Phone Number:</strong></label>
+          <div class="col-sm-9">
+            <input type="tel" class="form-control" id="phone" name="phone" value="{{ phone }}" placeholder="(123) 456-7890">
+            <small class="form-text text-muted">Your contact phone number.</small>
+          </div>
+        </div>
+        <div class="form-group row">
+          <label for="plates" class="col-sm-3 col-form-label"><strong>License Plates:</strong></label>
+          <div class="col-sm-9">
+            <input type="text" class="form-control" id="plates" name="plates" value="{{ plates }}" placeholder="e.g. 123-ABC, 456-XYZ">
+            <small class="form-text text-muted">Vehicles registered for parking / member recognition.</small>
+          </div>
+        </div>
+        <div class="form-group row">
+          <div class="col-sm-9 offset-sm-3">
+            <button type="submit" class="btn btn-primary">Save Info</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 
-  
-  {% if hascurrent %}
-  <h3>Current Audio</h3>
-  <audio controls>
-  <source src="{{ url_for("memberAudio.getAudio") }}" />
-</audio>
-  <p><a href="{{ url_for("memberAudio.deleteAudio") }}">Delete Current</a></p>
-  {% endif %}
-  <p>Upload a file for your member entrance audio. 7 Seconds maximum. A number of audio and vido file formats are supported. (Try one - it'll tell you if it worked). Clips will be truncated to 7 seconds. Be advised: Vulgar, offensive or inappropriate audio may lead to removal or revocation of Entry Audio privileges.</p>
-  <form method="post" enctype="multipart/form-data" action="{{ url_for("memberAudio.upload_file") }}">
-    <input type="hidden" name="folder" value="{{ folder }}">
-    <input type=file name=file>
-    <input type=submit value=Upload>
-   </form>
-</div>
+  <div class="card mb-4 {% if not is_pro %}border-secondary bg-light{% endif %}">
+    <div class="card-header font-weight-bold d-flex justify-content-between align-items-center">
+      <span>Entrance Audio</span>
+      {% if is_pro %}
+        <span class="badge badge-success">Pro Active</span>
+      {% else %}
+        <span class="badge badge-secondary">Pro Only</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      {% if not is_pro %}
+        <div class="alert alert-info" role="alert">
+          <strong>Pro Perk:</strong> Custom entrance audio playback is only available to <strong>Pro Members</strong>. Upgrade your membership plan to unlock custom door greeting audio!
+        </div>
+      {% endif %}
 
-<div class="my-2 container">
-  <h3>Nickname</h3>
-  <form method="post" enctype="multipart/form-data" action="{{ url_for("memberAudio.setNickname") }}">
-  Your Current Nickname: <input type="input" name="nickname" value="{{ nickname }}">
-  <input type=submit value=Change>
-  </form>
+      <div {% if not is_pro %}style="opacity: 0.5;"{% endif %}>
+        {% if is_pro and hascurrent %}
+        <h4>Current Audio</h4>
+        <div class="mb-3">
+          <audio controls>
+            <source src="{{ url_for("memberAudio.getAudio") }}" />
+          </audio>
+        </div>
+        <p><a class="btn btn-sm btn-outline-danger" href="{{ url_for("memberAudio.deleteAudio") }}">Delete Current Audio</a></p>
+        {% endif %}
+
+        <p>Upload a file for your member entrance audio. 7 seconds maximum. A number of audio and video file formats are supported. (Try one - it'll tell you if it worked). Clips will be truncated to 7 seconds. Be advised: Vulgar, offensive or inappropriate audio may lead to removal or revocation of Entry Audio privileges.</p>
+        <form method="post" enctype="multipart/form-data" action="{{ url_for("memberAudio.upload_file") }}">
+          <input type="hidden" name="folder" value="{{ folder }}">
+          <div class="form-group">
+            <input type="file" name="file" class="form-control-file mb-2" {% if not is_pro %}disabled{% endif %}>
+            <button type="submit" class="btn btn-secondary" {% if not is_pro %}disabled{% endif %}>Upload Audio</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 {% endblock %}

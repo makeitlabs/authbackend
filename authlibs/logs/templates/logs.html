@@ -31,77 +31,388 @@
 
 {% block widebody %}
   <div class=body>
-	<div class="sectionhead">Logs</div>
-    <p></p>
+	<div class="d-flex align-items-center justify-content-between" style="margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center;">
+		<div class="sectionhead" style="margin: 0; padding: 0; border: none;">Logs</div>
+		<div style="display: flex; align-items: center;">
+			<span style="font-size: 14px; font-weight: 500; color: #555; margin-right: 10px;">Auto Refresh: <span id="autoRefreshStatus" style="font-weight: bold; color: #888; transition: color 0.3s ease;">Off</span></span>
+			<label class="switch" style="position: relative; display: inline-block; width: 46px; height: 24px; margin: 0; vertical-align: middle;">
+				<input type="checkbox" id="autoRefreshToggle" style="opacity: 0; width: 0; height: 0;">
+				<span class="slider round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: .4s; transition: .4s; border-radius: 24px;"></span>
+			</label>
+		</div>
+	</div>
+
+	<style>
+	.switch {
+		position: relative;
+		display: inline-block;
+		width: 46px;
+		height: 24px;
+	}
+
+	.switch input { 
+		opacity: 0;
+		width: 0;
+		height: 0;
+	}
+
+	.slider {
+		position: absolute;
+		cursor: pointer;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: #ccc;
+		-webkit-transition: .4s;
+		transition: .4s;
+	}
+
+	.slider:before {
+		position: absolute;
+		content: "";
+		height: 18px;
+		width: 18px;
+		left: 3px;
+		bottom: 3px;
+		background-color: white;
+		-webkit-transition: .4s;
+		transition: .4s;
+		border-radius: 50%;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+	}
+
+	input:checked + .slider {
+		background-color: #28a745;
+	}
+
+	input:focus + .slider {
+		box-shadow: 0 0 1px #28a745;
+	}
+
+	input:checked + .slider:before {
+		-webkit-transform: translateX(22px);
+		-ms-transform: translateX(22px);
+		transform: translateX(22px);
+	}
+
+	/* Rounded sliders */
+	.slider.round {
+		border-radius: 24px;
+	}
+
+	/* Log row shading - Today is slightly more intense */
+	tr.log-today:nth-child(even) td {
+		background-color: #f0f8f0 !important; /* Slightly darker than white */
+	}
+	tr.log-today:nth-child(odd) td {
+		background-color: #c8ffc8 !important; /* Darker green than the usual #e0ffe0 */
+	}
+	tr.log-today:hover td {
+		background-color: #ffff80 !important; 
+	}
+	.day-boundary td {
+		border-top: 2px solid #bbb !important; /* Thinner subtle separator for older days */
+	}
+	.today-boundary td {
+		border-top: 2px solid #82c91e !important; /* Clear boundary for end of today */
+	}
+
+	/* Compact Filter UI & Searchable Checklist Dropdowns */
+	.log-filter-card {
+		background: #f8f9fa;
+		border: 1px solid #dee2e6;
+		border-radius: 6px;
+		padding: 14px 16px;
+		margin-top: 8px;
+		max-width: 920px;
+	}
+	.log-filter-section-title {
+		font-weight: 600;
+		font-size: 12px;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		color: #495057;
+		margin-bottom: 6px;
+	}
+	.log-cat-grid {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px 12px;
+	}
+	.log-cat-item {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		font-size: 13px;
+		margin: 0;
+		cursor: pointer;
+		font-weight: normal;
+	}
+	.log-checklist-dropdown {
+		width: 100%;
+	}
+	.log-checklist-btn {
+		width: 100%;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		text-align: left;
+		background: #fff;
+		border: 1px solid #ced4da;
+		color: #333;
+		font-size: 13px;
+		padding: 6px 10px;
+	}
+	.log-checklist-menu {
+		width: 100%;
+		min-width: 260px;
+		padding: 8px;
+	}
+	.log-checklist-items {
+		max-height: 230px;
+		overflow-y: auto;
+		margin-top: 6px;
+		border-top: 1px solid #eee;
+		padding-top: 4px;
+	}
+	.log-checklist-item {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 3px 4px;
+		margin: 0;
+		font-size: 13px;
+		font-weight: normal;
+		cursor: pointer;
+		border-radius: 3px;
+	}
+	.log-checklist-item:hover {
+		background-color: #f1f3f5;
+	}
+	.log-checklist-actions {
+		display: flex;
+		justify-content: space-between;
+		font-size: 12px;
+		margin-top: 4px;
+	}
+	.log-active-filters {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 6px;
+		margin-top: 8px;
+		font-size: 12px;
+	}
+	</style>
+
+	<script type="text/javascript">
+	$(document).ready(function() {
+		var toggle = document.getElementById('autoRefreshToggle');
+		var statusText = document.getElementById('autoRefreshStatus');
+		var refreshTimer = null;
+
+		function updateStatusUI(isOn) {
+			if (isOn) {
+				statusText.textContent = 'On';
+				statusText.style.color = '#28a745';
+			} else {
+				statusText.textContent = 'Off';
+				statusText.style.color = '#888';
+			}
+		}
+
+		function startTimer() {
+			if (refreshTimer) clearTimeout(refreshTimer);
+			refreshTimer = setTimeout(function() {
+				location.reload();
+			}, 60000); // 60 seconds
+		}
+
+		function stopTimer() {
+			if (refreshTimer) {
+				clearTimeout(refreshTimer);
+				refreshTimer = null;
+			}
+		}
+
+		// Check URL parameters to see if auto-refresh is active
+		var urlParams = new URLSearchParams(window.location.search);
+		if (urlParams.get('autorefresh') === 'on') {
+			toggle.checked = true;
+			updateStatusUI(true);
+			startTimer();
+		} else {
+			toggle.checked = false;
+			updateStatusUI(false);
+		}
+
+		// Handle toggle change
+		$(toggle).on('change', function() {
+			var url = new URL(window.location.href);
+			if (this.checked) {
+				url.searchParams.set('autorefresh', 'on');
+				window.history.replaceState({}, '', url.toString());
+				updateStatusUI(true);
+				startTimer();
+			} else {
+				url.searchParams.delete('autorefresh');
+				window.history.replaceState({}, '', url.toString());
+				updateStatusUI(false);
+				stopTimer();
+			}
+		});
+	});
+	</script>
+
+{% macro checklist_dropdown(id_prefix, title, items, name_prefix, selected_set) %}
+	<div class="dropdown log-checklist-dropdown">
+		<button class="btn btn-sm dropdown-toggle log-checklist-btn" type="button" id="{{ id_prefix }}Btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+			<span>{{ title }} <span class="badge badge-primary log-checklist-count" style="display:none;"></span></span>
+		</button>
+		<div class="dropdown-menu log-checklist-menu" aria-labelledby="{{ id_prefix }}Btn">
+			<input type="text" class="form-control form-control-sm log-checklist-search" placeholder="Search {{ title|lower }}..." autocomplete="off">
+			<div class="log-checklist-actions">
+				<a href="#" class="log-checklist-all">Select visible</a>
+				<a href="#" class="log-checklist-clear text-danger">Clear</a>
+			</div>
+			<div class="log-checklist-items">
+				{% for item_id, item_label in items %}
+				<label class="log-checklist-item" data-label="{{ item_label }}">
+					<input type="checkbox" class="log-checklist-cb" name="{{ name_prefix }}{{ item_id }}" {% if item_id in selected_set %}checked{% endif %}>
+					<span>{{ item_label }}</span>
+				</label>
+				{% endfor %}
+			</div>
+		</div>
+	</div>
+{% endmacro %}
 
 	<div class="content" style="margin-bottom:10px">
 		{{ dobuttons() }}
-		<div class="collapse" id="filterCollapse">
-			<form method="GET">
-				<div class="card card-body" style="width: 50rem;">
 
+		{% if active_filters.has_any %}
+		<div class="log-active-filters">
+			<span class="text-muted"><strong>Active filters:</strong></span>
+			{% if active_filters.date_start or active_filters.date_end %}
+				<span class="badge badge-info">Date: {{ active_filters.date_start or '...' }} – {{ active_filters.date_end or '...' }}</span>
+			{% endif %}
+			{% for m in active_filters.members %}
+				<span class="badge badge-secondary">Member: {{ m.label }}</span>
+			{% endfor %}
+			{% for lbl in active_filters.category_labels %}
+				<span class="badge badge-primary">{{ lbl }}</span>
+			{% endfor %}
+			{% for lbl in active_filters.event_names %}
+				<span class="badge badge-primary">Event: {{ lbl }}</span>
+			{% endfor %}
+			{% for lbl in active_filters.resource_names %}
+				<span class="badge badge-success">Resource: {{ lbl }}</span>
+			{% endfor %}
+			{% for lbl in active_filters.tool_names %}
+				<span class="badge badge-warning">Tool: {{ lbl }}</span>
+			{% endfor %}
+			{% for lbl in active_filters.node_names %}
+				<span class="badge badge-dark">Node: {{ lbl }}</span>
+			{% endfor %}
+			{% if active_filters.activity %}
+				<span class="badge badge-light border">Show Tool Heartbeats</span>
+			{% endif %}
+			{% if active_filters.hidetoolusage %}
+				<span class="badge badge-light border">Hide Tool Usage</span>
+			{% endif %}
+			<a href="{{ url_for('logs.logs') }}" class="btn btn-xs btn-outline-secondary" style="padding: 1px 6px; font-size: 11px;">Clear all</a>
+		</div>
+		{% endif %}
+
+		<div class="collapse" id="filterCollapse">
+			<form method="GET" action="{{ url_for('logs.logs') }}">
+				<div class="log-filter-card">
 					{% if meta['nomembersearch'] %}
-					<bkg:nohr><div class="form-row"><b>Members</b></div>
-					<div class="form-col">
-						<label for="memberInput">Search Member</label>
-						<input type="text" name="memberInput" id="searchfield1" 
-							oninput="changedDropdownText('searchfield1','{{ url_for("authorize.membersearch",search="") }}','memberList');" />
-					</div> 
-					<div class="form-row supercompact" id="memberList"> {# Member Form Row #}
-						{# Filled in via javascript #}
-					</div> {#  Member Form Row #}
+					<div class="mb-2">
+						<div class="log-filter-section-title">Members</div>
+						<div class="form-inline" style="gap: 8px;">
+							<input type="text" class="form-control form-control-sm" name="memberInput" id="searchfield1" placeholder="Type 3+ chars to search..." style="width: 240px;"
+								oninput="changedDropdownText('searchfield1','{{ url_for("authorize.membersearch",search="") }}','memberList');" />
+						</div>
+						<div class="form-row supercompact mt-1" id="memberList">
+							{% for m in active_filters.members %}
+							<div class="datarow compact">
+								<div class="compact tightcbcell">
+									<input name="input_member_{{ m.id }}" type="checkbox" checked><label>{{ m.label }}</label>
+								</div>
+							</div>
+							{% endfor %}
+						</div>
+					</div>
+					<hr class="my-2"/>
 					{% endif %}
 
-
-					<hr style="margin:1px"/><div class="form-row supercompact"><b>Activity</b></div>
-					<div class="form-row" id="activityList"> 
-							<div class="form-group tightcbcell" >
-								<input type="checkbox" name="activity"><label>Show Activity</label>
-							</div>
-							<div class="form-group tightcbcell" >
-								<input type="checkbox" name="hidetoolusage"><label>Hide Tool Usage</label>
-							</div>
-					</div> 
-
-					<hr style="margin:1px"/><div class="form-row supercompact"><b>Resources</b></div>
-					<div class="form-row" id="resourceList"> {# Resource Form Row #}
-						{% for r in resources %}
-							<div class="form-group tightcbcell" >
-								<input type="checkbox" name="input_resource_{{ r.id }}"><label>{{ r.name}}</label>
-							</div>
-						{% endfor %}
-					</div> {#  Resource Form Row #}
-
-					<hr style="margin:1px" /><div class="form-row"><b>Tools</b></div>
-					<div class="form-row" id="toolList"> {# Tool Form Row #}
-						{% for t in tools %}
-							<div class="form-group tightcbcell">
-								<input type="checkbox" name="input_tool_{{ t.id }}"><label>{{ t.name}}</label>
-							</div>
-						{% endfor %}
-					</div> {# Tool Form Row #}
-
-					<hr style="margin:1px" /><div class="form-row"><b>Nodes</b></div>
-					<div class="form-row tightcbcell" id="nodeList"> {# Node Form Row #}
-						{% for n in nodes %}
-							<div class="form-group">
-								<input type="checkbox" name="input_node_{{ n.id }}"><label>{{ n.name}}</label>
-							</div>
-						{% endfor %}
-					</div> {#  Resource Form Row #}
-
-					<hr style="margin:1px" /><div class="form-row"><b>Date Range</b></div>
-					<div class="form-row"> {# Datepicker Row #}
-						<div class="input-daterange input-group" id="datepicker">
-								<span class="input-group-addon">From</span>
-								<input type="text" class="input-sm form-control" name="input_date_start" />
-								<span class="input-group-addon">to</span>
-								<input type="text" class="input-sm form-control" name="input_date_end" />
+					<div class="mb-2">
+						<div class="log-filter-section-title">Event Categories</div>
+						<div class="log-cat-grid" id="categoryList">
+							{% for cat in event_categories %}
+							<label class="log-cat-item">
+								<input type="checkbox" name="input_category_{{ cat.key }}" {% if cat.key in active_filters.categories %}checked{% endif %}>
+								<span>{{ cat.label }}</span>
+							</label>
+							{% endfor %}
 						</div>
-					</div> {# Datepicker row #}
+					</div>
 
-					<input style="margin-top:10px" class="btn btn-primary" type="submit" value="filter" />
-				</div> {# Filter Card #}
+					<hr class="my-2"/>
+
+					<div class="row">
+						<div class="col-md-6 mb-2">
+							<div class="log-filter-section-title">Specific Events</div>
+							{{ checklist_dropdown('events', 'Events', all_events, 'input_event_', active_filters.events) }}
+						</div>
+						<div class="col-md-6 mb-2">
+							<div class="log-filter-section-title">Resources</div>
+							{% set res_items = [] %}
+							{% for r in resources %}{% set _ = res_items.append((r.id, r.name)) %}{% endfor %}
+							{{ checklist_dropdown('resources', 'Resources', res_items, 'input_resource_', active_filters.resources) }}
+						</div>
+						<div class="col-md-6 mb-2">
+							<div class="log-filter-section-title">Tools</div>
+							{% set tool_items = [] %}
+							{% for t in tools %}{% set _ = tool_items.append((t.id, t.name)) %}{% endfor %}
+							{{ checklist_dropdown('tools', 'Tools', tool_items, 'input_tool_', active_filters.tools) }}
+						</div>
+						<div class="col-md-6 mb-2">
+							<div class="log-filter-section-title">Nodes</div>
+							{% set node_items = [] %}
+							{% for n in nodes %}{% set _ = node_items.append((n.id, n.name)) %}{% endfor %}
+							{{ checklist_dropdown('nodes', 'Nodes', node_items, 'input_node_', active_filters.nodes) }}
+						</div>
+					</div>
+
+					<hr class="my-2"/>
+
+					<div class="row align-items-end">
+						<div class="col-md-6 mb-2">
+							<div class="log-filter-section-title">Date Range</div>
+							<div class="input-daterange input-group input-group-sm" id="datepicker">
+								<div class="input-group-prepend"><span class="input-group-text">From</span></div>
+								<input type="text" class="form-control form-control-sm" name="input_date_start" value="{{ active_filters.date_start }}" autocomplete="off" />
+								<div class="input-group-prepend input-group-append"><span class="input-group-text">to</span></div>
+								<input type="text" class="form-control form-control-sm" name="input_date_end" value="{{ active_filters.date_end }}" autocomplete="off" />
+							</div>
+						</div>
+						<div class="col-md-6 mb-2">
+							<div class="log-filter-section-title">Other Options</div>
+							<label class="log-cat-item">
+								<input type="checkbox" name="hidetoolusage" {% if active_filters.hidetoolusage %}checked{% endif %}>
+								<span>Hide Tool Usage</span>
+							</label>
+						</div>
+					</div>
+
+					<div class="mt-2 d-flex" style="gap: 8px;">
+						<button class="btn btn-sm btn-primary" type="submit">Apply Filters</button>
+						<a class="btn btn-sm btn-outline-secondary" href="{{ url_for('logs.logs') }}">Reset</a>
+					</div>
+				</div>
 			</form>
 		</div>
 	</div> {# Outer filter content #}
@@ -120,8 +431,24 @@
         <th>Message</th>
 				</tr>
       </thead>
+      {% set current_date = namespace(value='') %}
+      {% set day_parity = namespace(value=0) %}
       {% for l in logs %}
-	  <tr>
+      
+      {% set boundary_class = "" %}
+      {% if l.date_str != current_date.value %}
+          {% if current_date.value != '' %}
+              {% if current_date.value == meta.today_str %}
+                  {% set boundary_class = "today-boundary" %}
+              {% else %}
+                  {% set boundary_class = "day-boundary" %}
+              {% endif %}
+          {% endif %}
+          {% set current_date.value = l.date_str %}
+          {% set day_parity.value = 1 - day_parity.value %}
+      {% endif %}
+
+	  <tr class="{{ boundary_class }} {% if l.is_today %}log-today{% endif %}">
 		<td>{{ l.when }}</td>
 		<td>{{ l.ago }} ago</td>
 		<td>

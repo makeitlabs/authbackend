@@ -1,0 +1,28 @@
+{% extends "layout_public.html" %}
+{% block head %}
+{% endblock %}
+
+
+{% block body %}
+    <div class="body">
+    <div class="container">
+        <h2 class="mb-4">Update Payment & Reactivate Membership</h2>
+	<form method="POST" action="{{ url_for("membershipupdate.fix") }}">
+            <div class="mb-3">
+		    <p>
+		    Please enter the email address associated with your MakeIt Labs membership. This may be your personal email address, or your MakeIt Labs email address. You must be able to receieve an email we will send you at this address.
+		    </p>
+            </div>
+
+            <!-- email -->
+            <div class="input-group mb-3">
+                <label for="email" class="input-group-text mb-2">email</label>
+                <input type="email" class="form-control mb-2" name="email" id="email" placeholder="" required>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" name="Update" value="Update" class="btn btn-primary">Update</button>
+        </form>
+    </div>
+    </div>
+{% endblock %}

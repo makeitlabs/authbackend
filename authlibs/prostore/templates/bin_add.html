@@ -1,0 +1,15 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+{% with page="bins" %}
+{% include 'header.html' %}
+{% endwith %}
+<h2>New ProStore Bin</h2>
+<div class="container">
+
+
+<h3> Add New Bin </h3>
+<form action="{{ url_for('prostore.bins') }}" method="post">
+	{% include 'bin_form.html' %}
+<input type="submit" name="create_bin" value="Create Bin" />
+</div>
+{% endblock %}

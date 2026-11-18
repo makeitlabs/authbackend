@@ -80,6 +80,7 @@
       <th>First</th>
       <th>Last</th>
       <th>Email</th>
+      <th>Group</th>
       <th>Status</th>
       <th></th>
     </tr>
@@ -106,6 +107,7 @@
       <td>{{ member.firstname }}</td>
       <td>{{ member.lastname }}</td>
       <td>{{ member.email }}</td>
+      <td>{{ member.group or '' }}</td>
       <td>{{ member.active }}</td>
       <td>
       <img src="{{ url_for("static",filename="logicon.png") }}" height="16px" >

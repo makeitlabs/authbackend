@@ -1,0 +1,153 @@
+{% extends "layout_public.html" %}
+{% block head %}
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+    integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"
+    integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+    integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+    crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"
+    integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+    crossorigin="anonymous"></script>
+{% endblock %}
+
+
+{% block body %}
+<div class="body"> <!-- Body -->
+  <form method="POST" action="https://auth.makeitlabs.com/authit/signup/survey">
+	  <div class="container"> <!-- Big Container -->
+        <h1 class="mb-4">New Member Survey</h1>
+                <p>
+                    Please help us improve our community by letting us know abour your interests in MakeIt Labs by answering a few quick questions.
+                </p>
+
+<!-- START -->
+<div class="container my-3">
+<fieldset>
+  <legend class="h2">I am interested in:</legend>
+  <div class="row g-2">
+    {% for w in what %}
+    <div class="col-12 col-sm-6 col-md-4">  <!-- 1 col on xs, 2 on sm, 3 on md+ -->
+      <label class="list-group-item d-flex align-items-start gap-2" style="border:0">
+        <input class="form-check-input mt-1" type="checkbox" name="what_{{ w.what }}" value="{{ w.what }}">
+        <span class="mx-1">{{ w.text }}</span>
+      </label>
+    </div>
+    {% endfor %}
+  </div>
+</fieldset>
+
+	<div class="input-group my-3">
+	  <label class="input-group-text" for="otherText">Other</label>
+	  <input
+	    type="text"
+	    class="form-control"
+	    id="otherText"
+	    name="other_what"
+	    placeholder="Enter other option"
+	    aria-describedby="otherHelp"
+	  >
+	</div>
+</div>
+<!-- END -->
+
+
+<!-- START -->
+<hr />
+<div class="container my-3">
+<fieldset>
+  <legend class="h2">Where did you hear about MakeIt Labs?</legend>
+  <div class="row g-2">
+    {% for w in where %}
+    <div class="col-12 col-sm-6 col-md-4">  <!-- 1 col on xs, 2 on sm, 3 on md+ -->
+      <label class="list-group-item d-flex align-items-start gap-2" style="border:0">
+        <input class="form-check-input mt-1" type="checkbox" name="where_{{ w.what }}" value="{{ w.what }}">
+        <span class="mx-1">{{ w.text }}</span>
+      </label>
+    </div>
+    {% endfor %}
+  </div>
+</fieldset>
+
+	<div class="input-group my-3">
+	  <label class="input-group-text" for="otherText">Other</label>
+	  <input
+	    type="text"
+	    class="form-control"
+	    id="otherText"
+	    name="other_where"
+	    placeholder="Enter other option"
+	    aria-describedby="otherHelp"
+	  >
+	</div>
+</div>
+<!-- END -->
+
+<hr />
+<!-- START -->
+<div class="container my-3">
+<fieldset>
+  <legend class="h2">I am interested in participating in:</legend>
+  <div class="row g-2">
+    {% for w in stuff %}
+    <div class="col-12 col-sm-6 col-md-4">  <!-- 1 col on xs, 2 on sm, 3 on md+ -->
+      <label class="list-group-item d-flex align-items-start gap-2" style="border:0">
+        <input class="form-check-input mt-1" type="checkbox" name="stuff_{{ w.what }}" value="{{ w.what }}">
+        <span class="mx-1">{{ w.text }}</span>
+      </label>
+    </div>
+    {% endfor %}
+  </div>
+</fieldset>
+
+	<div class="input-group my-3">
+	  <label class="input-group-text" for="otherText">Other</label>
+	  <input
+	    type="text"
+	    class="form-control"
+	    id="otherText"
+	    name="stuff_other"
+	    placeholder="Enter other option"
+	    aria-describedby="otherHelp"
+	  >
+	</div>
+</div>
+<!-- END -->
+<!-- START -->
+<hr />
+<div class="container my-3">
+<fieldset>
+  <legend class="h2">I am a self-described:</legend>
+  <div class="row g-2">
+    {% for w in iam %}
+    <div class="col-12 col-sm-6 col-md-4">  <!-- 1 col on xs, 2 on sm, 3 on md+ -->
+      <label class="list-group-item d-flex align-items-start gap-2" style="border:0">
+        <input class="form-check-input mt-1" type="checkbox" name="iam_{{ w.what }}" value="{{ w.what }}">
+        <span class="mx-1">{{ w.text }}</span>
+      </label>
+    </div>
+    {% endfor %}
+  </div>
+</fieldset>
+
+	<div class="input-group my-3">
+	  <label class="input-group-text" for="otherText">Other</label>
+	  <input
+	    type="text"
+	    class="form-control"
+	    id="otherText"
+	    name="iam_other"
+	    placeholder="Enter other option"
+	    aria-describedby="otherHelp"
+	  >
+	</div>
+</div>
+<!-- END -->
+
+
+   <button type="submit" name="HowDidIHear" value="HowDidIHear" class="btn btn-primary">Submit</button>
+   </div> <!-- BigContainer -->
+ </form>
+</div> <!-- Body -->
+{% endblock %}

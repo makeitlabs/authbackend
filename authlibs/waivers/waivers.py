@@ -1,6 +1,8 @@
 # vim:shiftwidth=2
 
 from ..templateCommon import  *
+import dateutil.tz
+from datetime import datetime
 
 from authlibs import smartwaiver 
 waiversystem = {}
@@ -23,11 +25,19 @@ blueprint = Blueprint("waivers", __name__, template_folder='templates', static_f
 @roles_required(['Admin','Finance','Useredit'])
 @login_required
 def waivers():
+		# Setup timezone conversion (same as logs.py)
+		eastern = dateutil.tz.gettz('US/Eastern')
+		utc = dateutil.tz.gettz('UTC')
+		
 		waivers = Waiver.query.order_by(Waiver.id.desc())
 		waivers = waivers.add_column(Member.member).outerjoin(Member,Member.id == Waiver.member_id)
 		res=[]
 		for (waiver,member) in waivers.all():
 			if member is None: member=""
+			# Convert timezone for display
+			if waiver.created_date:
+				eastern_time = waiver.created_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
+				waiver.created_date = eastern_time
 			res.append({'waiver':waiver,'member':member,'code':waiver.waivertype,'type':waiver.shortFromCode(waiver.waivertype)})
 		types=[{'code':-1,'short':"All Waivers"}]
 		types += Waiver.waiverTypes
@@ -197,15 +207,52 @@ def connect_waivers():
 @roles_required(['Admin','Finance','Useredit'])
 def relate():
   mem=None
+  from_orientation = False
   if 'member_id' in request.values:
     mid = int(request.values['member_id'])
     mem = Member.query.filter(Member.id==mid).one_or_none()
-  waivers = Waiver.query.filter(Subscription.member_id == None).all()
+    from_orientation = True
+  
+  # Setup timezone conversion (same as logs.py)
+  eastern = dateutil.tz.gettz('US/Eastern')
+  utc = dateutil.tz.gettz('UTC')
+  
+  # Filter waivers - only Member waivers if coming from orientation, otherwise all unassigned waivers
+  # Limit to last 10 when coming from orientation to optimize for new member use case
+  if from_orientation:
+    waivers_raw = Waiver.query.filter(
+      Waiver.member_id == None,
+      Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER
+    ).order_by(Waiver.created_date.desc()).limit(10).all()
+  else:
+    waivers_raw = Waiver.query.filter(Waiver.member_id == None).order_by(Waiver.created_date.desc()).all()
+
+  # Convert timezone for display
+  waivers = []
+  for w in waivers_raw:
+    waiver_dict = {
+      'id': w.id,
+      'waiver_id': w.waiver_id,
+      'firstname': w.firstname,
+      'lastname': w.lastname,
+      'email': w.email,
+      'waivertype': w.waivertype,
+      'member_id': w.member_id,
+      'emergencyName': w.emergencyName,
+      'emergencyPhone': w.emergencyPhone
+    }
+    if w.created_date:
+      # Convert UTC to Eastern time (same as logs.py line 227)
+      eastern_time = w.created_date.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
+      waiver_dict['created_date'] = eastern_time
+    else:
+      waiver_dict['created_date'] = w.created_date
+    waivers.append(waiver_dict)
 
   wt ={}
   for w in Waiver.waiverTypes:
     wt[w['code']]=w['short']
-  return render_template('relate.html',waivers=waivers,linkmember=mem,waiverTypes=wt)
+  return render_template('relate.html',waivers=waivers,linkmember=mem,waiverTypes=wt,from_orientation=from_orientation)
 
 # Post handler for "relate" above
 @blueprint.route('/relate_assign', methods = ['POST'])
@@ -245,6 +292,27 @@ def relate_assign():
       flash("No action specified","warning")
         
   return redirect(url_for('waivers.relate'))
+
+@blueprint.route('/webhook', methods = ['POST','GET'])
+def webhook():
+  # Add ?waiverid=[waiverid]
+  # Add ?auto_tag=1234 
+  # To query the API for that specific waiver participant use rest_waiverid
+
+  # Data like: SMARWAIVER WEBHOOK: ImmutableMultiDict([('unique_id', 'G2SZQGvBRwcMUZB9E4g6f'), ('credential', '6d393d4fed9139945e534623f730c811'), ('event', 'new-waiver')])
+  customer_id = request.args.get('customer_id','')
+  waiver_id = request.args.get('waiverid','')
+  print (f"SMARWAIVER WEBHOOK: Customer: {customer_id} Waiver: {waiver_id}\n")
+  if request.form is not None:
+    print (f"SMARWAIVER WEBHOOK: {request.form}\n")
+  try:
+    updated = addNewWaivers()
+    connect_waivers()
+  except BaseException as e:
+    print (f"ERROR: Smartwaiver webook update: {e}\n",e)
+
+  return render_template('webhook.html')
+
 
 def cli_waivers_connect(*cmd,**kvargs):
 	connect_waivers()

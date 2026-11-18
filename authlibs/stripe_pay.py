@@ -139,17 +139,31 @@ def getSubscriptionsJSON():
             reportError("STRIPE PAYMENTS: SUBSCRIPTION %s: Problem in Names or Emails metadata (%s)" % (subid,s['metadata']))
             continue
 
-        for (m,e) in zip(names,emails):
+        # Extract Group Metadata from record if present (optional)
+        groups = [None] * len(names)
+        if s.get('metadata') and 'group' in s['metadata'] and s['metadata']['group']:
+          raw_group = utilities._safestr(s['metadata']['group']).strip()
+          if raw_group != "":
+            if ',' in raw_group:
+              g_list = [g.strip() for g in raw_group.split(',')]
+              if len(g_list) == len(names):
+                groups = [g if g != "" else None for g in g_list]
+              else:
+                groups = [raw_group] * len(names)
+            else:
+              groups = [raw_group] * len(names)
+
+        for (m,e,g) in zip(names,emails,groups):
             # For each person, create an associated subscription record
-            name = utilities._safestr(m)
+            name = utilities.sanitize_name(m)
             email = utilities._safeemail(e)
             # Membership must be unique to each member - totally definable by pay system
-            membership = "stripe:"+name.replace(" ",".")+":"+email
-            sub = {'customerid': customerid, 'subid': subid, 'name': name, 'planname': plan, 'plantype': plantype, 'email': email, 'active': active, 'created': created, 'updatedon': updated, 'expires': expires, 'phone': phone , 'membership':membership}
+            membership = "stripe:"+utilities.sanitize_userid(name)+":"+email
+            sub = {'customerid': customerid, 'subid': subid, 'name': name, 'planname': plan, 'plantype': plantype, 'email': email, 'active': active, 'created': created, 'updatedon': updated, 'expires': expires, 'phone': phone , 'membership':membership, 'group': g}
             subscribers.append(sub)
             #print names,created,expires
             #print(sub)
-            print ("IMPORTING",membership,email,name,expires,active,subid)
+            #print ("IMPORTING",membership,email,name,expires,active,subid)
     return subscribers
 
 
@@ -206,11 +220,25 @@ def getSubscriptionsJSON2():
         created = datetime.utcfromtimestamp(s['created'])
         updated = datetime.utcnow()
 
-        for (m,e) in zip(names,emails):
+        # Extract Group Metadata from record if present (optional)
+        groups = [None] * len(names)
+        if s.get('metadata') and 'group' in s['metadata'] and s['metadata']['group']:
+          raw_group = utilities._safestr(s['metadata']['group']).strip()
+          if raw_group != "":
+            if ',' in raw_group:
+              g_list = [g.strip() for g in raw_group.split(',')]
+              if len(g_list) == len(names):
+                groups = [g if g != "" else None for g in g_list]
+              else:
+                groups = [raw_group] * len(names)
+            else:
+              groups = [raw_group] * len(names)
+
+        for (m,e,g) in zip(names,emails,groups):
             # For each person, create an associated subscription record
-            name = utilities._safestr(m)
+            name = utilities.sanitize_name(m)
             email = utilities._safeemail(e)
-            sub = {'customerid': customerid, 'subid': subid, 'name': name, 'planname': plan, 'plantype': plantype, 'email': email, 'active': active, 'created': created, 'updatedon': updated, 'expires': expires, 'phone': phone }
+            sub = {'customerid': customerid, 'subid': subid, 'name': name, 'planname': plan, 'plantype': plantype, 'email': email, 'active': active, 'created': created, 'updatedon': updated, 'expires': expires, 'phone': phone, 'group': g}
             subscribers.append(sub)
             print(sub)
     return subscribers

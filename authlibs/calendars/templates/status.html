@@ -1,0 +1,24 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div class="container">
+<h2>Reservations Status</h2>
+</div>
+
+{% if status == 'accepted' %}
+	<h1>Reservation Accepted</h2>
+{% elif status == 'declined' %}
+	<h1>Reservation Declient</h2>
+	<p>Either there was a booking conflict, or an error occured. Please try again, and if failure persists, try directly through Google Calendar</p>
+{% elif status == 'needsAction' %}
+	<p>Accepting pending - <b>Please Wait</b>...</p>
+	<p>(You may navigate away from this page - but if so, your booking may not be confirmed if there is a conflict. You can check calendar later to confirm.)</p>
+<script>
+        setTimeout(function() {
+            location.reload();
+        }, 5000)
+</script>
+{% else %}
+	<p>Ambiguous result:</p>
+	<pre>{{ status }}</pre>
+{% endif %}
+{% endblock %}

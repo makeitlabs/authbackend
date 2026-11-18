@@ -19,7 +19,7 @@ TODO:
 - More documentation
 """
 
-import sqlite3, re, time
+import sqlite3, re, time,os 
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response, Markup, make_response
 # NEwer login functionality
@@ -72,8 +72,12 @@ from authlibs.paylib import payments as paylib
 from authlibs.api import api 
 from authlibs.reports import reports 
 from authlibs.tools import tools 
+from authlibs.signboard import signboard 
+from authlibs.calendars import calendars 
+from authlibs.opendoors import opendoors 
 from authlibs.nodes import nodes 
 from authlibs.memberAudio import memberAudio 
+from authlibs.memberInfo import memberInfo 
 from authlibs.autoplot import autoplot 
 from authlibs.kvopts import kvopts 
 from authlibs.comments import comments 
@@ -82,6 +86,15 @@ from authlibs.belog import belog
 from authlibs.training import training
 from authlibs.prostore import prostore
 from authlibs.vending import vending
+from authlibs.purchasables import purchasables
+from authlibs.inventory import inventory
+from authlibs.facility import facility
+from authlibs.finrep import finrep
+from authlibs.signup import signup
+from authlibs.signup import update as membershipupdate
+from authlibs.signup import gift as giftmembership 
+from authlibs.printerstatus import printerstatus
+from authlibs.classes import classes
 
     
 
@@ -570,12 +583,22 @@ with app.app_context():
         app.jinja_env.globals['TESTDB'] = "YES"
     except:
         pass
+    finally:
+        db.session.remove()
 
-    app.jinja_env.globals['VERSION'] = "2.0"
+    app.jinja_env.globals['VERSION'] = "2.3"
     if app.config['globalConfig'].DeployType.lower() != "production":
         app.jinja_env.globals['DEPLOYTYPE'] = app.config['globalConfig'].DeployType
     if app.config['globalConfig'].backgroundColor:
         app.jinja_env.globals['BACKGROUND_COLOR'] = app.config['globalConfig'].backgroundColor
+
+    # Member Folder Cache
+
+    if app.config['globalConfig'].Config.has_option('MemberFolders','cache'):
+        try:
+            os.mkdir(app.config['globalConfig'].Config.get('MemberFolders','cache'))
+        except:
+            pass
 
     # Register Pages
     #app.config["SQLALCHEMY_ECHO"] = True # Enabled for DB Debug
@@ -592,8 +615,15 @@ with app.app_context():
     nodes.register_pages(app)
     autoplot.register_pages(app)
     tools.register_pages(app)
+    signboard.register_pages(app)
+    calendars.register_pages(app)
+    opendoors.register_pages(app)
     kvopts.register_pages(app)
     comments.register_pages(app)
+    finrep.register_pages(app)
+    signup.register_pages(app)
+    membershipupdate.register_pages(app)
+    giftmembership.register_pages(app)
     apikeys.register_pages(app)
     prostore.register_pages(app)
     training.register_pages(app)
@@ -601,6 +631,12 @@ with app.app_context():
     vending.register_pages(app)
     memberFolders.register_pages(app)
     memberAudio.register_pages(app)
+    memberInfo.register_pages(app)
+    facility.register_pages(app)
+    purchasables.register_pages(app)
+    inventory.register_pages(app)
+    printerstatus.register_pages(app)
+    classes.register_pages(app)
     slackutils.create_routes(app)
     g.main_menu = main_menu
     app.config['main_menu'] = main_menu

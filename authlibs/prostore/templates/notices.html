@@ -4,8 +4,9 @@
 {% include 'header.html' %}
 {% endwith %}
 	<h2>Send Pro-Storage Notifications:  {{ bins |length }}</h2>
-<div class="nodeslist">
+<div class="nodeslist" >
 	<form method="POST">
+	<p><input type="checkbox" name="debugOnly" />Debug Only (Do not send messages)</p>
 	<table class="table supercompact table-sm subtle-hover-table">
         <tr>
             <th>Notify</th>

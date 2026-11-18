@@ -1,0 +1,145 @@
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+  <link href="{{ url_for('static', filename='css/spinner.css') }}" rel="stylesheet">
+  <style>
+    .query-section {
+      margin-bottom: 30px;
+    }
+    .query-textarea {
+      min-height: 100px;
+    }
+    .answer-section {
+      margin-top: 20px;
+    }
+    .answer-content {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 0.375rem;
+      padding: 20px;
+      min-height: 200px;
+    }
+    .sql-section {
+      margin-top: 20px;
+    }
+    .sql-content {
+      background-color: #2d3748;
+      color: #e2e8f0;
+      border-radius: 0.375rem;
+      padding: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+  </style>
+{% endblock %}
+{% block body %}
+  <h2>BigBrain AI Query</h2>
+  <div class="resourcelist">
+    
+    <div class="sectionhead">
+      <p>Ask questions about events, logs, usage and history - AI will attempt to answer.</p>
+    </div>
+
+    <div class="query-section">
+      <form id="queryForm">
+        <div class="form-group">
+          <label for="question"><strong>Your Question:</strong></label>
+          <textarea class="form-control query-textarea" id="question" name="question" 
+                    placeholder="e.g., What are the three most used tools by number of unique users over 3 years?"
+                    required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          <span class="btn-text">Generate BigBrain Report</span>
+          <span class="spinner-border spinner-border-sm d-none" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </span>
+        </button>
+      </form>
+    </div>
+
+    <div id="spinner" class="text-center" style="display:none;">
+      <div class="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+      <p class="mt-2">Analyzing database and generating report...</p>
+    </div>
+
+    <div id="errorSection" class="alert alert-danger d-none" role="alert">
+      <strong>Error:</strong> <span id="errorMessage"></span>
+    </div>
+
+    <div id="sqlSection" class="sql-section d-none">
+      <h5>Generated SQL Query:</h5>
+      <div class="sql-content" id="sqlContent"></div>
+    </div>
+
+    <div id="answerSection" class="answer-section d-none">
+      <h5>BigBrain AI-Generated Report:</h5>
+      <div class="answer-content" id="answerContent"></div>
+    </div>
+  </div>
+
+<script type="text/javascript">
+document.getElementById('queryForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const question = document.getElementById('question').value;
+  const submitBtn = document.getElementById('submitBtn');
+  const btnText = submitBtn.querySelector('.btn-text');
+  const spinner = submitBtn.querySelector('.spinner-border');
+  const spinnerDiv = document.getElementById('spinner');
+  const errorSection = document.getElementById('errorSection');
+  const errorMessage = document.getElementById('errorMessage');
+  const sqlSection = document.getElementById('sqlSection');
+  const sqlContent = document.getElementById('sqlContent');
+  const answerSection = document.getElementById('answerSection');
+  const answerContent = document.getElementById('answerContent');
+  
+  // Reset UI
+  errorSection.classList.add('d-none');
+  sqlSection.classList.add('d-none');
+  answerSection.classList.add('d-none');
+  
+  // Show loading
+  btnText.textContent = 'Generating...';
+  spinner.classList.remove('d-none');
+  spinnerDiv.style.display = 'block';
+  submitBtn.disabled = true;
+  
+  // Send request
+  fetch('{{ url_for("reports.bigbrain") }}', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ question: question })
+  })
+  .then(response => response.json())
+  .then(data => {
+    btnText.textContent = 'Generate BigBrain Report';
+    spinner.classList.add('d-none');
+    spinnerDiv.style.display = 'none';
+    submitBtn.disabled = false;
+    
+    if (data.status === 'error') {
+      errorMessage.textContent = data.message;
+      errorSection.classList.remove('d-none');
+      // Show SQL on error for debugging
+      sqlContent.textContent = data.sql || 'No SQL generated';
+      sqlSection.classList.remove('d-none');
+    } else {
+      // Show answer only
+      answerContent.innerHTML = data.answer;
+      answerSection.classList.remove('d-none');
+    }
+  })
+  .catch(error => {
+    btnText.textContent = 'Generate BigBrain Report';
+    spinner.classList.add('d-none');
+    spinnerDiv.style.display = 'none';
+    submitBtn.disabled = false;
+    
+    errorMessage.textContent = 'Network error: ' + error.message;
+    errorSection.classList.remove('d-none');
+  });
+});
+</script>
+{% endblock %}

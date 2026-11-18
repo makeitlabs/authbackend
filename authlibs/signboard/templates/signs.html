@@ -1,0 +1,58 @@
+{% extends "layout_bootstrap.html" %}
+<h2>Resources</h2>
+{% block body %}
+<div class="signslist">
+	<h2>Postings:  {{ signs |length }} available</h2>
+	<table class="table table-sm">
+        <tr>
+            <th>What</th>
+            <th>Where</th>
+            <th>When</th>
+            <th>Display Start</th>
+            <th>Display End</th>
+            <th>Type</th>
+        </tr>
+	{% for sign in signs %}
+	  <tr>
+		<td><a href="{{ url_for('signs.signs_show',sign=sign.id) }}">{{ sign.s_what }}</a></td>
+		<td>{{ sign.s_where }}</td>
+		<td>{{ sign.s_when }}</td>
+		<td>{{ sign.start }}</td>
+		<td>{{ sign.end }}</td>
+		<td>
+			{% if sign.priority == 0 %}
+			Always
+			{% endif %}
+			{% if sign.priority == 1 %}
+			If Nothing Else
+			{% endif %}
+			{% if sign.priority == 2 %}
+			TEST
+			{% endif %}
+		</td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+
+<!-- Add New Tool -->
+
+
+	{% if current_user.privs("RATT") %}
+  <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#signs-add-collapse" aria-expanded="false" aria-controls="signs-add-collapse">
+    Add New Message Posting
+  </button>
+<a href="{{ url_for('signs.signboard') }}" class="btn btn-secondary">See Live Board </a>
+<a href="{{ url_for('signs.signboard_debug') }}" class="btn btn-info">See TEST Board </a>
+  <div class="collapse" id="signs-add-collapse">
+	<hr />
+  <h3> Add New Message Posting </h3>
+<form action="{{ url_for('signs.signs_create') }}" method="post">
+	{% include 'sign_form.html' %}
+<input type="submit" value="Save" />
+</form>
+
+</div>
+{% endif %} <!-- Add New Resoruce -->
+{% endblock %}

@@ -12,6 +12,7 @@
             <th>Used By</th>
             <th>Status</th>
             <th>Waiver</th>
+            <th>Aruco</th>
             <th>Membership</th>
         </tr>
 	{% for bin in bins %}
@@ -38,6 +39,12 @@
 				{% if bin.waiverCount is not none and bin.waiverCount > 0 %}
 					<span class="glyphicon glyphicon-check" />
 				{# bin.waiverCount #}
+				{% endif %}
+			</td>
+			<td>
+				{% if bin.ProBin.aruco is not none %}
+				{{ bin.ProBin.aruco }}
+				{% else %}
 				{% endif %}
 			</td>
 			<td>

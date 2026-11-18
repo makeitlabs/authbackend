@@ -1,0 +1,38 @@
+{% extends "layout_bootstrap.html" %}
+{% block widebody %}
+<div class="container" style="margin-top: 20px; margin-bottom: 40px;">
+    <div class="sectionhead" style="border-bottom: 2px solid #334155; padding-bottom: 15px; margin-bottom: 30px;">
+        <h3 style="font-weight: 600; color: #38bdf8;">Magic Authorize</h3>
+        <p class="text-muted" style="color: #94a3b8 !important;">Select a resource to authorize members who were denied access within the last 3 hours.</p>
+    </div>
+    
+    {% if not resources %}
+        <div class="alert alert-info" style="background-color: #334155; border-color: #475569; color: #f8fafc;">
+            You do not manage any resources with pending denied users in the last 3 hours.
+        </div>
+    {% else %}
+        <div class="list-group mt-3">
+        {% for r in resources %}
+            <a href="{{ url_for('resources.magic_authorize_resource', resource_id=r.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" style="background-color: #1e293b; border-color: #334155; color: #f8fafc; transition: all 0.2s ease;">
+                <div>
+                    <h5 class="mb-1" style="font-weight: 600;">{{ r.name }}</h5>
+                    <small style="color: #94a3b8;">{{ r.description }}</small>
+                </div>
+                <span class="badge badge-primary badge-pill" style="background-color: #0ea5e9;">Select</span>
+            </a>
+        {% endfor %}
+        </div>
+    {% endif %}
+    
+    <div class="mt-4" style="margin-top: 30px;">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary" style="background-color: #334155; border-color: #475569;">Back to Menu</a>
+    </div>
+</div>
+<style>
+    .list-group-item:hover {
+        background-color: #334155 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+</style>
+{% endblock %}

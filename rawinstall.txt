@@ -136,3 +136,7 @@ Make sure `doorentry` go program and `doorentry.cfg` file are in the same direct
 
 # tmp
 Create `/tmp/authit.log` and `/tmp/mqtt-daemon.log` - and give `www-data` as owner
+
+Restore `makeitlabs.json` file - which has some credentails (OAuth? Google?)
+
+(These should be in NAS)

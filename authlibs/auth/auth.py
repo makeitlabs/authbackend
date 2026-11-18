@@ -80,6 +80,7 @@ def authorize():
         (level,levelText)=authutil.getResourcePrivs(resource=r)
         res.append({'resource':r,'level':level,'levelText':levelText})
 
+    res = sorted(res,key=lambda x: x['resource'].name)
     return render_template("authorize.html",members=members,resources=res,**others)
 
 @blueprint.route("/membersearch/<string:search>",methods=['GET'])
@@ -90,10 +91,10 @@ def membersearch(search):
   limit = 50
   for x in request.values:
       if x.startswith('filter_'): filters.append(x)
-  sstr = authutil._safestr(search)
-  sstr = "%"+sstr+"%"
-  res = db.session.query(Member.member,Member.firstname,Member.lastname,Member.alt_email,Member.id)
-  res = res.filter((Member.firstname.ilike(sstr) | Member.lastname.ilike(sstr) | Member.alt_email.ilike(sstr) | Member.member.ilike(sstr)))
+  # Don't strip quotes from search terms - allow searching for names with quotes
+  sstr = "%"+search+"%"  # Use raw search term instead of _safestr
+  res = db.session.query(Member.member,Member.firstname,Member.lastname,Member.alt_email,Member.id,Member.group)
+  res = res.filter((Member.firstname.ilike(sstr) | Member.lastname.ilike(sstr) | Member.alt_email.ilike(sstr) | Member.member.ilike(sstr) | Member.group.ilike(sstr)))
   res = res.outerjoin(Subscription,Subscription.member_id == Member.id)
   res = accesslib.addQuickAccessQuery(res)
   res = res.add_column(Subscription.active)
@@ -107,17 +108,17 @@ def membersearch(search):
   counted=0
   for x in res:
     if len(filters) > 0:
-      if x[5] == "No Subscription" and 'filter_nosub' not in filters: continue
-      if x[5] == "Grace Period"  and 'filter_grace' not in filters: continue
-      if x[5] == "Access Disabled"  and 'filter_noaccess' not in filters: continue
-      if x[5] == "Active"  and 'filter_active' not in filters: continue
-      if x[5] == "Expired"  and 'filter_expired' not in filters: continue
-      if x[5] == "Recent Expire"  and 'filter_recentexpire' not in filters: continue
+      if x[6] == "No Subscription" and 'filter_nosub' not in filters: continue
+      if x[6] == "Grace Period"  and 'filter_grace' not in filters: continue
+      if x[6] == "Access Disabled"  and 'filter_noaccess' not in filters: continue
+      if x[6] == "Active"  and 'filter_active' not in filters: continue
+      if x[6] == "Expired"  and 'filter_expired' not in filters: continue
+      if x[6] == "Recent Expire"  and 'filter_recentexpire' not in filters: continue
     if (offset > 0): 
       offset -= 1
       continue
     if counted >= limit: continue
-    result.append({'member':x[0],'firstname':x[1],'lastname':x[2],'email':x[3], 'id':x[4], 'active':x[5]})
+    result.append({'member':x[0],'firstname':x[1],'lastname':x[2],'email':x[3], 'id':x[4], 'group': x[5] if x[5] else '', 'active':x[6]})
     counted += 1
   return json.dumps(result)
 

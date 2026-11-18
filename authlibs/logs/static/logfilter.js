@@ -173,12 +173,57 @@ function authbutton() {
 	xx.innerHTML += "?"
 }
 
-/* Init date picker */
+/* Init date picker and searchable checklist dropdowns */
 $(document).ready(function () {
 	$('#datepicker').datepicker({
 			maxViewMode: 2,
 			todayBtn: true,
 			clearBtn: true,
 			todayHighlight: true
+	});
+
+	function updateChecklistBadge($dropdown) {
+		var count = $dropdown.find('.log-checklist-cb:checked').length;
+		var $badge = $dropdown.find('.log-checklist-count');
+		if (count > 0) {
+			$badge.text(count).show();
+		} else {
+			$badge.text('').hide();
+		}
+	}
+
+	$('.log-checklist-dropdown').each(function () {
+		updateChecklistBadge($(this));
+	});
+
+	$('.log-checklist-menu').on('click', function (e) {
+		e.stopPropagation();
+	});
+
+	$('.log-checklist-search').on('input', function () {
+		var query = $(this).val().toLowerCase().trim();
+		var $menu = $(this).closest('.log-checklist-menu');
+		$menu.find('.log-checklist-item').each(function () {
+			var label = ($(this).data('label') || '').toString().toLowerCase();
+			$(this).toggle(query === '' || label.indexOf(query) !== -1);
+		});
+	});
+
+	$('.log-checklist-cb').on('change', function () {
+		updateChecklistBadge($(this).closest('.log-checklist-dropdown'));
+	});
+
+	$('.log-checklist-all').on('click', function (e) {
+		e.preventDefault();
+		var $dropdown = $(this).closest('.log-checklist-dropdown');
+		$dropdown.find('.log-checklist-item:visible .log-checklist-cb').prop('checked', true);
+		updateChecklistBadge($dropdown);
+	});
+
+	$('.log-checklist-clear').on('click', function (e) {
+		e.preventDefault();
+		var $dropdown = $(this).closest('.log-checklist-dropdown');
+		$dropdown.find('.log-checklist-cb').prop('checked', false);
+		updateChecklistBadge($dropdown);
 	});
 });

@@ -1,0 +1,41 @@
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+  <link href="{{ url_for('static', filename='css/bootstrap-datepicker3.min.css') }}" rel="stylesheet">
+	<script type="text/javascript" src="{{ url_for("static",filename="js/bootstrap-datepicker.min.js") }}"></script>
+
+   <STYLE type="text/css">
+   xxtd {padding-left:5px; padding-right:5px}
+   xxth {padding-left:5px; padding-right:5px}
+ </STYLE>
+{% endblock %}
+
+
+{% block widebody %}
+  <div class=body>
+	<div class="sectionhead">
+  <h1>Vending Balanaces</h1>
+  </div>
+
+	<table  style="font-size:10px" class="table greenbar-table table-compact">
+      <thead>
+				<tr>
+        <th>ID</th>
+        <th>User</th>
+        <th style="text-align:right">Balance</th>
+				</tr>
+      </thead>
+      {% for l in balances %}
+	  <tr>
+		<td><a href="{{ url_for("members.member_show",id=l.member) }}">{{ l.id }}</a></td>
+		<td><a href="{{ url_for("vending.vendingUser",id=l.member) }}">{{ l.name }}</a></td>
+		<td style="text-align:right">{{ l.balance }}</td>
+	  </tr>
+      {% endfor %}
+	</table>
+		{# 	<pre>{{ meta }}
+		{{ request.url }}</pre> #}
+  </div>
+  <p>Total Outstanding: {{ total }} </p>
+
+  
+{% endblock %}

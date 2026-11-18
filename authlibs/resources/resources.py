@@ -11,6 +11,7 @@ import datetime
 from . import graph
 from ..google_admin import genericEmailSender
 from functools import cmp_to_key
+import stripe
 
 blueprint = Blueprint("resources", __name__, template_folder='templates', static_folder="static",url_prefix="/resources")
 # ----------------------------------------------------
@@ -27,6 +28,7 @@ def resources():
 	 """(Controller) Display Resources and controls"""
 	 resources = _get_resources()
 	 access = {}
+	 resources = sorted(resources,key=lambda x: x['name'])
 	 return render_template('resources.html',resources=resources,access=access,editable=True)
 
 @blueprint.route('/', methods=['POST'])
@@ -43,7 +45,25 @@ def resource_create():
 	  return redirect(url_for('resources.resources'))
 	r.owneremail = (request.form['input_owneremail']).strip()
 	r.slack_chan = (request.form['input_slack_chan']).strip()
+	r.prodcode = (request.form['input_prodcode']).strip()
+	try: 
+	    r.price = int(request.form['input_price'])
+	except:
+	    pass
+	try: 
+	    r.price_pro = int(request.form['input_price_pro'])
+	except:
+	    pass
+	try: 
+	    r.free_min = int(request.form['input_free_min'])
+	except:
+	    pass
+	try: 
+	    r.free_min_pro = int(request.form['input_free_min_pro'])
+	except:
+	    pass
 	r.slack_admin_chan = (request.form['input_slack_admin_chan']).strip()
+	r.event_mqtt_topic = (request.form['input_event_mqtt_topic']).strip()
 	r.info_url = (request.form['input_info_url']).strip()
 	r.info_text = (request.form['input_info_text']).strip()
 	r.slack_info_text = (request.form['input_slack_info_text']).strip()
@@ -106,7 +126,12 @@ def resource_show(resource):
 			
 
 	resources = Resource.query.all()
-	return render_template('resource_edit.html',rec=r,resources=resources,readonly=readonly,tools=tools,comments=cc,maint=maint,train=train)
+	resources = sorted(resources,key=lambda x: x.name)
+	
+	from authlibs.db_models import ResourceNotice
+	notices = ResourceNotice.query.filter((ResourceNotice.resource_id == r.id) & (ResourceNotice.active == True)).all()
+
+	return render_template('resource_edit.html',rec=r,resources=resources,readonly=readonly,tools=tools,comments=cc,maint=maint,train=train, notices=notices)
 
 @blueprint.route('/<string:resource>/usage', methods=['GET'])
 @login_required
@@ -285,7 +310,25 @@ def resource_update(resource):
 		  return redirect(url_for('resources.resources'))
 		r.owneremail = (request.form['input_owneremail']).strip()
 		r.slack_chan = (request.form['input_slack_chan']).strip()
+		r.prodcode = (request.form['input_prodcode']).strip()
+		try: 
+			r.price = int(request.form['input_price'])
+		except:
+			pass
+		try: 
+			r.price_pro = int(request.form['input_price_pro'])
+		except:
+			pass
+		try: 
+			r.free_min = int(request.form['input_free_min'])
+		except:
+			pass
+		try: 
+			r.free_min_pro = int(request.form['input_free_min_pro'])
+		except:
+			pass
 		r.slack_admin_chan = (request.form['input_slack_admin_chan']).strip()
+		r.event_mqtt_topic = (request.form['input_event_mqtt_topic']).strip()
 		r.info_url = (request.form['input_info_url']).strip()
 		r.info_text = (request.form['input_info_text']).strip()
 		r.slack_info_text = (request.form['input_slack_info_text']).strip()
@@ -325,9 +368,11 @@ def showuser_sort(a,b):
   if (not a['sorttime'] and not b['sorttime']): return 0
   return int((b['sorttime'] - a['sorttime']).total_seconds())
 
+
 	
 @blueprint.route('/<string:resource>/list', methods=['GET'])
 def resource_showusers(resource):
+    debug=[]
     """(Controller) Display users who are authorized to use this resource"""
     rid = (resource)
     res_id = Resource.query.filter(Resource.name == rid).one_or_none()
@@ -373,6 +418,581 @@ def resource_showusers(resource):
           'lockout_reason':'' if x[4] is None else x[4],'lastusedago':lu1,'usedago':lu2,'lastused':lu1})
       
     return render_template('resource_users.html',resource=rid,accrecs=sorted(accrec,key=cmp_to_key(showuser_sort)))
+
+
+def end_of_month(date):
+    date =  date.replace(hour=23,minute=59,second=59,microsecond=999999)
+    if date.month == 12:
+        return date.replace(day=31)
+    return(date.replace(month=date.month+1, day=1) - datetime.timedelta(days=1))
+
+
+# month, year = previous_month()
+def previous_month():
+    today = datetime.date.today()
+    first_day_of_this_month = today.replace(day=1)
+    last_day_of_last_month = first_day_of_this_month - datetime.timedelta(days=1)
+    return last_day_of_last_month.month, last_day_of_last_month.year
+
+
+# bill_member_for_resource
+# Params:
+#   doBilling: True to actualy bill and collect to Stripe - False to just display
+# Returns: (debug,error,tabledata,userdata)
+#   debug: Array of debug strings
+#   Error: Errror string on failure or None if no error
+#   tabledata: Dict(below) containing result for this user-period (i.e. Totals)
+#   userdata: List of dicts - each billed line item
+
+def bill_member_for_resource(member_id,res,doBilling,month,year):
+    tabledata = {
+            "member":"??",
+            "member_id":"??",
+            "time":"",
+            "invoice":"",
+            "number":"",
+            "price":"",
+            "empty":True,
+            "status":"None"
+            }
+    error = None
+    disposition=None
+    debug = []
+    startDate = datetime.datetime(month=int(month),year=int(year),day=1)
+    endDate = end_of_month(startDate)
+    m = Member.query.filter(Member.id == member_id)
+    m = m.join(Subscription,Subscription.member_id == Member.id)
+    m = m.add_column(Subscription.customerid)
+    m = m.add_column(Subscription.rate_plan)
+    m = m.one_or_none()
+    debug.append(f"Bill member {member_id} for month {month} year {year}")
+    if m is None:
+        return ([],f"Member {member_id} not found",tabledata,[])
+    member = m.Member
+    cid = m.customerid
+    iamPro = True if m.rate_plan in ('pro', 'produo') else False
+    billdates={}
+    usageRecords=[]
+    seconds=0
+    debug.append(f"Distinct User {member_id} {member.member} RatePlan={m.rate_plan} Pro={iamPro}")
+    name = member.member
+
+    tabledata['member']=name
+    tabledata['member_id']=member.id
+    # Query Prior Invoices
+    alreadyBilled=False
+    invoiceStatus=None
+    if cid is not None and cid != "":
+        invoices = query_invoices(cid,res.short,f"{month}/{year}")
+        count=0
+        for i in invoices:
+            debug.append(f" -- Already Billed {i.amount_due} {i.status} {i.description} {i.status_transitions.finalized_at} charge {i.charge} metadata {i.metadata} invoice {i.id} number {i.number}")
+            tabledata['invoice']=i.id
+            tabledata['number']=i.number
+            invoiceStatus = i.status
+            count +=1
+            alreadyBilled=True
+        if (count > 1):
+            invoiceStatus = "<Multple!>"
+            debug.append(f" -- ERROR multiple outstanding invoices found!")
+
+
+    # Calculate General Parameters for billing
+
+    billMe = doBilling
+
+    # Query this user's stuff
+
+    debug.append(f" -- Query between {startDate} - {endDate}")
+    logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & 
+        (UsageLog.member_id == member_id) & 
+        (UsageLog.time_reported >= startDate) &
+        (UsageLog.time_reported <= endDate)
+        ).all()
+
+    freeSecs = 0
+    if iamPro and res.free_min_pro is not None:
+        freeSecs = res.free_min_pro * 60
+    elif (not iamPro) and res.free_min is not None:
+        freeSecs = res.free_min * 60
+
+    # If we have no prior, bill for everything
+    # If we have prior, bill only after that
+    lastUsage=""
+    userdata=[]
+    totalCents=0
+    t={}
+    for l in logs:
+        if (l.activeSecs > 0):
+            t = {}
+            secs = l.activeSecs
+            if ((l.payTier != 1) or (l.payTier is None)):
+                t['info'] = ""
+
+                # Compensate for free time
+                if (freeSecs >= secs):
+                    t['info']="Free Allotment"
+                    secs=0
+                    freeSecs -= secs
+                elif (freeSecs > 0):
+                    t['info']="Partial Free Allotment"
+                    secs = secs - freeSecs
+                    freeSecs = 0
+
+                if iamPro:
+                    cents = int((res.price_pro * secs)/3600)
+                else:
+                    cents = int((res.price * secs)/3600)
+
+                t['price'] = f"${cents/100:0.2f}"
+
+                totalCents += cents
+                seconds += secs
+            else:
+                t['info'] = "Free Tier"
+            datestr = l.time_logged.strftime("%b-%d-%Y")
+            if datestr not in billdates: billdates[datestr] = 0
+            billdates[datestr] += secs
+            usageRecords.append(l.id)
+            debug.append(f" -- Logged {l.time_logged} ActiveSecs={l.activeSecs} Tier={l.payTier}")
+            datestr = l.time_logged.strftime("%b-%d-%Y %-I:%M %p")
+            t['date'] = datestr
+            t['log_id'] = l.id
+            t['time'] = sec_to_hms(l.activeSecs)
+            t["freeTier"] = False if l.payTier != 1 else True
+            userdata.append(t)
+
+    tabledata['time'] = sec_to_hms(seconds)
+
+    stripedesc = f"{res.short} Usage: "+(", ".join([f"{x}={int(billdates[x]/60)}min" for x in billdates]))
+    tabledata['price']=f"${totalCents/100:0.2f}"
+    if (totalCents < 100): 
+        billMe = False
+        disposition = "Below Minimum"
+        tabledata['status']="Below Minimum"
+    elif alreadyBilled == True:
+        disposition = "Already Billed"
+        tabledata['status']="AlreadyBilled: "+invoiceStatus
+    elif billMe == False:
+        disposition = "Should Bill"
+        tabledata['status']="Should Bill"
+    elif disposition is None:
+        disposition = "Bill"
+        tabledata['status']="Billing"
+
+
+    if ((seconds == 0) and (totalCents == 0)):
+        tabledata['empty'] = True
+    else:
+        tabledata['empty'] = False
+
+    debug.append(f" -- {'Do' if billMe else 'Dont'} Disposition={disposition} {member_id} for {seconds} seconds Seconds={seconds} Desc: {stripedesc} Cents:{totalCents} ")
+    if (disposition == "Bill"):
+        invoiced=False
+        paid=False
+        pay=None
+        # Do Stripe Payment
+        stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+        commentstr="Billing"
+        try:
+            price = stripe.Price.create(
+              unit_amount=totalCents,
+              currency='usd',
+              product=res.prodcode)
+
+            invoice = stripe.Invoice.create(
+            customer=cid,
+            description=stripedesc,
+            pending_invoice_items_behavior="exclude",
+            #auto_advance=False,
+            #collection_method="charge_automatically",
+            metadata = {
+                'X-MIL-resource':res.short,
+                'X-MIL-period':f"{month}/{year}",
+                'X-MIL-resource-usage':res.short,
+                'X-MIL-last-usage':lastUsage,
+                'X-MIL-usageRecords':str(usageRecords)
+                }
+            )
+            invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description=stripedesc,invoice=invoice.id) 
+
+            finalize=stripe.Invoice.finalize_invoice(invoice)
+            logmsg = f"Invoiced {invoice.id} for ${totalCents/100.0:0.2f}"
+            tabledata['invoice']=str(invoice.id)
+            authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id,resource_id=res.id,member_id=member_id,message=logmsg,commit=0)
+            if (finalize['status'] != 'open'):
+                #result = {'error':'success','description':"Stripe Error"}
+                error = "Stripe Finalize error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(name,pay['status'],res.prodcode,cid,invoice.id)
+                tabledata['status']="Finalize Error"
+            else:
+                invoiced=True
+                try:
+                    pay = stripe.Invoice.pay(invoice)
+                    debug.append(f" -- Invoice {invoice.id} paid ${totalCents/100.0:0.2f}")
+                except BaseException as e:
+                    logmsg = f"Invoice {invoice.id} Error {e}"
+                    authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id,resource_id=res.id,member_id=member_id,message=logmsg,commit=0)
+                    error = "Stripe Payment error for {0} Invoice {1}".format(name,invoice.id)
+                    tabledata['status']=f"Stripe Pay Error {str(e)}"
+                else:
+                    if (pay['status'] != 'paid'):
+                        paid=False
+                        error = f"Payment returned bad status {pay['status']}"
+                        tabledata['status']=f"Bad Status {pay['status']}"
+                        authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id,resource_id=res.id,member_id=member_id,message=logmsg,commit=0)
+                    else:
+                        paid=True
+                        tabledata['status']="Paid"
+        except BaseException as e:
+            logmsg = f"Error: {e}"
+            tabledata['status']=f"Exception Error {str(e)}"
+            authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id,resource_id=res.id,member_id=member_id,message=logmsg,commit=0)
+
+        db.session.commit()
+        # End Invoiced
+    return (debug,error,tabledata,userdata)
+
+def query_specific_invoice(customer_id,resource_short,monthYear=None):
+    error = None
+    debug = []
+    stripe.api_version = '2020-08-27'
+    stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+    # Status can be "open" or "paid"
+    # https://stripe.com/docs/search#search-query-language
+    invoices = stripe.Invoice.search(query=f"metadata[\"X-MIL-resource\"]:\"{resource_short}\" AND customer:\"{customer_id}\" AND metadata[\"X-MIL-period\"]:\"{monthYear}\"")
+    return invoices
+
+
+def query_invoices(customer_id,resource_short,monthYear=None):
+    error = None
+    debug = []
+    stripe.api_version = '2020-08-27'
+    stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+    # Status can be "open" or "paid"
+    # https://stripe.com/docs/search#search-query-language
+    if monthYear is not None:
+        invoices = stripe.Invoice.search(query=f"metadata[\"X-MIL-resource\"]:\"{resource_short}\" AND customer:\"{customer_id}\" AND metadata[\"X-MIL-period\"]:\"{monthYear}\"")
+    else:
+        invoices = stripe.Invoice.search(query=f"metadata[\"X-MIL-resource\"]:\"{resource_short}\" AND customer:\"{customer_id}\"")
+
+    ### WARNING - DELETE ALL!
+    #invoices = stripe.Invoice.list()
+    #for invoice in invoices.data:
+    #    try:
+    #        stripe.Invoice.delete(invoice.id)
+    #    except:
+    #        pass
+
+    return invoices
+
+def cli_queryresourceinvoice(cmd,**kwargs):
+    print (f"CMD IS {cmd}")
+    stripe.api_version = '2020-08-27'
+    stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+    # Status can be "open" or "paid"
+    # https://stripe.com/docs/search#search-query-language
+    invoice = stripe.Invoice.retrieve(cmd[1])
+    print (invoice)
+
+def cli_refundinvoice(cmd,**kwargs):
+    print (f"CMD IS {cmd}")
+    stripe.api_version = '2020-08-27'
+    stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+    # Status can be "open" or "paid"
+    # https://stripe.com/docs/search#search-query-language
+    invoice = stripe.Invoice.retrieve(cmd[1])
+    if invoice is not None:
+        print (f"Invoice {invoice.id} {invoice.number} status {invoice.status} metadata {invoice.metadata} Total {invoice.total/100.00} Charge {invoice.charge}")
+        #charge = stripe.Charge.retrieve(invoice.charge)
+        #print (charge)
+
+def secsToHMS(seconds):
+    r = ""
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds = seconds % 60
+    if hours > 0:
+        r = f"{hours} Hour{'s' if hours > 1 else ''}"
+    if minutes > 0:
+        r += f" {minutes} Min{'s' if minutes > 1 else ''}"
+    if (seconds > 0) or (r==""):
+        r += f" {seconds} Sec{'s' if seconds > 1 else ''}"
+    return r
+
+@blueprint.route('/billableResources', methods=['GET'])
+@login_required
+@roles_required(['Admin','Finance'])
+def billable_resources():
+    resources = AccessByMember.query.filter(current_user.id == AccessByMember.member_id)
+    resources = resources.join(Resource,((AccessByMember.resource_id == Resource.id) & ((Resource.price > 0) | (Resource.price_pro > 0))))
+    resources = resources.add_column(Resource.name)
+    resources = resources.all()
+    return render_template('list.html',resources=resources)
+
+@blueprint.route('/<string:resource>/billingUsage', methods=['GET','POST'])
+@login_required
+@roles_required(['Admin','Finance'])
+def billing_usage(resource):
+    now = datetime.datetime.now()
+    month = now.month
+    year = now.year
+    if 'month' in request.form: month = int(request.form['month'])
+    if 'year' in request.form: year = int(request.form['year'])
+
+    tabledata=[]
+    doBilling = False
+    if 'Update' in request.form:
+        for x in request.form:
+            if x.startswith("change_"):
+                xx = int(x.replace("change_",""))
+                toval = 0 if request.form[x] == "makeFalse" else 1
+                ul = UsageLog.query.filter((UsageLog.id ==xx)).one_or_none()
+                ul.payTier = toval;
+        db.session.commit()
+
+    errors = []
+    debug=[]
+    rid = (resource)
+    res = Resource.query.filter(Resource.name == rid).one_or_none()
+    if not res:
+      flash ("Resource not found","warning")
+      return redirect(url_for('resources.resources'))
+
+    if (not current_user.is_specific_arm(resource=res)):
+        flash("Forbidden","Danger")
+        return redirect(url_for('index'))
+
+    if (res.price == 0) or (res.prodcode is None) or (res.prodcode.strip()==""):
+      flash ("Non-Billable Resource","warning")
+      return redirect(url_for('resources.resources'))
+
+    names = {}
+    for m in Member.query.all():
+        names[m.id]=f"{m.firstname} {m.lastname}"
+
+    ul = UsageLog.query.filter((UsageLog.resource_id == res.id)).order_by(UsageLog.time_logged.desc()).limit(100).all()
+    for l in ul:
+        (lu1,lu2,lu3) = ago.ago(l.time_logged,now)
+        tabledata.append({
+            "id":l.id,
+            "who": names[l.member_id] if l.member_id in names else "??",
+            "when": lu1,
+            "ago": f"{lu2} Ago",
+            "usage": secsToHMS(l.activeSecs),
+            "tier": False if l.payTier != 1 else True
+            })
+    meta = {
+            'first':'',
+            'last':'?last'
+            }
+    return render_template('view_usage.html',resource=res,debug=debug+['Errors:']+errors,table=tabledata,meta=meta,month=month,year=year)
+
+@blueprint.route('/<string:resource>/mybilling/<int:month>/<int:year>', methods=['GET','POST'])
+@login_required
+def mybillingmon(resource,month,year):
+    return billingdetail(resource,current_user.id,month,year)
+
+@blueprint.route('/<string:resource>/mybilling', methods=['GET','POST'])
+@login_required
+def mybilling(resource):
+    return billingdetail(resource,current_user.id)
+
+@blueprint.route('/<string:resource>/userbilling/<int:member_id>', methods=['GET','POST'])
+@login_required
+def userbilling(resource,member_id):
+    rid = (resource)
+    res = Resource.query.filter(Resource.name == rid).one_or_none()
+    if not res:
+      flash ("Resource not found","warning")
+      return redirect(url_for('index'))
+
+    if (not current_user.is_specific_arm(resource=res)):
+        flash("Forbidden","Danger")
+        return redirect(url_for('index'))
+    return billingdetail(resource,member_id)
+
+# Generic for single user to see their own, or for ARM to see anyones
+def billingdetail(resource,member_id,month=None,year=None):
+    now = datetime.datetime.now()
+    if month is None: month = now.month
+    if year is None: year = now.year
+    errors = []
+    debug=[]
+    if 'month' in request.form: month = int(request.form['month'])
+    if 'year' in request.form: year = int(request.form['year'])
+    member = Member.query.filter(Member.id == member_id).one()
+    res = Resource.query.filter(Resource.name == resource).one_or_none()
+    if not res:
+      flash ("Resource not found","warning")
+      return redirect(url_for('resources.resources'))
+
+    if (res.price == 0) or (res.prodcode is None) or (res.prodcode.strip()==""):
+      flash ("Non-Billable Resource","warning")
+      return redirect(url_for('resources.resources'))
+
+    (debug,error,tabledata,userdata) = bill_member_for_resource(member_id,res,False,month,year)
+
+    userdata.append({
+        'date':"<b>Total</b>",
+        'time':tabledata['time'],
+        'price':tabledata['price']
+        })
+
+    name = f"{member.firstname} {member.lastname}"
+    period = f"{month}/{year}"
+
+    s = Subscription.query.filter(Subscription.member_id == member.id).one()
+    iv = query_specific_invoice(s.customerid,res.short,period)
+    invoices = []
+    for i in iv:
+        invoices.append({
+            'number':i.number,
+            'status':i.status,
+            'unit_amount':f"${i.amount_due/100:0.2f}",
+            'created':datetime.datetime.fromtimestamp((i['created']))
+            })
+
+
+    if (request.args.get("debug") is None): debug=[]
+
+    if (len(errors) > 0):
+        debug += ['Errors:']+errors
+    isARM = accesslib.user_privs_on_resource(member=current_user,resource=res) >= AccessByMember.LEVEL_ARM
+    return render_template('billingdetail.html',resource=res,debug=debug,table=userdata,month=month,year=year,
+            invoices=invoices,name=name,period=period,isARM=isARM)
+
+
+@blueprint.route('/<string:resource>/billing', methods=['GET','POST'])
+@login_required
+def billing(resource):
+    # Did we make changes?
+    if request.method == 'POST' and 'Update' in request.form:
+        res = Resource.query.filter(Resource.name == resource).one()
+        if (not current_user.is_specific_arm(resource=res)):
+            flash("Forbidden","Danger")
+            return redirect(url_for('index'))
+        for x in request.form:
+            if x.startswith("change_"):
+                xx = int(x.replace("change_",""))
+                toval = 0 if request.form[x] == "makeFalse" else 1
+                ul = UsageLog.query.filter((UsageLog.id ==xx)).one_or_none()
+                ul.payTier = toval;
+        db.session.commit()
+        flash("Updated","Danger")
+        return redirect(url_for('resources.billing',resource=resource))
+
+
+
+    now = datetime.datetime.now()
+    month = now.month
+    year = now.year
+    if 'month' in request.form: month = int(request.form['month'])
+    if 'year' in request.form: year = int(request.form['year'])
+
+    if 'memberDetail' in request.form:
+        return userbilling(resource,request.form['memberDetail'])
+
+    tabledata=[]
+    doBilling = False
+    if 'invoiceCollect' in request.form:
+        doBilling = True
+    errors = []
+    debug=[]
+    debug.append(f"Month {type(month)} {month} Year {type(year)} {year}")
+    rid = (resource)
+    res = Resource.query.filter(Resource.name == rid).one_or_none()
+    if not res:
+      flash ("Resource not found","warning")
+      return redirect(url_for('resources.resources'))
+
+    if (res.price == 0) or (res.prodcode is None) or (res.prodcode.strip()==""):
+      flash ("Non-Billable Resource","warning")
+      return redirect(url_for('resources.resources'))
+
+    if (not current_user.is_specific_arm(resource=res)):
+        flash("Forbidden","Danger")
+        return redirect(url_for('index'))
+
+
+
+    users = Logs.query.filter((Logs.resource_id == res.id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).limit(1).all()
+    for u in users:
+        debug.append(f"Member ID {u.member_id}")
+
+
+    # Find all resource users
+
+    if 'viewUsage' in request.form:
+        # "My Usage" button - Don't know what this is either
+        users = UsageLog.query.filter(UsageLog.resource_id == res.id).distinct().group_by(UsageLog.member_id).all()
+        for x in users:
+            d,e,t,userdata = bill_member_for_resource(x.member_id,res,False,month,year)
+            if (t['empty'] == False):
+                tabledata.append(t)
+            debug += d
+            if e is not None:
+                errors.append(e)
+    elif 'wtfIsThis' in request.form:
+        # User List
+        lst = {}
+        for l in Logs.query.filter((Logs.resource_id == res.id) & 
+            ((Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id) | 
+            (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id)) & 
+            (Logs.member_id == current_user.id)
+            ).order_by(Logs.time_logged.desc()).all():
+                #errors.append(f"{l.time_logged} {l.message}")
+                lst[l.time_logged] = l
+        for e in UsageLog.query.filter((UsageLog.member_id == current_user.id) & (UsageLog.resource_id == res.id)).all():
+                lst[e.time_logged] = e
+                #errors.append(f"{e.time_logged} {e.activeSecs} {e.payTier}")
+
+        for x in sorted(lst,key = lambda x: x,reverse=True):
+            o = lst[x]
+            if isinstance(o,UsageLog):
+                debug.append(f"UsageLog Time={o.time_logged} Active={o.activeSecs} Tier={o.payTier}")
+                tabledata.append({"date":o.time_logged,"data":f" Active={o.activeSecs} Tier={o.payTier}"})
+            elif isinstance(o,Logs):
+                debug.append(f"BILLED Log {o.time_logged} {o.message}")
+                tabledata.append({"date":o.time_logged,"data":f"BILLED {o.message}"})
+    else:
+        # This is the default and the "Bill Usage" button (doBilling)
+        users = UsageLog.query.filter(UsageLog.resource_id == res.id).distinct().group_by(UsageLog.member_id).all()
+        for x in users:
+            d,e,t,userdata = bill_member_for_resource(x.member_id,res,doBilling,month,year)
+            debug += d
+            if (t['empty'] == False):
+                tabledata.append(t)
+            if e is not None:
+                errors.append(e)
+
+            if (request.args.get("debug") is None) and ('debug' not in request.form): debug=[]
+            if (len(errors)>0):
+                debug = debug + ["Errors:"]+errors
+
+        return render_template('bill.html',resource=res,debug=debug,table=tabledata,month=month,year=year)
+
+    if (request.args.get("debug") is None) and ('debug' not in request.form): debug=[]
+    if (len(errors)>0):
+        debug = debug + ["Errors:"]+errors
+    return render_template('resource_billing.html',resource=res,debug=debug,table=tabledata,month=month,year=year)
+
+# Automatic resource billing
+def autobill(resname):
+    res = Resource.query.filter(Resource.name == resname).one()
+    month, year = previous_month()
+    users = UsageLog.query.filter(UsageLog.resource_id == res.id).distinct().group_by(UsageLog.member_id).all()
+    errors = []
+    debug = []
+    for x in users:
+        d,e,t,userdata = bill_member_for_resource(x.member_id,res,True,month,year)
+        if e is not None:
+            errors.append(e)
+        debug += d
+    result = {
+            "errors":errors,
+            "debug":debug
+            }
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 #TODO: Create safestring converter to replace string; converter?
 @blueprint.route('/<string:resource>/log', methods=['GET','POST'])
@@ -622,9 +1242,333 @@ def message(resource):
         flash("Sent %s emails" % (email_ok),"success")
     return render_template('email.html',rec=r)
 
+MAGIC_AUTH_WINDOW_MINUTES = 180  # 3-hour window
+
+def _get_denied_members_for_resource(resource):
+    """Return list of Members denied access to this resource within the magic auth window,
+    excluding those who already have active access."""
+    time_window = datetime.datetime.utcnow() - datetime.timedelta(minutes=MAGIC_AUTH_WINDOW_MINUTES)
+    denials = Logs.query.filter(
+        Logs.resource_id == resource.id,
+        Logs.event_type.in_([
+            eventtypes.RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED.id,
+            eventtypes.RATTBE_LOGEVENT_MEMBER_KIOSK_DENIED.id,
+            eventtypes.RATTBE_LOGEVENT_TOOL_PROHIBITED.id
+        ]),
+        Logs.time_logged >= time_window
+    ).group_by(Logs.member_id).all()
+
+    denied_members = []
+    for log in denials:
+        existing = AccessByMember.query.filter(
+            AccessByMember.member_id == log.member_id,
+            AccessByMember.resource_id == resource.id,
+            AccessByMember.active == 1,
+            AccessByMember.level >= AccessByMember.LEVEL_USER
+        ).one_or_none()
+        if not existing:
+            m = Member.query.filter(Member.id == log.member_id).one_or_none()
+            if m:
+                denied_members.append(m)
+    return denied_members
+
+@blueprint.route('/magic_authorize', methods=['GET'])
+@login_required
+def magic_authorize():
+    """List resources the user is ARM for that have pending denials.
+    If exactly one resource qualifies, skip straight to it."""
+    if not accesslib.user_is_authorizor(current_user, level=2):
+        flash("Unauthorized", "danger")
+        return redirect(url_for('index'))
+
+    # Only include resources with pending denials
+    resources_with_denials = []
+    for r in Resource.query.all():
+        if accesslib.user_privs_on_resource(member=current_user, resource=r) >= AccessByMember.LEVEL_ARM:
+            if _get_denied_members_for_resource(r):
+                resources_with_denials.append(r)
+
+    resources_with_denials = sorted(resources_with_denials, key=lambda x: x.name)
+
+    # Auto-redirect if exactly one resource has pending denials
+    if len(resources_with_denials) == 1:
+        return redirect(url_for('resources.magic_authorize_resource', resource_id=resources_with_denials[0].id))
+
+    return render_template('magic_authorize.html', resources=resources_with_denials)
+
+@blueprint.route('/magic_authorize/<int:resource_id>', methods=['GET'])
+@login_required
+def magic_authorize_resource(resource_id):
+    """List members who were denied access to this resource in the last 3 hours"""
+    if not accesslib.user_is_authorizor(current_user, level=2):
+        flash("Unauthorized", "danger")
+        return redirect(url_for('index'))
+
+    r = Resource.query.filter(Resource.id == resource_id).one_or_none()
+    if not r:
+        flash("Resource not found", "warning")
+        return redirect(url_for('resources.magic_authorize'))
+
+    if accesslib.user_privs_on_resource(member=current_user, resource=r) < AccessByMember.LEVEL_ARM:
+        flash("Unauthorized", "danger")
+        return redirect(url_for('resources.magic_authorize'))
+
+    denied_members = _get_denied_members_for_resource(r)
+    return render_template('magic_authorize_resource.html', resource=r, denied_members=denied_members)
+
+@blueprint.route('/magic_authorize/<int:resource_id>', methods=['POST'])
+@login_required
+def magic_authorize_action(resource_id):
+    """Authorize the checked users"""
+    if not accesslib.user_is_authorizor(current_user, level=2):
+        flash("Unauthorized", "danger")
+        return redirect(url_for('index'))
+        
+    r = Resource.query.filter(Resource.id == resource_id).one_or_none()
+    if not r:
+        flash("Resource not found", "warning")
+        return redirect(url_for('resources.magic_authorize'))
+        
+    if accesslib.user_privs_on_resource(member=current_user, resource=r) < AccessByMember.LEVEL_ARM:
+        flash("Unauthorized", "danger")
+        return redirect(url_for('resources.magic_authorize'))
+
+    member_ids = request.form.getlist('member_ids')
+    count = 0
+    for m_id_str in member_ids:
+        try:
+            m_id = int(m_id_str)
+        except ValueError:
+            continue
+            
+        m = Member.query.filter(Member.id == m_id).one_or_none()
+        if not m:
+            continue
+            
+        acc = AccessByMember.query.filter(
+            AccessByMember.member_id == m.id,
+            AccessByMember.resource_id == r.id
+        ).one_or_none()
+        
+        if not acc:
+            acc = AccessByMember(
+                member_id=m.id,
+                resource_id=r.id,
+                level=AccessByMember.LEVEL_USER,
+                active=1
+            )
+            db.session.add(acc)
+            authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id, resource_id=r.id, member_id=m.id, doneby=current_user.id, message="Magic Authorize", commit=0)
+            count += 1
+        else:
+            if not acc.active or acc.level < AccessByMember.LEVEL_USER:
+                acc.active = 1
+                if acc.level < AccessByMember.LEVEL_USER:
+                    acc.level = AccessByMember.LEVEL_USER
+                authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id, resource_id=r.id, member_id=m.id, doneby=current_user.id, message="Magic Authorize (Updated)", commit=0)
+                count += 1
+                
+    if count > 0:
+        db.session.commit()
+        authutil.kick_backend()
+        flash(f"Magic Authorized {count} members for {r.name}", "success")
+    else:
+        flash("No members were authorized", "warning")
+        
+    return redirect(url_for('resources.magic_authorize_resource', resource_id=r.id))
 def _get_resources():
   q = db.session.query(Resource.name,Resource.owneremail, Resource.description, Resource.id)
   return q.all()
+
+@blueprint.route('/<string:resource>/addnotice', methods=['POST'])
+@login_required
+def add_notice(resource):
+    r = Resource.query.filter(Resource.name==resource).one_or_none()
+    if not r:
+        flash("Error: Resource not found")
+        return redirect(url_for('resources.resources'))
+    if accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+        flash("Error: Permission denied")
+        return redirect(url_for('resources.resources'))
+
+    from authlibs.db_models import ResourceNotice
+    notice = ResourceNotice()
+    notice.resource_id = r.id
+    notice.title = request.form['input_notice_title'].strip()
+    notice.message = request.form['input_notice_message'].strip()
+    notice.created_by = current_user.id
+    
+    if notice.title == "":
+        flash("Error: Title is required for a notice")
+        return redirect(url_for('resources.resource_show', resource=r.name))
+
+    db.session.add(notice)
+    db.session.commit()
+    flash("Notice Added", "success")
+    return redirect(url_for('resources.resource_show', resource=r.name))
+
+@blueprint.route('/<string:resource>/deletenotice/<int:notice_id>', methods=['POST'])
+@login_required
+def delete_notice(resource, notice_id):
+    r = Resource.query.filter(Resource.name==resource).one_or_none()
+    if not r:
+        flash("Error: Resource not found")
+        return redirect(url_for('resources.resources'))
+    if accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+        flash("Error: Permission denied")
+        return redirect(url_for('resources.resources'))
+
+    from authlibs.db_models import ResourceNotice
+    notice = ResourceNotice.query.filter((ResourceNotice.id == notice_id) & (ResourceNotice.resource_id == r.id)).one_or_none()
+    if notice:
+        notice.active = False
+        db.session.commit()
+        flash("Notice deactivated", "success")
+    else:
+        flash("Notice not found", "warning")
+        
+    return redirect(url_for('resources.resource_show', resource=r.name))
+
+@blueprint.route('/<string:resource>/acknowledgements', methods=['GET', 'POST'])
+@login_required
+def resource_acknowledgements(resource):
+    r = Resource.query.filter(Resource.name == resource).one_or_none()
+    if not r:
+        flash("Resource not found")
+        return redirect(url_for('resources.resources'))
+    if accesslib.user_privs_on_resource(member=current_user, resource=r) < AccessByMember.LEVEL_ARM:
+        flash("Permission denied", "warning")
+        return redirect(url_for('resources.resources'))
+        
+    from authlibs.db_models import Acknowledgement, AcknowledgementUser
+    import uuid
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'create':
+            title = request.form.get('title')
+            message = request.form.get('message')
+            enforce_days = request.form.get('enforce_days')
+            
+            ack = Acknowledgement(
+                resource_id=r.id,
+                title=title,
+                message=message,
+                created_by=current_user.id
+            )
+            if enforce_days and enforce_days.strip().isdigit():
+                ack.enforce_on = datetime.datetime.now() + datetime.timedelta(days=int(enforce_days))
+                
+            db.session.add(ack)
+            db.session.commit()
+            authutil.kick_backend()
+            flash("Acknowledgement created successfully", "success")
+            
+        elif action == 'send':
+            ack_id = request.form.get('ack_id')
+            ack = Acknowledgement.query.filter((Acknowledgement.id == ack_id) & (Acknowledgement.resource_id == r.id)).one_or_none()
+            if not ack:
+                flash("Acknowledgement not found", "warning")
+            else:
+                authusers = db.session.query(AccessByMember.member_id).filter(AccessByMember.resource_id == r.id).all()
+                member_ids = [u[0] for u in authusers]
+                
+                existing = db.session.query(AcknowledgementUser).filter(AcknowledgementUser.acknowledgement_id == ack.id).all()
+                existing_dict = {e.member_id: e for e in existing}
+                
+                send_count = 0
+                for mid in member_ids:
+                    au = existing_dict.get(mid)
+                    if au is None:
+                        # New user, create record and send
+                        token = str(uuid.uuid4())
+                        au = AcknowledgementUser(
+                            acknowledgement_id=ack.id,
+                            member_id=mid,
+                            token=token
+                        )
+                        db.session.add(au)
+                    elif au.time_acknowledged is not None:
+                        # User has already acknowledged, skip
+                        continue
+                    
+                    # Send email (either new user or pending user)
+                    m = Member.query.filter(Member.id == mid).one()
+                    link = url_for('api.api_acknowledge', token=au.token, _external=True)
+                    email_body = f"Please acknowledge the following notice for {r.name}: {ack.title}\n\n{ack.message}\n\nClick here to acknowledge: {link}"
+                    genericEmailSender("info@makeitlabs.com", m.email, ack.title, email_body)
+                    send_count += 1
+                        
+                db.session.commit()
+                authutil.kick_backend()
+                flash(f"Sent to {send_count} users.", "success")
+                
+        elif action == 'delete':
+            ack_id = request.form.get('ack_id')
+            ack = Acknowledgement.query.filter((Acknowledgement.id == ack_id) & (Acknowledgement.resource_id == r.id)).one_or_none()
+            if ack:
+                db.session.delete(ack)
+                db.session.commit()
+                authutil.kick_backend()
+                flash("Deleted acknowledgement", "success")
+
+    acks = Acknowledgement.query.filter(Acknowledgement.resource_id == r.id).order_by(Acknowledgement.time_created.desc()).all()
+    return render_template('resource_acknowledgements.html', resource=r, acks=acks)
+
+@blueprint.route('/<string:resource>/acknowledgements/<int:ack_id>', methods=['GET', 'POST'])
+@login_required
+def resource_acknowledgement_detail(resource, ack_id):
+    r = Resource.query.filter(Resource.name == resource).one_or_none()
+    if not r:
+        flash("Resource not found")
+        return redirect(url_for('resources.resources'))
+    if accesslib.user_privs_on_resource(member=current_user, resource=r) < AccessByMember.LEVEL_ARM:
+        flash("Permission denied", "warning")
+        return redirect(url_for('resources.resources'))
+
+    from authlibs.db_models import Acknowledgement, AcknowledgementUser
+    import uuid
+    ack = Acknowledgement.query.filter((Acknowledgement.id == ack_id) & (Acknowledgement.resource_id == r.id)).one_or_none()
+    
+    if not ack:
+        flash("Acknowledgement not found")
+        return redirect(url_for('resources.resource_acknowledgements', resource=resource))
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        member_id = request.form.get('member_id')
+        au = AcknowledgementUser.query.filter((AcknowledgementUser.acknowledgement_id == ack.id) & (AcknowledgementUser.member_id == member_id)).one_or_none()
+        
+        if not au:
+            flash("User record not found", "warning")
+        elif action == 'resend':
+            m = Member.query.filter(Member.id == member_id).one()
+            link = url_for('api.api_acknowledge', token=au.token, _external=True)
+            email_body = f"Please acknowledge the following notice for {r.name}: {ack.title}\n\n{ack.message}\n\nClick here to acknowledge: {link}"
+            genericEmailSender("info@makeitlabs.com", m.email, ack.title, email_body)
+            flash("Resent email.", "success")
+        elif action == 'manual_ack':
+            au.time_acknowledged = datetime.datetime.now()
+            db.session.commit()
+            authutil.kick_backend()
+            flash("Manually acknowledged.", "success")
+            
+    users = db.session.query(AcknowledgementUser, Member).join(Member).filter(AcknowledgementUser.acknowledgement_id == ack.id).all()
+    
+    acknowledged = [u for u in users if u[0].time_acknowledged]
+    acknowledged.sort(key=lambda u: u[0].time_acknowledged, reverse=True)
+    
+    unacknowledged = [u for u in users if not u[0].time_acknowledged]
+    unacknowledged.sort(key=lambda u: u[1].member)
+    
+    users = acknowledged + unacknowledged
+    
+    ack_count = len(acknowledged)
+    total_count = len(users)
+    
+    return render_template('resource_acknowledgement_detail.html', resource=r, ack=ack, users=users, ack_count=ack_count, total_count=total_count)
+
 
 def register_pages(app):
   graph.register_pages(app)

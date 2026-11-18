@@ -11,16 +11,19 @@
   <table style="table-layout: fixed; width: 100%;" class="table">
     <tr>
      <td></td>
-    {% for x in cols %}
+    {% for xx in range(cols) %}
+	  {% set x = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[xx] %}
     <div class="col-sm-1">
       <th>{{ x }}</th>
     {% endfor %}
     </tr>
 
-  {% for y in rows %} 
+  {% for yy in range(rows) %} 
+  {% set y = (rows-yy)|string %}
   <tr>
       <th>{{ y }}</th>
-    {% for x in cols %}
+    {% for xx in range(cols) %}
+	  {% set x = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[xx] %}
     <td
         style="
         {% if bins[name+'-'+x+"-"+y] %}
@@ -30,7 +33,7 @@
      >
         {% if bins[name+'-'+x+"-"+y] %}
         {% if current_user.privs("ProStore") %}
-          <a href="{{ url_for('prostore.bin_edit',id= bins[name+'-'+x+'-'+y]['binid']) }}">
+          <a {% if bins[name+'-'+x+'-'+y].get('a_style') %}style="{{ bins[name+'-'+x+'-'+y]['a_style'] }}"{% endif %} href="{{ url_for('prostore.bin_edit',id= bins[name+'-'+x+'-'+y]['binid']) }}">
         {% endif %}
         {{ bins[name+'-'+x+"-"+y]['lastname'] }}<br />
         {{ bins[name+'-'+x+"-"+y]['firstname'] }}<br />
@@ -38,6 +41,12 @@
         {% if current_user.privs("ProStore") %}
           </a>
         {% endif %}
+        {% else %}
+                {% if current_user.privs("ProStore") %}
+                {% if locs[name+'-'+x+'-'+y] %}
+                <a href="{{ url_for('prostore.bin_add',bin=name+'-'+x+'-'+y) }}">+</a>
+                {% endif %}
+                {% endif %}
         {% endif %}
     </td>
     {% endfor %}
@@ -46,10 +55,10 @@
   </table>
 {% endmacro %}
 
-{{ grid(['A','B','C','D','E','F','G','H'],['6','5','4','3','2','1'],"Garage") }}
 
-{{ grid(['A','B'],['4','3','2','1'],"Cleanspace") }}
-
+{% for g in grids %}
+{{ grid(g.columns,g.rows,g.short) }}
+{% endfor %}
 
 
 {% endblock %}

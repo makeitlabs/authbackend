@@ -14,7 +14,7 @@ except:
 	from flask_dance.consumer.storage.sqla import SQLAlchemyStorage, OAuthConsumerMixin
 
 
-defined_roles=['Admin','RATT','Finance','Useredit','HeadRM','ProStore','LeaseMgr']
+defined_roles=['Admin','RATT','Finance','Useredit','HeadRM','ProStore','LeaseMgr',"Facilities","Signpost","Classes"]
 
 db = SQLAlchemy()
 
@@ -65,9 +65,12 @@ class Member(db.Model,UserMixin):
     time_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
     warning_sent = db.Column(db.DateTime(timezone=True))
     warning_level = db.Column(db.Integer()) 
+    draft = db.Column(db.Integer())  # Draft wave for ProStore Bin
     email_confirmed_at = db.Column(db.DateTime())
+    plates = db.Column(db.String(50)) # License Plates
     membership = db.Column(db.String(50),nullable=True,unique=True)
     memberFolder = db.Column(db.String(255))
+    group = db.Column(db.String(50))
 
     password = db.Column(db.String(255),nullable=True)
     roles= db.relationship('Role', secondary = 'userroles')
@@ -99,6 +102,11 @@ class Member(db.Model,UserMixin):
     def is_arm(self):
         return AccessByMember.query.filter(AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).count() >= 1
 
+    def is_specific_arm(self,resource=None,resource_id=None):
+        if resource is not None:
+            resource_id = resource.id
+        return AccessByMember.query.filter(AccessByMember.resource_id== resource_id,AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).count() >= 1
+
     def resource_roles(self):
         return [x[0] for x in db.session.query(Resource.name).join(AccessByMember,AccessByMember.resource_id == Resource.id).filter(AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).all()]
 
@@ -127,9 +135,25 @@ class Tool(db.Model):
     displayname = db.Column(db.String(50))
     lockout = db.Column(db.String(100), nullable=True)
     short = db.Column(db.String(20), unique=True, nullable=True)
+    remotable = db.Column(db.Boolean())
     node_id = db.Column(db.Integer(), db.ForeignKey('nodes.id', ondelete='CASCADE'))
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
+class Sign(db.Model):
+    __tablename__ = 'signs'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer, primary_key=True)
+    s_what = db.Column(db.String(50))
+    s_where = db.Column(db.String(50))
+    s_when = db.Column(db.String(50))
+    s_desc = db.Column(db.String(255))
+    s_qr = db.Column(db.String(255))
+    s_qr_desc = db.Column(db.String(255))
+    priority = db.Column(db.Integer)
+    retain = db.Column(db.Integer)
+    start = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    end = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    
 class AccessByMember(db.Model):
     __tablename__ = 'accessbymember'
     __bind_key__ = 'main'
@@ -195,9 +219,47 @@ class Resource(db.Model):
     slack_admin_chan = db.Column(db.String(50))
     info_url = db.Column(db.String(150))
     info_text = db.Column(db.String(150))
+    event_mqtt_topic = db.Column(db.String(80))
     slack_info_text = db.Column(db.String())
     age_restrict = db.Column(db.Integer())  # Years old
     permissions = db.Column(db.String(255), nullable=True) # Endorsements
+    prodcode = db.Column(db.String(50)) # For Charges
+    price = db.Column(db.Integer())  # Cents per hour
+    price_pro = db.Column(db.Integer())  # Cents per hour - Pro members
+    free_min = db.Column(db.Integer())  # Free Minutes per period
+    free_min_pro = db.Column(db.Integer())  # Free Minutes per period - Pro Members
+
+class ResourceNotice(db.Model):
+    __tablename__ = 'resourcenotices'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+    title = db.Column(db.String(100))
+    message = db.Column(db.String())
+    time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    created_by = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    active = db.Column(db.Boolean(), default=True)
+
+class Acknowledgement(db.Model):
+    __tablename__ = 'acknowledgements'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'), nullable=False)
+    title = db.Column(db.String(150))
+    message = db.Column(db.Text())
+    time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    created_by = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'), nullable=False)
+    enforce_on = db.Column(db.DateTime(timezone=True))
+
+class AcknowledgementUser(db.Model):
+    __tablename__ = 'acknowledgement_users'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    acknowledgement_id = db.Column(db.Integer(), db.ForeignKey('acknowledgements.id', ondelete='CASCADE'), nullable=False)
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'), nullable=False)
+    token = db.Column(db.String(100), unique=True, nullable=False)
+    time_sent = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    time_acknowledged = db.Column(db.DateTime(timezone=True))
 
 class Training(db.Model):
     __tablename__ = 'training'
@@ -249,6 +311,7 @@ class Subscription(db.Model):
     active = db.Column(db.Integer())
     membership = db.Column(db.String(50),nullable=False,unique=True)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id'))
+    group = db.Column(db.String(50))
 
 # Pro Storage Bin
 class ProBin(db.Model):
@@ -257,6 +320,8 @@ class ProBin(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(15), nullable=True,unique=True)
     status = db.Column(db.Integer,nullable=False)
+    status_updated_at = db.Column(db.DateTime, nullable=True)
+    aruco = db.Column(db.Integer)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
     location_id = db.Column(db.Integer(), db.ForeignKey('prostorelocations.id', ondelete='CASCADE'))
 
@@ -300,12 +365,22 @@ class ProBin(db.Model):
         ], 
         else_ = 'Unknown').label('binstatusstr'))
 
+# Pro Storage Bin Choices
+class ProBinChoice(db.Model):
+    __tablename__ = 'binchoice'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    rank = db.Column(db.Integer,nullable=False)
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    location_id = db.Column(db.Integer(), db.ForeignKey('prostorelocations.id', ondelete='CASCADE'))
+
 # Pro Storage Location
 class ProLocation(db.Model):
   __tablename__ = 'prostorelocations'
   __bind_key__ = 'main'
   location = db.Column(db.String(50), nullable=False, unique=True)
   loctype = db.Column(db.Integer())
+  aruco = db.Column(db.Integer)
   id = db.Column(db.Integer(), primary_key=True)
 
   LOCATION_TYPE_SINGLE=0
@@ -440,6 +515,30 @@ class Node(db.Model):
     ip_addr = db.Column(db.String(20))
     name = db.Column(db.String(20))
     mac = db.Column(db.String(20))
+    always_on = db.Column(db.Boolean(), default=0)  # Node expected to be online 24/7
+
+class Purchasable(db.Model):
+    __tablename__ = 'purchasable'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(20))
+    description = db.Column(db.String(80))
+    price = db.Column(db.Integer()) # In CENTS - NULL means it's floating
+    product = db.Column(db.String(20)) # Stripe Product Code
+    stripe_desc = db.Column(db.String(40)) # Add to Stripe invoice
+    slack_admin_chan = db.Column(db.String(50)) # Notify this channel of purchases
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+    pricestr = "" # In-memory only - does not persist in DB
+
+class StorageGrid(db.Model):
+    __tablename__ = 'storageGrid'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(60))
+    short = db.Column(db.String(20))
+    rows = db.Column(db.Integer(),nullable=False)
+    columns = db.Column(db.Integer(),nullable=False)
+    aruco = db.Column(db.Integer)
 
 # A node can have multiple KV entries for config
 class NodeConfig(db.Model):
@@ -537,6 +636,23 @@ class UsageLog(db.Model):
     idleSecs = db.Column(db.Integer())
     activeSecs = db.Column(db.Integer())
     enabledSecs = db.Column(db.Integer())
+    payTier = db.Column(db.Integer(),default=0)
+
+class InventoryLog(db.Model):
+    __tablename__ = 'inventorylog'
+    __bind_key__ = 'logs'
+    id = db.Column(db.Integer, primary_key=True)
+    purchasable_id = db.Column(db.Integer(), index=True)
+    resource_id = db.Column(db.Integer())
+    member_id = db.Column(db.Integer())
+    time_logged = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), index=True)
+    operation = db.Column(db.String(20), index=True)    # 'purchase','pull','restock','adjust'
+    quantity = db.Column(db.Integer())                   # How many (positive)
+    unit_price = db.Column(db.Integer())                 # Cents per unit (0 for non-sale)
+    total_price = db.Column(db.Integer())                # Total cents (0 for non-sale)
+    old_quantity = db.Column(db.Integer())                # Qty before this operation
+    new_quantity = db.Column(db.Integer())                # Qty after this operation
+    comment = db.Column(db.String(200))
 
 # TODO I'm pretty sure this class isn't used at all (???)
 class OAuth(OAuthConsumerMixin, db.Model):
@@ -545,3 +661,34 @@ class OAuth(OAuthConsumerMixin, db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey(Member.id))
     user = db.relationship(Member)
     pass
+
+class Event(db.Model):
+    __tablename__ = 'events'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    eventbrite_id = db.Column(db.String(50), unique=True)
+    name = db.Column(db.String(200))
+    description = db.Column(db.Text())
+    url = db.Column(db.String(255))
+    status = db.Column(db.String(50))
+
+class EventDate(db.Model):
+    __tablename__ = 'event_dates'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    event_id = db.Column(db.Integer(), db.ForeignKey('events.id', ondelete='CASCADE'), nullable=False)
+    eventbrite_id = db.Column(db.String(50), unique=True)
+    time_start = db.Column(db.DateTime())
+    time_end = db.Column(db.DateTime())
+    
+    event = db.relationship('Event', backref=db.backref('dates', lazy='dynamic', cascade='all, delete-orphan'))
+
+class EventInstructor(db.Model):
+    __tablename__ = 'event_instructors'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    event_id = db.Column(db.Integer(), db.ForeignKey('events.id', ondelete='CASCADE'), nullable=False)
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'), nullable=False)
+    
+    event = db.relationship('Event', backref=db.backref('instructors', lazy='dynamic', cascade='all, delete-orphan'))
+    member = db.relationship('Member')

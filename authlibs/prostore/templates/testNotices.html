@@ -1,0 +1,39 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+{% with page="bins" %}
+{% include 'header.html' %}
+{% endwith %}
+	<h2>Notifications:  {{ debug |length }}</h2>
+	<p>The following emails would be sent. Try again with Debug disabled to send messages</p>
+<div class="nodeslist">
+	<div class="accordion" id="accordionExample">
+	{% for d in debug %}
+	  <div class="card">
+		  <div class="card-header" id="heading_{{ d.bin_id }}">
+      <h2 class="mb-0">
+	      <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapse_{{ d.bin_id }}" aria-expanded="true" aria-controls="collapse_{{ d.bin_id }}">
+		      {{ d.member }} {{ d.location }} 
+        </button>
+      </h2>
+    </div>
+
+    <div id="collapse_{{ d.bin_id }}" class="collapse" aria-labelledby="heading_{{ d.bin_id }}" data-parent="#accordionExample">
+      <div class="card-body">
+	      <p>
+	      <b>Email:</b> {{ d.email }}<br />
+	      <b>Alt Email:</b> {{ d.alt_email }}<br />
+	      <b>From: </b> info@makeitlabs.com<br />
+	      <b>Subject:</b> Your MakeIt Labs Pro-Storage Bin
+	      </p>
+	      <pre>
+	      {{ d.text }}
+	      </pre>
+      </div>
+    </div>
+  </div>
+	{% endfor %}
+	</div> <!-- End Accordion -->
+	</div>
+
+
+{% endblock %}

@@ -1,0 +1,71 @@
+{# vim:tabstop=2:expandtab:shiftwidth=2 
+#}
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+{% endblock %}
+{% block body %}
+{% macro dobuttons() %}
+		<div class="content">
+			<span>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-step-backward" onclick="location.href='{{ meta.first }}'" />
+			{% if meta.prev %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-left"  onclick="location.href='{{ meta.prev }}'" />
+			{% else %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-left disabled" />
+			{% endif %}
+			{% if meta.next %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-right" onclick="location.href='{{ meta.next }}'"  />
+			{% else %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-right disabled"  />
+			{% endif %}
+			<button class="btn btn-lg btn-light glyphicon glyphicon-step-forward"  onclick="location.href='{{ meta.last }}'"></button>
+
+			</span>
+			<span>{{ meta.displayoffset }} - {{ meta.lastoffset}} of {{ meta.count }}</span>
+		</div>
+{%- endmacro -%}
+<div class="body"><h3>{{ resource.name }} Usage Reports</h3></div>
+
+<form method="POST">
+		{{ dobuttons() }}
+<table class="table table-sm">
+	<tr>
+		<th colspan=2>When</th>
+		<th>Who</th>
+		<th style="text-align:right">Usage</th>
+		<th>PayTier</th>
+	</tr>
+	{% for t in table %}
+	<tr>
+		<td>{{ t.when }}</td>
+		<td>{{ t.ago }}</td>
+		<td>{{ t.who }}</td>
+		<td style="text-align:right">{{ t.usage }}</td>
+			{% if t.tier == False  %}
+			<td></td>
+				<td>
+				<input type="checkbox" value="makeTrue" name="change_{{ t.id }}" /> Make Free
+				</td>
+			{% else %}
+			<td>Free</td>
+				<td>
+				<input type="checkbox" value="makeFalse" name="change_{{ t.id }}" /> Make Billable
+				</td>
+			{% endif %}
+	</tr>
+	{% endfor %}
+</table>
+
+		{{ dobuttons() }}
+	<input type="Submit" class="btn btn-primary" Value="Update" name="Update" />
+</form>
+<p>Usage for {{ resource.name }}</p>
+
+<p>
+{% for x in debug %}
+<pre> {{ x }} </pre>
+{% endfor %}
+</p>
+</div> {# Body #}
+
+{% endblock %}

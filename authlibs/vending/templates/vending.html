@@ -18,6 +18,23 @@
   <h3>Current Balance: {{ currentBalance }}</h3>
   </div>
 
+  {% if current_user.privs("Finance") %}
+  <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; background-color: #f9f9f9; border-radius: 5px;">
+    <h4>Manual Credit (Finance Only)</h4>
+    <form action="{{ url_for('vending.manual_credit', id=member_id) }}" method="POST" class="form-inline">
+      <div class="form-group" style="margin-right: 10px;">
+        <label for="amount" style="margin-right: 5px;">Amount ($):</label>
+        <input type="number" step="0.01" class="form-control" id="amount" name="amount" placeholder="0.00" required>
+      </div>
+      <div class="form-group" style="margin-right: 10px;">
+        <label for="comment" style="margin-right: 5px;">Comment:</label>
+        <input type="text" class="form-control" id="comment" name="comment" value="Manual Credit">
+      </div>
+      <button type="submit" class="btn btn-success">Add Credit</button>
+    </form>
+  </div>
+  {% endif %}
+
 	<table  style="font-size:10px" class="table greenbar-table table-compact">
       <thead>
 				<tr>
@@ -43,7 +60,7 @@
         <th style="text-align:right;background-color:#00b000">Total Charge</th>
         <th style="text-align:right">End Balance</th>
         <th>Invoice</th>
-        <th>Produce Code</th>
+        <th>Product Code</th>
         <th>Comment</th>
 				</tr>
       </thead>
@@ -57,8 +74,13 @@
 		<td style="text-align:right;color:#c0c0c0">{{ l.surcharge }}</td>
 		<td style="text-align:right;color:#c0c0c0">{{ l.totalCharge }}</td>
 		<td style="text-align:right">{{ l.newBalance }}</td>
-		<td>{{ l.invoice }}</td>
-		<td>{{ l.product }}</td>
+    {% if  current_user.privs("Finance") %}
+            <td><a href="http://dashboard.stripe.com/invoices/{{ l.invoice }}">{{ l.invoice }}</a></td>
+            <td><a href="http://dashboard.stripe.com/products/{{ l.product }}">{{ l.product }}</a></td>
+    {% else %}
+            <td>{{ l.invoice }}</td>
+            <td>{{ l.product }}</td>
+    {% endif %}
 		<td>{{ l.comment }}</td>
 	  </tr>
       {% endfor %}

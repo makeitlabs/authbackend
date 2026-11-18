@@ -45,6 +45,11 @@ Token: sk_live_1234
 # Token for Vending machine transactions only
 VendingToken: sk_live_1234
 VendingProduct: prod_1234
+# Maximum "Purchasable" amount - Cents
+MaxPurchasable: 9900
+# Maximum Vending Balance - Cents
+MaxVendingBalance: 1500
+
 
 [Smartwaiver]
 Apikey: abcd

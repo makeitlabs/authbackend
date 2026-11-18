@@ -1,104 +1,210 @@
 {% extends "layout_bootstrap.html" %}
-<h2>Resources</h2>
-{% block body %}
-<div class="resourcelist">
-	<h2>Reports</h2>
-	<div class="sectionhead">Data in need of manual review and correction</div>
-	{% if stats.duplicate_payments|length > 0 %}
-		<div class="error">ERROR - {{ stats.duplicate_payments|length }} Duplicate Member IDs in Payments table</div>
-		<div class="protip">Fix this first! Manually review their data and add old, invalid customer ids to Blacklist table</div>
-		{% for u in stats.duplicate_payments %}
-		<li><a href="{{ url_for('payments_member',id=u.member) }}">{{ u.member }} {{ u.customerid }} (Exp: {{ u.expires_date }})</a></li>
-		{% endfor %}
-	{% else %}
-		<div class="okay">OKAY - No duplicate Member IDs in Payments table</div>
-	{% endif %}
-	{% if stats.payments_nomembers|length > 0 %}
-		<div class="error">FAIL - {{ stats.payments_nomembers|length }} User(s) in Payments table but not in Members table</div>
-		<div class="protip">This is a BAD thing, it means someone may not get what they pay for.</div>
-		{% for u in stats.payments_nomembers %}
-			<li>Name in Payments: {{ u.member }}</li>
-		{% endfor %}
-	{% else %}
-		<div class="okay">OKAY - All valid members in Payments table are in Members table. Huzzah.</div>
-	{% endif %}
-	{% if stats.access_nomembers|length > 0 %}
-		<div class="error">FAIL - {{ stats.access_nomembers|length }} User(s) in Accessbymember table but not in Members table</div>
-		<div class="protip">This is an unsafe thing - it means someone has access that is incorrectly tracked.</div>
-		<div class="protip">Most likely cause: 'member' column string mismatch ('Rob' vs 'Robert', etc)</div>
-		<div class="protip">Other likely cause: Member may have an alias, maybe a group member?</div>
-		{% for u in stats.access_nomembers %}
-		<li><a href="{{ url_for('member_editaccess',id=u.member) }}">{{ u.member }}</a></li>
-		{% endfor %}
-	{% else %}
-		<div class="okay">OKAY - Everyone with Access is in Members table. Huzzah.</div>
-	{% endif %}
-	{% if stats.access_noresource|length > 0 %}
-		<div class="error">FAIL - Resources in Accessbymember table but not in Resources table</div>
-		{% for u in stats.access_noresource %}
-		<li>{{ u.resource }}</li>
-		{% endfor %}
-	{% else %}
-		<div class="okay">OKAY - All Resources in Accessbymember are in Resources table</div>
-	{% endif %}
-	
-	{% if stats.members_nopayments|length > 0 %}
-		<div class="warning">WARNING - {{ stats.members_nopayments|length }} Users in Members table but not in Payments table</div>
-		<div class="protip">This normally means someone was entered manually, it may be okay.</div>
-		{% for u in stats.members_nopayments %}
-		<li><a href="{{ url_for('member_show',id=u.member) }}">{{ u.member }}</a></li>
-		{% endfor %}
-	{% else %}
-		<div class="okay">OKAY - Everyone in Members table is in Payments Table. Huzzah.</div>
-	{% endif %}
-	{% if stats.tags_nomembers|length > 0 %}
-		<div class="warning">WARNING - {{ stats.tags_nomembers|length }} Users in Tagsbymember table not in Members table</div>
-		<div class="protip">These are mismatches between Pinpayments screenname and member ID, or old data.</div>
-		{% for u in stats.tags_nomembers %}
-		<li><a href="{{ url_for('member_tags',id=u.member) }}">{{ u.member }}</a></li>
-		{% endfor %}
-	{% else %}
-		<div class="okay">OKAY - All members with tags matches with someone in Members table. Huzzah.</div>
-	{% endif %}
-	{% if stats.paid_noaccess|length > 0 %}
-		<div class="warning">WARNING - {{ stats.paid_noaccess|length }}  Unexpired members in Payments table but not in Accessbymember table</div>
-		<div class="protip">This could be bad, but may just mean the person hasn't had orientation for 25 Crown. </div>
-		{% for u in stats.paid_noaccess %}
-		<li><a href="{{ url_for('payments_member',id=u.member) }}">{{ u.member }} (Email: {{ u.email }})</a></li>
-		{% endfor %}
-	{% else %}
-		<div class="okay">OKAY - All paid in Payments table are in Accessbymember table. Huzzah.</div>
-	{% endif %}
-	{% if stats.access_expired|length > 0 %}
-		<div class="warning">WARNING - {{ stats.access_expired|length }}  Expired members are in the Accessbymember table</div>
-		<div class="protip">This may be okay, but check in here for people you see around frequently..</div>
-		{% for u in stats.access_expired %}
-		<li><a href="{{ url_for('payments_member',id=u.member) }}">{{ u.member }} (Expiration: {{ u.expires_date }})</a></li>
-		{% endfor %}
-	{% else %}
-		<div class="okay">Pretty amazing... No one in the accessbymember table is expired..</div>
-	{% endif %}
-	{% if stats.recently_expired|length > 0 %}
-		<div class="warning">WARNING - {{ stats.recently_expired|length }}  Expired members in the last 60 days</div>
-		<div class="protip">Seen any of these folks in lately? May want to remind them to renew!</div>
-		{% for u in stats.recently_expired %}
-		<li><a href="{{ url_for('payments_member',id=u.member) }}">{{ u.member }}</a></li>
-		{% endfor %}
-	{% else %}
-		<div class="okay">Awesome! No one has expired in the last 60 days</div>
-	{% endif %}
-	
-	
-	
-	<div class="sectionhead">Quick links - Predefined Reports</div>
-	<ul>
-		<li>View Member Summary</li>
-		<li>View Members expired in the last 60 days</li>
-		<li>View Members added in the last 60 days</li>
-		<li>View Resource Use summary (req integration with resource logger</li>
-	</ul>
-	<div class="Sectionhead">General Summary</div>
-	<div class="sectionhead">Mix and Match</div>
-	TBD
-	
+{% block head %}
+<link href="{{ url_for('static', filename='css/spinner.css') }}" rel="stylesheet">
 {% endblock %}
+{% block body %}
+<h2>Reports</h2>
+<div class="resourcelist">
+
+	<div class="sectionhead">
+		<div class="mb-3">
+			<a href="{{ url_for('reports.bigbrain_page') }}" class="btn btn-success btn-lg">
+				<i class="fas fa-brain"></i> BigBrain AI Query
+			</a>
+			<p class="text-muted mt-2">Ask natural language questions about the database and get AI-generated reports
+			</p>
+		</div>
+
+		<hr>
+
+		<h4>Pre-defined Reports</h4>
+		<table class="table">
+			<tr>
+				<th>Report</th>
+				<th>Description</th>
+				<th></th>
+			</tr>
+			<tr>
+				<td>Social Media Event Image</td>
+				<td>Generate weekly schedule graphic for social media (Facebook / Instagram)</td>
+				<td><a href="{{ url_for('signs.social_events') }}" class="button btn btn-primary">Open</a></td>
+			</tr>
+			<tr>
+				<td>New Member Surveys</td>
+				<td>Visualization of member interests and discovery methods</td>
+				<td>
+					<div style="display: flex; align-items: center; gap: 10px;">
+						<input type="date" id="survey_date_since" class="form-control" style="width: auto;"
+							title="Include surveys since this date (leave blank for all)">
+						<button onClick="runreport('surveys', document.getElementById('survey_date_since').value)"
+							class="button btn btn-primary">Report</button>
+					</div>
+				</td>
+			</tr>
+			<tr>
+				<td>New Member Report</td>
+				<td>Report on usage for members newer than 90 days</td>
+				<td><button onClick="runreport('newmemberreport')" class="button btn btn-primary">Report</button></td>
+				</t2>
+			<tr>
+				<td>Default Pay Fix</td>
+				<td>Fix missing default payment method for subscriptions</td>
+				<td><button onClick="runreport('stripe_default_pm_fix')" class="button btn btn-primary">Report</button>
+				</td>
+				</t2>
+			<tr>
+				<td>Name Fix</td>
+				<td>Fix bad description fields for data in Stripe</td>
+				<td><button onClick="runreport('stripenamefix')" class="button btn btn-primary">Report</button></td>
+				</t2>
+			<tr>
+				<td>Member Count</td>
+				<td>Report counts of Active Members (Legacy)</td>
+				<td><button onClick="runreport('membercount')" class="button btn btn-primary">Report</button></td>
+			</tr>
+			<tr>
+				<td>Member Count V2</td>
+				<td>Product &amp; metadata-aware active member counts (includes FIRST Robotics, Group Members, metadata
+					seat counts)</td>
+				<td><button onClick="runreport('membercount_v2')" class="button btn btn-primary">Report</button></td>
+			</tr>
+			<tr>
+				<td>Google Groups Active Members</td>
+				<td>
+					Automatically add active member emails (including personal emails) to
+					<strong>active@makeitlabs.com</strong> for general member announcements, skipping and reporting any
+					invalid emails.
+					<br><small class="text-muted">Google Admin Group: <a
+							href="https://admin.google.com/ac/groups/00sqyw6441b2kli" target="_blank"
+							rel="noopener noreferrer">https://admin.google.com/ac/groups/00sqyw6441b2kli</a></small>
+				</td>
+				<td>
+					<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+						<button onClick="runreport('active_members', '', 'sync')" class="button btn btn-primary">Sync to
+							Group</button>
+						<a href="{{ url_for('reports.active_members_csv') }}"
+							class="button btn btn-outline-secondary">Download CSV</a>
+						<button onClick="runreport('active_members', '', 'csv')"
+							class="button btn btn-outline-secondary">View CSV</button>
+					</div>
+				</td>
+			</tr>
+			<tr>
+				<td>Member Loss</td>
+				<td>Cancelations past 30 days</td>
+				<td><button onClick="runreport('memberloss')" class="button btn btn-primary">Report</button></td>
+				</t2>
+			<tr>
+				<td>Membership Graph</td>
+				<td>Counts over past 180 days</td>
+				<td><button onClick="runreport('membergraph')" class="button btn btn-primary">Report</button></td>
+				</t2>
+			<tr>
+				<td>Member Retention &amp; Growth</td>
+				<td>Monthly active count, new joins, losses, and retention rate (24 months, via Stripe)</td>
+				<td><button onClick="runreport('member_retention')" class="button btn btn-primary">Report</button></td>
+			</tr>
+			<tr>
+				<td>Annual Training</td>
+				<td>Members trained on resources per year</td>
+				<td><button onClick="runreport('training')" class="button btn btn-primary">Report</button></td>
+				</t2>
+			<tr>
+				<td>Users per Resource</td>
+				<td>Number of unique users using each resource per year</td>
+				<td><button onClick="runreport('uniqueusage')" class="button btn btn-primary">Report</button></td>
+				</t2>
+			<tr>
+				<td>Class Schedule</td>
+				<td>2 year critical class bookings</td>
+				<td><button onClick="runreport('classsched')" class="button btn btn-primary">Report</button></td>
+				</t2>
+			<tr>
+				<td>Vending Usage</td>
+				<td>Monthly vending purchases, charges, and top products (24 months)</td>
+				<td>
+					<div style="display: flex; align-items: center; gap: 10px;">
+						<input type="date" id="vending_date_since" class="form-control" style="width: auto;"
+							title="Include bottom tables since this date (leave blank for past 3 months)">
+						<button
+							onClick="runreport('vending_usage', document.getElementById('vending_date_since').value)"
+							class="button btn btn-primary">Report</button>
+					</div>
+				</td>
+			</tr>
+			<tr>
+				<td>Door / Facility Usage</td>
+				<td>Monthly unique members, total entries, heaviest users, and most consistent visitors (24 months)</td>
+				<td>
+					<div style="display: flex; align-items: center; gap: 10px;">
+						<input type="date" id="door_date_since" class="form-control" style="width: auto;"
+							title="Include bottom tables since this date (leave blank for past 3 months)">
+						<button onClick="runreport('door_usage', document.getElementById('door_date_since').value)"
+							class="button btn btn-primary">Report</button>
+					</div>
+				</td>
+			</tr>
+			<tr>
+				<td>Fiber Laser Candidates</td>
+				<td>Top 75 active members recommended for expedited Fiber Laser authorization (UV, Epilog, MOPA, Machine
+					Shop)</td>
+				<td>
+					<div style="display: flex; align-items: center; gap: 10px;">
+						<input type="date" id="fiber_date_since" class="form-control" style="width: auto;"
+							title="Usage since date (leave blank for past 1 year)">
+						<button
+							onClick="runreport('fiber_candidates', document.getElementById('fiber_date_since').value)"
+							class="button btn btn-primary">Report</button>
+					</div>
+				</td>
+			</tr>
+		</table>
+	</div>
+	<div id="spinner" style="display:none;  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+		<div class="lds-roller">
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+		</div>
+	</div>
+	<div id="datadiv" class="sectionhead">
+		<pre style="background-color:antiquewhite;padding:20px" id="reporttext">
+		</pre>
+	</div>
+
+
+	<script type="text/javascript">
+		function myDisplay(text) {
+			document.getElementById("spinner").style.display = "none";
+			if (text.startsWith("HTML:")) {
+				document.getElementById("reporttext").innerHTML = text.substring(5);
+			} else {
+				document.getElementById("reporttext").innerText = text;
+			}
+		}
+			function runreport(report, since_date = '', mode = '') {
+				document.getElementById("spinner").style.display = "inline-block";
+				let url = "{{ url_for('reports.runreport',report='') }}" + report;
+				let params = new URLSearchParams();
+				if (since_date) {
+					params.set("since", since_date);
+				}
+				if (mode) {
+					params.set("mode", mode);
+				}
+				let qs = params.toString();
+				if (qs) {
+					url += "?" + qs;
+				}
+				fetch(url)
+					.then(response => response.json())
+					.then(data => myDisplay(data.text))
+					.catch(error => myDisplay('Error:', error));
+			}
+	</script>
+	{% endblock %}

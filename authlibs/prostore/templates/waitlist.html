@@ -1,0 +1,182 @@
+{# vim:tabstop=2:shiftwidth=2:expandtab
+#}
+{% extends "layout_bootstrap.html" %}
+{% block widebody %}
+{% with page="waitlist" %}
+{% include 'header.html' %}
+{% endwith %}
+
+<h1>Waitlist</h1>
+
+<form method="POST">
+	View Draft Number(s): <input id="draft" value="{{ draft }}" name="draft" />
+	<input type="Submit" name="ChangeDraft" value="View" class="btn btn-secondary"/>
+	<small>Enter a number or a range. Blank for all entries</small>
+</form>
+<form method="POST">
+<input type="submit" name="Update" value="Update" class="btn btn-primary">
+<input type="button" name="Auto-Assign Uncontended" value="Auto-Assign Uncontended" class="btn btn-secondary" onClick="autoassign_uncontended();">
+<input type="button" name="Auto-Assign First-Entries" value="Auto-Assign" class="btn btn-secondary" onClick="autoassign_firsts();">
+{% macro grid(cols, rows, name) %}
+  <h3>{{ name }} Bins</h3>
+  <table style="table-layout: fixed; width: 100%;" class="table">
+    <tr>
+     <td></td>
+    {% for xx in range(cols) %}
+	  {% set x = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[xx] %}
+    <div class="col-sm-1">
+      <th>{{ x }}</th>
+    {% endfor %}
+    </tr>
+
+  {% for yy in range(rows) %} 
+  {% set y = (rows-yy)|string %}
+  <tr>
+      <th>{{ y }}</th>
+    {% for xx in range(cols) %}
+	  {% set x = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[xx] %}
+    <td
+        style="
+        {% if bins[name+'-'+x+"-"+y] %}
+        {{ bins[name+'-'+x+"-"+y]['style'] }}
+        {% endif %}
+        "
+     >
+     <p id="comment-{{ name }}-{{ x }}-{{ y }}">
+        {% if bins[name+'-'+x+"-"+y] %}
+	{{ bins[name+'-'+x+"-"+y]['comment'] }}
+	{% endif %}
+     </p>
+        {% if bins[name+'-'+x+"-"+y] %}
+        {{ bins[name+'-'+x+"-"+y]['status'] }}<br />
+		{% if bins[name+'-'+x+"-"+y]['list'] %}
+
+		<select id="{{ "choose-"+name+'-'+x+"-"+y }}" priorvalue="" uncontended="{{ bins[name+'-'+x+"-"+y]['uncontended'] }}" name="{{ "choose-"+name+'-'+x+"-"+y }}" onChange=changeSelect("choose-{{ name+'-'+x+"-"+y }}"); >
+				<option value="">- Empty -</option>
+				{% for ee in bins[name+'-'+x+"-"+y]['list'] %}
+				<option rank="{{ ee['rank'] }}" value="{{ ee['member_id'] }}" >{{ ee['member'] }} ({{ ee['rank'] }})</option>
+				{% endfor %}
+			</select>
+		{% endif %}
+	{% endif %}
+    </td>
+    {% endfor %}
+  </tr>
+  {% endfor %}
+  </table>
+{% endmacro %}
+
+
+{% for g in grids %}
+{{ grid(g.columns,g.rows,g.short) }}
+{% endfor %}
+<input type="submit" name="Update" value="Update" class="btn btn-primary">
+</form>
+
+<script type="text/javascript">
+
+	function reenableAll(val) {
+		/* Re-enabled "val" everywhere */
+		document.querySelectorAll("[id^=choose-]").forEach(
+			function Test(i) {
+				for (var x = 0;x<i.children.length;x++) {
+					if (i[x].value == val) {
+					i[x].removeAttribute("disabled");
+								}
+				}
+			})
+	}
+	function disableAllBut(sel,val) {
+		/* Disable "val" everywhere except in "sel" */
+		document.querySelectorAll("[id^=choose-]").forEach(
+			function Test(i) {
+				var waiters = false;
+				for (var x = 0;x<i.children.length;x++) {
+					if ((i[x].value == val) && (sel != i.name) && (x!=0)) {
+						i[x].setAttribute("disabled","");
+					}
+					if (i[x].getAttribute("disabled")!="" && (x!=0)) {
+						waiters = true;
+					}
+				}
+				if (waiters || i.value != "") {
+					i.removeAttribute("disabled");
+				} else {
+					i.setAttribute("disabled","");
+				}
+			})
+	}
+
+
+	function changeSelect(xx) {
+	      var v = document.getElementById(xx);
+
+		var prior = v.getAttribute("priorvalue");
+		if (prior != "") {
+			reenableAll(prior);
+		}
+		//if (v.value != "") {
+			disableAllBut(xx,v.value);
+		//}
+
+		/* LAST THING: Set new prior value for NEXT TIME */
+		v.setAttribute("priorvalue",v.value);
+	}
+
+
+	function autoassign_uncontended() {
+		
+		document.querySelectorAll("[id^=choose-]").forEach(
+			function Test(i) {
+				var x = i.getAttribute("uncontended");
+				if (x != "") {
+					var mid = parseInt(x,10);
+					i.value = mid;
+					i.setAttribute("priorvalue",mid);
+					disableAllBut(i.name,mid)
+				}
+			})
+	}
+	function autoassign_firsts() {
+		
+		var choices = Array();
+		document.querySelectorAll("[id^=choose-]").forEach(
+			function Test(i) {
+				if ((!i.disabled) && (i.value == "")) {
+					for (var x = 0;x<i.children.length;x++) {
+						var v = i.children[x];
+						//console.log(i.id,v.value,v.getAttribute("rank"));
+						if ((v.getAttribute("disabled")  == null) && (v.value != "")) {
+							var c = {
+								'member':v.value,
+								'location':i.id,
+								'rank':v.getAttribute("rank")
+							}
+							choices.push(c);
+						}
+					}
+				}
+			})
+		/* Sort List */
+		choices.sort((a, b) => a['rank'] - b['rank']);
+		console.log(choices);
+
+		while (choices.length != 0) {
+				var x = choices.shift();
+				console.log("ASSIGN",x);
+				/* Make that assignment */
+			      var s = document.getElementById(x['location']);
+				s.value = x.member;
+				changeSelect(x['location']);
+				// Remember future references to this location and this member
+				var i = choices.length
+				while (i--) {
+				    if ((choices[i]['member'] == x['member']) || (choices[i]['location'] == x['location'])) {
+					choices.splice(i, 1);
+				    }
+				}
+		}
+	}
+</script>
+
+{% endblock %}

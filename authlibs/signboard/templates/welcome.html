@@ -1,0 +1,165 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lobby Display</title>
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: url('{{ url_for("signs.static",filename="welcomebackground_dk.png") }}') no-repeat center center / cover;
+        display: flex;
+        flex-direction: column;
+    }
+
+    body {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+    }
+
+    /* Event cards fill available space evenly */
+    .event-card {
+        flex: 1; /* Each card takes equal vertical space */
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap; /* Prevent overflow on narrow screens */
+
+    #background-color: rgba(255,255,255,0.15); /* Light background */
+    border-bottom: 2px solid #888; /* Divider line */
+
+        padding: 1vh 2vw;
+        box-sizing: border-box;
+    }
+
+    .event-details {
+        flex: 3;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 1vh 2vw;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    /* Typography: clamp for readability + scaling */
+    .event-details h1 {
+        x-font-size: clamp(3rem, 8vw, 6rem);
+        font-size: 10vw;
+        font-weight: 900;
+        color: #acaeb1;
+        margin: 0.2em 0;
+        line-height: 1.1;
+    }
+
+    .event-details h2 {
+        font-size: clamp(2rem, 5vw, 4rem);
+        font-weight: 600;
+        color: #d87722;
+        margin: 0.2em 0;
+    }
+
+    .event-details h3 {
+        font-size: clamp(1.5rem, 3.5vw, 3rem);
+        font-weight: 300;
+        color: #d87722c0;
+        margin: 0;
+        text-transform: uppercase;
+    }
+
+    .event-details p {
+        font-size: clamp(1.2rem, 2.5vw, 2rem);
+        color: #ddd;
+        margin-top: 0.5em;
+    }
+
+    /* QR container */
+    .qr-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 1vh 2vw;
+        border-left: 2px solid #444;
+        background-color: rgba(0,0,0,0.02);
+    }
+
+    .qr-container img {
+        width: clamp(70px, 15vw, 250px);
+        height: auto;
+        background: white;
+        padding: 5px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .qr-container p {
+        font-size: clamp(1rem, 2.5vw, 1.5rem);
+        font-weight: 500;
+        color: #ddd;
+        margin-top: 1em;
+    }
+
+    .qr-container:empty {
+        display: none;
+    }
+</style>
+<script>
+// Simple refresh every 4 hours for signboard updates
+window.addEventListener('load', () => {
+    // Refresh every 4 hours (4 * 60 * 60 * 1000 milliseconds)
+    setInterval(() => {
+        window.location.reload();
+    }, 4 * 60 * 60 * 1000);
+});
+    </script>
+</head>
+<body>
+
+
+	
+ {% for x in signs %}
+    <!-- Event Card WITH QR -->
+    <div class="event-card">
+        <div class="event-details">
+	   {% if x.s_what %}
+	    <h1>{{ x.s_what }}</h1>
+	   {% endif %}
+
+	   {% if x.s_when %}
+	    <h2>{{ x.s_when }}</h2>
+	   {% endif %}
+
+	   {% if x.s_where %}
+	    <h3>{{ x.s_where }}</h3>
+	   {% endif %}
+
+	   {% if x.s_desc %}
+	    <p>{{ x.s_desc }}</p>
+	   {% endif %}
+        </div>
+	{% if x.s_qr %}
+        <div class="qr-container">
+		<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ x.s_qr }}" alt="QR Code">
+		{% if x.s_qr_desc %}
+		<p>{{ x.s_qr_desc }}</p>
+		{% endif %}
+        </div>
+	{% endif %}
+    </div>
+    <!-- END Event Card WITH QR -->
+ {% endfor %}
+
+</body>
+</html>
+

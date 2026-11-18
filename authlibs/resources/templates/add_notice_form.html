@@ -1,0 +1,13 @@
+<div class="card card-body">
+    <form action="{{ url_for('resources.add_notice', resource=rec.name) }}" method="POST">
+        <div class="form-group">
+            <label for="input_notice_title">Notice Title</label>
+            <input type="text" class="form-control" id="input_notice_title" name="input_notice_title" required>
+        </div>
+        <div class="form-group">
+            <label for="input_notice_message">Message</label>
+            <textarea class="form-control" id="input_notice_message" name="input_notice_message" rows="3" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Notice</button>
+    </form>
+</div>

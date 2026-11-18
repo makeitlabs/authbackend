@@ -7,7 +7,7 @@ Type=simple
 # Another Type option: forking
 User=www-data
 WorkingDirectory=/var/www/authbackend-ng
-ExecStart=/usr/bin/python /var/www/authbackend-ng/toolauthslack.py
+ExecStart=/usr/bin/python3 /var/www/authbackend-ng/toolauthslack.py
 Restart=on-failure
 # Other Restart options: or always, on-abort, etc
 

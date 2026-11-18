@@ -215,10 +215,32 @@ def send_slack_message(towho,message):
   sc = SlackClient(slack_token)
   #if sc.rtm_connect():
   #  print "SLACK-SEND",towho,message
-  res = sc.chat_postMessage(
-      channel=towho,
-      text=message
+  for chan in towho.split(","):
+    try:
+      #cid = get_channel_id(sc,chan.replace("#",""))
+      #if not cid:
+      #  logger.error("ID for channel {0} not found".format(chan))
+      #  continue
+      # Bot can't invite users to channels it doesn't belong to
+      #res = api_call_ratelimit(sc,
+      #  "conversations.join",
+      #  channel=cid
+      #  )
+
+      #res = sc.chat_postMessage(
+      #    channel=chan.replace("#",""),
+      #    text=message
+      #    )
+
+      res = sc.api_call(
+        "chat.postMessage",
+        json = {
+            'channel':chan,
+            'text':message
+        }
       )
+    except BaseException as e:
+        logger.error(f"Error posting Slack channel \"{chan}\": {e}")
 
 def get_channel_id(sc,channel):
   channel = channel.strip().lower()
@@ -311,15 +333,20 @@ def add_user_to_channel(channel,member):
     if slack_disabled:
         logger.warning("SLack is Disabled")
     else:
-      res = api_call_ratelimit(
-            sc,
-            "conversations.invite",
-            channel=cid,
-            users=member.slack
-            )
-      if not res['ok']:
-        logger.error("Error Inviting {0} to slack channel {1}  {2}".format(member.member,channel,res['error']))
-      return False
+      try:
+        res = api_call_ratelimit(
+              sc,
+              "conversations.invite",
+              channel=cid,
+              users=member.slack
+              )
+        if not res['ok']:
+          logger.error("Error Inviting {0} to slack channel {1}  {2}".format(member.member,channel,res['error']))
+        return False
+      except BaseException as e:
+          logger.error("Error Inviting {0} to slack channel {1}  {2}".format(member.member,channel,e))
+          return False
+
     
   return True
 

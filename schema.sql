@@ -43,7 +43,7 @@ CREATE TABLE members (
         warning_level INTEGER,
         email_confirmed_at DATETIME,
         membership VARCHAR(50),
-        password VARCHAR(255), dob DATETIME, memberFolder VARCHAR(255),
+        password VARCHAR(255), dob DATETIME, memberFolder VARCHAR(255), "group" VARCHAR(50),
         PRIMARY KEY (id),
         UNIQUE (member),
         UNIQUE (membership)
@@ -87,7 +87,7 @@ CREATE TABLE subscriptions (
         checked_date DATETIME,
         active INTEGER,
         membership VARCHAR(50) NOT NULL,
-        member_id INTEGER, rate_plan VARCHAR(50),
+        member_id INTEGER, rate_plan VARCHAR(50), "group" VARCHAR(50),
         PRIMARY KEY (id),
         UNIQUE (membership),
         FOREIGN KEY(member_id) REFERENCES members (id)
@@ -180,7 +180,19 @@ CREATE TABLE maintsched (
         machinetime_unit VARCHAR(12),
         resource_id INTEGER,
         PRIMARY KEY (id),
-        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
+        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE);
+
+CREATE TABLE resourcenotices (
+        id INTEGER NOT NULL, 
+        resource_id INTEGER, 
+        title VARCHAR(100), 
+        message TEXT, 
+        time_created DATETIME DEFAULT CURRENT_TIMESTAMP, 
+        created_by INTEGER, 
+        active BOOLEAN, 
+        PRIMARY KEY (id), 
+        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE, 
+        FOREIGN KEY(created_by) REFERENCES members (id) ON DELETE CASCADE
 );
 CREATE TABLE prostorelocations (
         location VARCHAR(50) NOT NULL,
@@ -197,6 +209,15 @@ CREATE TABLE prostorebins (
         location_id INTEGER,
         PRIMARY KEY (id),
         UNIQUE (name),
+        FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE,
+        FOREIGN KEY(location_id) REFERENCES prostorelocations (id) ON DELETE CASCADE
+);
+CREATE TABLE binchoice (
+        id INTEGER NOT NULL,
+        member_id INTEGER NOT NULL,
+        location_id INTEGER NOT NULL,
+        rank  INTEGER NOT NULL,
+        PRIMARY KEY (id),
         FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE,
         FOREIGN KEY(location_id) REFERENCES prostorelocations (id) ON DELETE CASCADE
 );
@@ -229,6 +250,10 @@ CREATE TABLE IF NOT EXISTS "resources" (
         slack_info_text VARCHAR,
         age_restrict INTEGER,
         permissions VARCHAR(255),
+        price INTEGER,
+        price_pro INTEGER,
+        free_min INTEGER,
+        free_min_pro INTEGER,
         PRIMARY KEY(id),
         UNIQUE (name),
         UNIQUE (short)
@@ -253,4 +278,48 @@ CREATE TABLE tempauth (
         FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE,
         FOREIGN KEY(admin_id) REFERENCES members (id) ON DELETE CASCADE,
         FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
+);
+
+CREATE TABLE storageGrid (
+	id INTEGER NOT NULL, 
+	name VARCHAR(60) NOT NULL, 
+	short VARCHAR(20) NOT NULL, 
+	rows INTEGER NOT NULL,
+	columns INTEGER NOT NULL,
+        UNIQUE (name),
+	PRIMARY KEY (id));
+
+CREATE TABLE purchasable (
+	id INTEGER NOT NULL, 
+	name VARCHAR(20), 
+	description VARCHAR(80), 
+	price INTEGER,
+	product VARCHAR(80), 
+	stripe_desc VARCHAR(80), 
+	slack_admin_chan VARCHAR(80), 
+        resource_id INTEGER,
+	PRIMARY KEY (id),
+        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE);
+
+CREATE TABLE acknowledgements (
+        id INTEGER NOT NULL PRIMARY KEY,
+        resource_id INTEGER NOT NULL,
+        title VARCHAR(150),
+        message TEXT,
+        time_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_by INTEGER NOT NULL,
+        enforce_on DATETIME,
+        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE,
+        FOREIGN KEY(created_by) REFERENCES members (id) ON DELETE CASCADE
+);
+
+CREATE TABLE acknowledgement_users (
+        id INTEGER NOT NULL PRIMARY KEY,
+        acknowledgement_id INTEGER NOT NULL,
+        member_id INTEGER NOT NULL,
+        token VARCHAR(100) UNIQUE NOT NULL,
+        time_sent DATETIME DEFAULT CURRENT_TIMESTAMP,
+        time_acknowledged DATETIME,
+        FOREIGN KEY(acknowledgement_id) REFERENCES acknowledgements (id) ON DELETE CASCADE,
+        FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE
 );

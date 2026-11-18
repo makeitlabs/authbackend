@@ -1,18 +1,77 @@
 {% extends "layout_bootstrap.html" %}
 {% block head %}
 	<script type="text/javascript" src="{{ url_for("static",filename="js/sorttable.js") }}"></script>
+
+
+	<style>
+    #dropArea {
+      border: 2px dashed #ccc;
+      margin: 10px;
+      align-items: center;
+      font-size: 18px;
+      color: #aaa;
+    }
+    #dropArea.highlight {
+    	border-color: #007bff; /* Change this to the highlight color you want */
+    	background-color: #f0f0f0; /* Change this to the highlight background color you want */
+ }
+  </style>
 {% endblock %}
 {% block body %}
+
 <div class="body"> <!-- BASE contrainer -->
 
 		
 <div class="container"> {# Outer container #}
   <h3>Member Folder for {{ member.firstname }} {{ member.lastname}} </h3>
+  {% if asshared == false %}
+
   {% if up is not none %}
   <a class="btn btn-outline-secondary glyphicon glyphicon-arrow-up" href="{{ url_for("memberFolders.folder")+up }}"></a>
   {% endif %}
   <span>{{ folder }}</span>
+
+  <div>
+	  {% if sharedline != "" %}
+	  {% if setShared != 0 %}
+	  <a href="{{ sharedlink }}">Shared Link to this Folder</a>
+	  {% endif %}
+	  <form method="POST">
+	  <select name="setShared">
+		  <option value="0" {% if setShared == 0 %}selected{% endif %}>No Sharing</option>
+		  <option value="1" {% if setShared == 1 %}selected{% endif %}>Read Only</option>
+		  <option value="2" {% if setShared == 2 %}selected{% endif %}>Upload but no overwrite </option>
+		  <option value="3" {% if setShared == 3 %}selected{% endif %}>Upload and overwrite </option>
+	  </select>
+	  <input type="hidden" name="currentFolder" value="{{ folder }}" />
+	  <button type="submit" value="changeShare" name="changeShare" class="btn btn-primary">Set Share</button>
+	  </form>
+	  {% endif %}
+  </div>
+  {% endif %}
   
+  <hr />
+  {% if asshared == false or setShared >= 2 %}
+  <h3>Upload File</h3>
+  <div id="dropArea">Drag and Drop Files Here to Upload</div>
+  {% endif %}
+  {% if asshared == false %}
+  <hr />
+  ...or click to browse and upload:
+  <form method="post" enctype="multipart/form-data" action="{{ url_for("memberFolders.upload_file") }}">
+    <input type="hidden" name="folder" value="{{ folder }}">
+    <input type=file name=file>
+    <input type=submit value=Upload>
+   </form>
+   <hr />
+  <h3>Create Folder</h3>
+  <form method="post" enctype="multipart/form-data" action="{{ url_for("memberFolders.createFolder") }}">
+	  <label>Folder Name:</label>
+    <input type="input" name="newname" value="">
+    <input type="hidden" name="folder" value="{{ folder }}">
+    <input type=submit value=Create>
+   </form>
+   {% endif %}
   <table id="fileTable" style="font-size:10px" class="table greenbar-table table-compact supercompact">
       <thead>
 				<tr>
@@ -32,23 +91,115 @@
       {% if f['dir'] %}
         <td>Directory</td>
         <td sortvalue=0></td>
-        <td><a href="{{ url_for("memberFolders.folder")+"/"+f['path'] }}" class="btn btn-outline-secondary glyphicon glyphicon-folder-open"></a></td>
+        <td><a href="{{ url_for("memberFolders.folder")+"/"+f['path'] }}/" class="btn btn-outline-secondary glyphicon glyphicon-folder-open"></a></td>
       {% else %}
         <td>{{ f['ext'] }}</td>
         <td sortvalue={{ f['size'] }}>{{ f['sizeText'] }}</td>
-        <td><a href="{{ url_for("memberFolders.download",filename=f['path']) }}" class="btn btn-outline-secondary glyphicon glyphicon-download"></a></td>
+      {% if asshared == false %}
+        <td>
+                <a href="{{ url_for("memberFolders.download",filename=f['path']) }}" class="btn btn-outline-secondary glyphicon glyphicon-download"></a>
+                <a href="{{ url_for("memberFolders.view",filename=f['path']) }}" class="btn btn-outline-secondary glyphicon glyphicon-eye-open"></a>
+        </td>
+        {% else %}
+        <td><a href="{{ f['sharedurl'] }}" class="btn btn-outline-secondary glyphicon glyphicon-download"></a></td>
+        {% endif %}
+
+
       {% endif %}
     </tr>
   {% endfor %}
   </table>
+
+  {% if asshared == false %}
+  {% if files|length > 25 %}
+  <hr />
+  <h3>Upload File</h3>
   <form method="post" enctype="multipart/form-data" action="{{ url_for("memberFolders.upload_file") }}">
     <input type="hidden" name="folder" value="{{ folder }}">
     <input type=file name=file>
     <input type=submit value=Upload>
    </form>
+   <hr />
+  <h3>Create Folder</h3>
+  <form method="post" enctype="multipart/form-data" action="{{ url_for("memberFolders.createFolder") }}">
+	  <label>Folder Name:</label>
+    <input type="input" name="newname" value="">
+    <input type="hidden" name="folder" value="{{ folder }}">
+    <input type=submit value=Create>
+   </form>
+   {% endif %}
+   {% endif %}
 </div>
 
 <script type="text/javascript">
 var t = new SortableTable(document.getElementById('fileTable'), 100);
+</script>
+<script>
+    function preventDefault(event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    function handleDrop(event) {
+      preventDefault(event);
+
+      const files = event.dataTransfer.files;
+      handleFiles(files);
+    }
+
+    function handleFiles(files) {
+      const fileList = Array.from(files);
+      fileList.forEach(uploadFile);
+    }
+
+    function uploadFile(file) {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Replace 'your-upload-endpoint' with the URL where you handle file uploads on the server
+	console.log("folder", "{{ folder }}");
+      fetch("{{ uploadLink }}", {
+        method: "POST",
+        body: formData,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          // Handle the server's response (if needed)
+	  console.log("filder", "{{ folder }}");
+          console.log("Upload successful:", data);
+			const listItem = document.createElement('li');
+      listItem.textContent = data['message'];
+      document.getElementById("dropArea").appendChild(listItem);
+			//window.location.href = '{{ url_for("memberFolders.uploaded",folder=folder) }}?message='+encodeURIComponent(data['message']);
+        })
+        .catch((error) => {
+          console.error("Error uploading file:", error);
+        });
+    }
+
+    document.getElementById("dropArea").addEventListener("dragover", preventDefault);
+    document.getElementById("dropArea").addEventListener("dragenter", preventDefault);
+    document.getElementById("dropArea").addEventListener("drop", handleDrop);
+
+
+	 const dropArea = document.getElementById("dropArea");
+
+  function handleDragEnter() {
+    dropArea.classList.add("highlight");
+  }
+
+  function handleDragLeave() {
+    dropArea.classList.remove("highlight");
+  }
+
+  function handleDragEnd() {
+    dropArea.classList.remove("highlight");
+  }
+
+  dropArea.addEventListener("dragover", preventDefault);
+  dropArea.addEventListener("dragenter", handleDragEnter);
+  dropArea.addEventListener("dragleave", handleDragLeave);
+  dropArea.addEventListener("drop", handleDrop);
+  dropArea.addEventListener("dragend", handleDragEnd);
 </script>
 {% endblock %}

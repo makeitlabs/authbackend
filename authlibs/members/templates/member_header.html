@@ -14,12 +14,20 @@
 		<button onclick='location.href="{{ url_for("vending.vendingUser",id=rec.member) }}";'  type="button" class="btn btn-outline-info">Vending</button>
 		<button onclick='location.href="{{ url_for("logs.logs",memberid=rec.id) }}";'  type="button" class="btn btn-outline-info">Log</button>
 	</div>
-	<div class="container m-0 mb-3 p-0">
+
+	<div class="container m-0 mb-3 p-0 d-flex justify-content-between align-items-center">
+	    <div>
 		<div class="m-0 p-0 row">
-			<h3>{{ rec.firstname }} {{ rec.lastname }}  </h3>
+		    <h3>{{ rec.firstname }} {{ rec.lastname }} </h3>
 		</div>
 		<div class="row m-0 p-0">
-			{{ rec.member }} (#{{ rec.id }})
+		    {{ rec.member }} (#{{ rec.id }})
 		</div>
+	    </div>
+	    <div>
+		<img style="max-width:100px;height:auto" src="{{ url_for("memberInfo.getMemberThumbnail",mid=rec.id) }}" />
+	    </div>
 	</div>
+
+
 </div>

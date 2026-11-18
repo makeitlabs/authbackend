@@ -1,6 +1,6 @@
 # authbackend
 
-Some rough documentation as of April, 2022
+Some rough documentation as of August, 2023
 
 # Ground-up install
 
@@ -53,6 +53,9 @@ This would run as http://node:5000/dev
 Runtime example:
 `docker run --rm -it -p 5000:5000 -v authit-devel:/opt/makeit --env=AUTHIT_PROXY_PATH=dev --env=AUTHIT_INI=/opt/makeit/makeit.ini  authbackend`
 
+# HVAC Milispilt controls
+
+Note! HVAC/Minisplit controls require a redis database on server. Make sure redis is running!
 
 # Non-containerized stuff
 
@@ -92,6 +95,7 @@ pip3 install configparser
 pip3 install functools (Unclear if this actually works or not??)
 pip3 install slackclient (OLD - SHOULDN'T NEED)
 pip3 install slack_sdk 
+pip3 install redis 
 pip3 install icalendar
 pip3 install coverage (If test coverage is used)
 ```
@@ -105,10 +109,14 @@ Copy `makeit.ini` from your existing system. Thiss will DIFFER in production vs 
 
 Fetch databases from old system - or restore nightly backups like:
 
+From AWS:
 ```
 ./restore.py 2021-02-10-db.sq3
 ./restore.py 2021-02-10-logdb.sq3
 ```
+
+...or from NAS backup on Makerspace volume
+
 ...and change filenames to something to run with...
 ```
 mv 2021-02-10-db.sq3 db.sq3
@@ -134,6 +142,24 @@ You might want to edit some things in the file before running the server.
 Make sure that if you are running a TEST server, that you set "Deployment:" 
 to something other thatn "Production"
 
+# Stripe Token
+Should be in `[Stripe]` section of `makeit.ini` under `Token` and must have the following permissions:
+* Read and Write: Checkout Sessions
+* Read Only: Charges, Coupons, Customers, Events, Invoices, PaymentIntents, Prices, Products, Promotion Codes & Subscriptions
+
+## Financial Reports Product Codes
+The `repgroups.dat` file contains a list of Stripe product codes, and the groups by which you would like to combine them for reporting. It is in a format like:
+
+```
+prod_1234       Workspace
+prod_2345       Workspace
+prod_000        Membership
+prod_111        Membership
+```
+
+If this is not set, each product will be reported individually. Get product codes from Stripe (and assign your own group names). This file should be restored from a backup if it is missing
+
+
 ## Setup Database
 
 (This deals mostly with importing a 2018-vintage DB - or starting from a totally clean slate!)
@@ -150,6 +176,17 @@ actually do any data migration, but will just give you a blank database with som
 You can also start with a VERY minimal database with:
 
 `python authserver.py --createdb`
+
+## Quick restore and migration (August, 2023)
+
+The `pulldb.py` script is VERY handy. It is meant to only be run on a STAGING system. It copies the production database from the live production server, and though it will VARY from release-to-release, in general will:
+
+* Perform any necessary migrations from older (production) DB schema to newer (stating) one
+* Add some test data for whatever we are working on.
+
+This, it can be used to quickly update the staging environment with recent data for production environment. Conversely, this COULD be used to update the production environemnt to the latest database schema, but if you use it to do so - you want to REMOVE the sections that inject or alter test data. (Look in the script. It is clearly deliniated.)
+
+Another important thing is - AuthIt won't let you log in if your account is invald. Since Staging environments dont do nightly payment reconciliation, if you let it run for several weeks, it will eventually lock you out! Thus, running `pulldb.py` will update staging with live DB which should have you as a current, valid user!
 
 ## Full data migration
 
@@ -277,184 +314,6 @@ For an example crontab - see `crontab.txt`
 Backups should be run with `nightly.py` script in cron file
 To help restore backups - you can use the `restore.py` helper script
 
-
-# Updating to latest version
-
-##  Multitrain/Python3 Update
-
-Add `MemberFoldersPath` to `[General]` section of `makeit.ini` with mount point to Member Folders
-Add `autoplot` section to `makeit.ini`
-`sudo pip install icalendar`
-
-## Log DB
-
-```
-CREATE TABLE vendinglog (
-	id INTEGER NOT NULL, 
-	member_id INTEGER NOT NULL, 
-	invoice VARCHAR(100), 
-	product VARCHAR(100), 
-	comment VARCHAR(100), 
-	doneby INTEGER, 
-  oldBalance INTEGER,
-  addAmount INTEGER,
-  purchaseAmount INTEGER,
-  surcharge INTEGER,
-  totalCharge INTEGER,
-  newBalance INTEGER,
-	time_logged DATETIME DEFAULT CURRENT_TIMESTAMP, 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE, 
-	FOREIGN KEY(doneby) REFERENCES members (id) ON DELETE CASCADE
-);
-```
-
-## Main DB
-
-
-# Node IP Addresses
-
-```
-ALTER TABLE nodes ADD COLUMN ip_addr VARCHAR(20);
-```
-# HOTFIX - member balances
-
-```
-ALTER TABLE members ADD COLUMN balance INTEGER;
-```
-
-# v1.0.7 Update
-
-```
-PRAGMA foreign_keys=off;
-BEGIN TRANSACTION;
-
-CREATE TABLE training (
-        id INTEGER NOT NULL,
-        name VARCHAR(150),
-        hours INTEGER,
-        permit INTEGER,
-        days INTEGER,
-        url VARCHAR(150),
-        required INTEGER,
-        required_endorsements VARCHAR(50),
-        endorsements VARCHAR(50),
-        resource_id INTEGER,
-        PRIMARY KEY (id),
-        FOREIGN KEY(required) REFERENCES resources (id) ON DELETE CASCADE,
-        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
-);
-
-INSERT INTO training(id,hours,permit,days,url,required,resource_id) SELECT id,sa_hours,sa_permit,sa_days,sa_url,sa_required,id FROM resources WHERE (sa_url is not null and sa_url != "");
-
-CREATE TABLE resources2 (
-        id INTEGER NOT NULL,
-        name VARCHAR(50),
-        short VARCHAR(20),
-        description VARCHAR(50),
-        owneremail VARCHAR(50),
-        last_updated DATETIME,
-        slack_chan VARCHAR(50),
-        slack_admin_chan VARCHAR(50),
-        info_url VARCHAR(150),
-        info_text VARCHAR(150),
-        slack_info_text VARCHAR, 
-        age_restrict INTEGER, 
-        permissions VARCHAR(255), 
-        PRIMARY KEY(id), 
-        UNIQUE (name),
-        UNIQUE (short)
-);
-
-INSERT INTO resources2 (
-        id,
-        name,
-        short,
-        description,
-        owneremail,
-        last_updated,
-        slack_chan,
-        slack_admin_chan,
-        info_url,
-        info_text,
-        slack_info_text, 
-        age_restrict, 
-        permissions
-        )
-        SELECT 
-          id,
-          name,
-          short,
-          description,
-          owneremail,
-          last_updated,
-          slack_chan,
-          slack_admin_chan,
-          info_url,
-          info_text,
-          slack_info_text, 
-          age_restrict, 
-          permissions 
-        FROM resources;
-
-DROP TABLE resources;
-ALTER TABLE resources2 RENAME TO resources;
-
-CREATE TABLE quizquestion (
-        id INTEGER NOT NULL,
-        question TEXT,
-        answer TEXT,
-        idx INTEGER,
-        training_id INTEGER NOT NULL,
-        PRIMARY KEY (id),
-        FOREIGN KEY(training_id) REFERENCES training (id) ON DELETE CASCADE
-);
-INSERT INTO quizquestion (
-        id,
-        question,
-        answer,
-        idx,
-        training_id)
-        SELECT 
-          id,
-          question,
-          answer,
-          idx,
-          resource_id
-        FROM resourcequiz;
-DROP TABLE resourcequiz;
-
-CREATE TABLE tempauth (
-        id INTEGER NOT NULL,
-        member_id INTEGER NOT NULL,
-        admin_id INTEGER NOT NULL,
-        resource_id INTEGER NOT NULL,
-        expires DATETIME,
-        timesallowed INTEGER,
-        PRIMARY KEY (id),
-        FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE,
-        FOREIGN KEY(admin_id) REFERENCES members (id) ON DELETE CASCADE,
-        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
-);
-
-ALTER TABLE members ADD COLUMN memberFolder VARCHAR(255);
-insert into roles (id,name) values (7,"LeaseMgr");
-ALTER TABLE members ADD COLUMN balance INTEGER DEFAULT 0;
-
-COMMIT;
-PRAGMA foreign_keys=on;
-###  delete from  subscriptions where member_id = 412; (Delete only one SUB for him!!)
-```
-
-## v1.0.8 Update
-```
-sqlite3 <<dbfile>>
-ALTER TABLE resources ADD COLUMN sa_required_endorsements VARCHAR(50);
-ALTER TABLE resources ADD COLUMN sa_endorsements VARCHAR(50);
-```
-
-*** BUT ALSO: Check and delete duplicate Subscription Records!!
-
 ### Fix wsgl config
 
 Verify that `authserver.wsgi` is set for your appopriate deploy! (See `authserver.wsgi.EXAMPLE` for example)
@@ -515,13 +374,11 @@ You can add API stuff here: https://api.slack.com/apps
 # systemctl setup
 We generally use systemctl to create services to make sure these two are always running:
 ```
-             ├─authbackend-slack.service
-             │ └─/usr/bin/python /var/www/authbackend-ng/toolauthslack.py
-             └─authbackend-mqtt.service
-               └─/usr/bin/python /var/www/authbackend-ng/mqtt_daemon.py
+             authbackend-slack.service
+             /usr/bin/python /var/www/authbackend-ng/toolauthslack.py
+             authbackend-mqtt.service
+             /usr/bin/python /var/www/authbackend-ng/mqtt_daemon.py
+	     and redis, too
 ```
 
 
-# 1.0.7 Migration
-
-`ALTER TABLE resources ADD COLUMN permissions VARCHAR(255);`

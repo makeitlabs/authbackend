@@ -1,65 +1,66 @@
-var lastrequest= null;
+var lastrequest = null;
 
-function layout_search_keypress(){
-  $('#layout_search_menu').dropdown('toggle');
-	line = $("#layout_search_text")[0].value;
+function layout_search_keypress() {
+	var line = $("#layout_search_text").val() || "";
 	if (line.length < 3) {
-   $('#layout_search_menu').removeClass('open');
-   $('#layout_search_menu').removeClass('show');
-	return;
-}
-
-	makePostCall = function (url, data) { // here the data and url are not hardcoded anymore
-		 var json_data = JSON.stringify(data);
-      if (lastrequest != null)  {
-        lastrequest.abort();
-        lastrequest=null;
-      }
-			req= $.ajax({
-					type: "GET",
-					url: url,
-					data: data,
-					dataType: "json",
-					contentType: "application/json;charset=utf-8"
-			});
-     return req;
+		$('#layout_search_menu').removeClass('open show');
+		$('#layout_search_menu').parent().removeClass('open show');
+		return;
 	}
 
-	makePostCall(LAYOUT_SEARCH_URL+line, "")
-		.success(function(data){
-      lastrequest=null;
-			var x = $(".layout_search_item")[0]
-			while (x)  {
-				x.parentNode.removeChild(x);
-				var x = $(".layout_search_item")[0]
+	makePostCall = function (url, data) {
+		if (lastrequest != null) {
+			lastrequest.abort();
+			lastrequest = null;
+		}
+		var req = $.ajax({
+			type: "GET",
+			url: url,
+			data: data,
+			dataType: "json",
+			contentType: "application/json;charset=utf-8"
+		});
+		lastrequest = req;
+		return req;
+	};
+
+	makePostCall(LAYOUT_SEARCH_URL + encodeURIComponent(line), "")
+		.done(function(data) {
+			lastrequest = null;
+			var lst = $("#layout_search_menu");
+			lst.empty();
+
+			if (data && data.length > 0) {
+				for (var i = 0; i < data.length; i++) {
+					var item = data[i];
+					var el = document.createElement("a");
+					el.style = 'cursor: pointer;';
+					el.href = item['url'];
+					el.className = "dropdown-item content layout_search_item nav-item nav-link";
+					if (item['in']) {
+						el.innerHTML = item['title'] + "<br /><small>" + item['in'] + "</small>";
+					} else {
+						el.innerHTML = item['title'];
+					}
+					lst.append(el);
+				}
+				lst.addClass('show');
+				lst.parent().addClass('show');
+			} else {
+				lst.removeClass('open show');
+				lst.parent().removeClass('open show');
 			}
-			var lst = $("#layout_search_menu")[0]
-			for (x in data){ 
-				el = document.createElement("div");
-				el.style='cursor: pointer;';
-				//el.onclick="window.location="+data[x]['url'];
-				el.setAttribute("data-target",data[x]['url'])
-				el.setAttribute("href",data[x]['url'])
-				console.log(data[x]['title'],data[x]['url']);
-				el.className="dropdown-item content layout_search_item nav-item nav-link";
-				el.innerHTML = data[x]['title']+"<br /><small href=\""+data[x]['url']+"\">"+data[x]['in']+"</small>";
-				lst.appendChild(el);
-			}
-			console.log("---");
-$( ".layout_search_item" ).on('click',function(event) {
-  window.location=event.target.getAttribute('href');
-});
 		})
-		.fail(function(sender, message, details){
-						 
+		.fail(function(sender, message, details) {
+			if (message !== "abort") {
+				console.error("Ubersearch failed:", message, details);
+			}
 		});
 }
 
-
-
-
 function layout_search_blur() {
-  // $('#layout_search_menu').removeClass('open');
-  // $('#layout_search_menu').removeClass('show');
-  // $('#layout_search_text')[0].value="";
+	setTimeout(function() {
+		$('#layout_search_menu').removeClass('open show');
+		$('#layout_search_menu').parent().removeClass('open show');
+	}, 250);
 }

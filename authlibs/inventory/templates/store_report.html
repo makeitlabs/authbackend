@@ -1,0 +1,137 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+
+<div class="container-fluid">
+    <h2><i class="fa fa-bar-chart"></i> {{ resource.name }} — Inventory Report</h2>
+    <p class="text-muted">{{ resource.description }}</p>
+
+    <a href="{{ url_for('inventory.store', purchasable_id=purchasable_id) }}"
+        class="btn btn-outline-secondary btn-sm mb-3">
+        <i class="fa fa-arrow-left"></i> Back to Store
+    </a>
+
+    <!-- Summary Table -->
+    {% if summary %}
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Summary</h5>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th class="text-center">Current Stock</th>
+                        <th class="text-center">Sold</th>
+                        <th class="text-center">Pulled</th>
+                        <th class="text-center">Restocked</th>
+                        <th class="text-right">Revenue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set ns = namespace(total_sold=0, total_pulled=0, total_restocked=0, total_revenue=0,
+                    total_stock=0) %}
+                    {% for pid, s in summary.items() %}
+                    <tr>
+                        <td><strong>{{ s.name }}</strong></td>
+                        <td class="text-center">
+                            {% if s.current_qty is not none %}
+                            {% if s.current_qty > 0 %}
+                            <span class="badge badge-success">{{ s.current_qty }}</span>
+                            {% else %}
+                            <span class="badge badge-danger">{{ s.current_qty }}</span>
+                            {% endif %}
+                            {% else %}
+                            <span class="badge badge-secondary">?</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">{{ s.sold }}</td>
+                        <td class="text-center">{{ s.pulled }}</td>
+                        <td class="text-center">{{ s.restocked }}</td>
+                        <td class="text-right">{{ s.revenue_str }}</td>
+                    </tr>
+                    {% set ns.total_sold = ns.total_sold + s.sold %}
+                    {% set ns.total_pulled = ns.total_pulled + s.pulled %}
+                    {% set ns.total_restocked = ns.total_restocked + s.restocked %}
+                    {% set ns.total_revenue = ns.total_revenue + s.revenue %}
+                    {% if s.current_qty is not none %}
+                    {% set ns.total_stock = ns.total_stock + s.current_qty %}
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="font-weight-bold">
+                        <td>TOTAL</td>
+                        <td class="text-center">{{ ns.total_stock }}</td>
+                        <td class="text-center">{{ ns.total_sold }}</td>
+                        <td class="text-center">{{ ns.total_pulled }}</td>
+                        <td class="text-center">{{ ns.total_restocked }}</td>
+                        <td class="text-right">${{ "%.2f"|format(ns.total_revenue / 100.0) }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Detail Log -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Transaction Detail <small>({{ detail | length }} entries)</small></h5>
+        </div>
+        <div class="card-body p-0">
+            {% if detail | length > 0 %}
+            <table class="table table-sm table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Item</th>
+                        <th>Operation</th>
+                        <th class="text-center">Qty</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>By</th>
+                        <th>Comment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in detail %}
+                    <tr>
+                        <td><small>{{ d.datestr }}</small></td>
+                        <td>{{ d.item }}</td>
+                        <td>
+                            {% if d.operation == 'purchase' %}
+                            <span class="badge badge-success">Purchase</span>
+                            {% elif d.operation == 'pull' %}
+                            <span class="badge badge-warning">Pull</span>
+                            {% elif d.operation == 'restock' %}
+                            <span class="badge badge-info">Restock</span>
+                            {% elif d.operation == 'adjust' %}
+                            <span class="badge badge-secondary">Adjust</span>
+                            {% else %}
+                            <span class="badge badge-light">{{ d.operation }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if d.operation == 'adjust' %}
+                            —
+                            {% else %}
+                            {{ d.quantity }}
+                            {% endif %}
+                        </td>
+                        <td>{{ d.price_str }}</td>
+                        <td><small>{{ d.stock_change }}</small></td>
+                        <td><small>{{ d.member }}</small></td>
+                        <td><small class="text-muted">{{ d.comment }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="p-3 text-muted">No inventory records yet.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

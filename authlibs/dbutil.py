@@ -159,8 +159,9 @@ def _addSubscriptionData(subs,paytype):
             s.membership = sub['membership']
             s.checked_date = datetime.utcnow()
             s.active = sub['active']
+            s.group = sub.get('group')
             users.append((sub['name'],sub['active'],sub['email'],paytype,sub['plantype'],sub['customerid'],sub['subid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
-            print ("ADDING record for",sub['email'],sub['name'],"CREATED",s.created_date,"UPDATED",s.updated_date,"EXPIRES",s.expires_date)
+            #print ("ADDING record for",sub['email'],sub['name'],"CREATED",s.created_date,"UPDATED",s.updated_date,"EXPIRES",s.expires_date)
     #db.session.commit() 
 
 

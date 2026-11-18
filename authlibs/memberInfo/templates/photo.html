@@ -1,0 +1,38 @@
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+	<script type="text/javascript" src="{{ url_for("static",filename="js/sorttable.js") }}"></script>
+{% endblock %}
+{% block body %}
+<div class="body"> <!-- BASE contrainer -->
+
+		
+<div class="my-2 container"> {# Outer container #}
+  <h3>Member Photo for {{ member.firstname }} {{ member.lastname}} </h3>
+
+  
+  {% if hascurrent %}
+  <h3>Current Photo</h3>
+  <img style="max-width:200px;height:auto" src="{{ url_for("memberInfo.getPhoto") }}" />
+  {% endif %}
+  <p>Please upload a clear photo of your face</p>
+  <form method="post" enctype="multipart/form-data" action="{{ url_for("memberInfo.upload_file") }}">
+    <input type="hidden" name="folder" value="{{ folder }}">
+    <input type=file name=file>
+    <input type=submit value=Upload>
+   </form>
+</div>
+<hr />
+<div class="my-2 container">
+  <h3>License Plates</h3>
+  <p>Please give use the license plate number(s) of the vehicle(s) you will be parking at the lab. This data is only used locally in the lab itself to quickly resolve parking issues. Plate numbers only, do not put states</p>
+  <form method="post" enctype="multipart/form-data" action="{{ url_for("memberInfo.setLicensePlates") }}">
+	  <div>
+		  Plates: <textarea cols="20" rows="5" name="plates" value="{{ plates }}">{{ plates }}</textarea>
+	  </div>
+	  <div>
+  <input type=submit value=Change>
+	  </div>
+  </form>
+</div>
+
+{% endblock %}

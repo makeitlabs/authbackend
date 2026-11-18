@@ -1,0 +1,75 @@
+{% extends "layout_public.html" %}
+{% block head %}
+
+<style>
+.key {
+	text-align:center;
+	font-weight:bold;
+	font-family:serif;
+	font-size:large;
+	line-height:0px;
+	margin:0px;
+}
+
+.value {
+	text-align:center;
+	font-weight:bold;
+	font-family:serif;
+	font-size:xxx-large;
+	margin:0px;
+}
+
+.descript {
+	text-align:center;
+	font-family:serif;
+	font-size:large;
+}
+
+.center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
+}
+</style>
+{% endblock %}
+
+
+{% block widebody %}
+<div class=body>
+	<div class="section">
+		You may print, email or present the following to the person you are gifting this to. They can use this to redeem their membership. If you have any questions, or there is any problem with the redemption - you or they can email <a href="mailto:info@makeitlabs.com">info@makeitlabs.com</a>, or stop by our open house Thursdays from 6-8pm for further assistance
+	</div>
+
+	<div class="section">
+
+	<p class="key">To:</p>
+	<p class="value">{{gift_to}}</p>
+	<p class="descript">Gift Certificate for 3 Month Introductory Membership to MakeIt Labs<br /> New Hampshire's first and largest Makerspace!</p>
+	<p class="key">From:</p>
+	<p class="value">{{gift_from}}</p>
+
+
+	<p class="descript">
+	Redeem at: {{ baseurl }}{{ url_for('gift.redeem',code=code) }}<br />
+	or by clicking <a href="{{ url_for('gift.redeem',code=code) }}">Here</a>
+	</p>
+
+	<p class="descript">or redeem by scanning this QR code:</p>
+	<p>
+	<img class="center" src="{{ url_for('gift.qr',code=code) }}" />
+	</p>
+
+	</div>
+{% include "terms.html" %}
+	<div class="sectionhead">Signup</div>
+
+	<!-- 
+	<pre>
+	{{ debug }}
+	</pre>
+	-->
+
+	  </div>
+ </div>
+{% endblock %}

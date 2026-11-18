@@ -1,0 +1,31 @@
+{% extends "layout_public.html" %}
+{% block head %}
+{% endblock %}
+
+
+{% block body %}
+    <div class="body">
+    <div class="container">
+        <h1 class="mb-4">Redeem Gift Membership</h1>
+        <form method="POST" >
+		<p>
+		Please enter the redeem code from your gift membership. It should start with `pi_`.
+		</p>
+	<hr />
+
+
+            <!-- First Name -->
+            <div class="input-group mb-3">
+		    <label for="code" class="input-group-text mb-2">Redeem Code</label>
+                <input type="text" class="form-control mb-2" name="code" id="code" placeholder="" required>
+            </div>
+
+
+
+
+            <!-- Submit Button -->
+            <button type="submit" name="Redeem" value="Redeem" class="btn btn-primary">Redeem</button>
+        </form>
+    </div>
+    </div>
+{% endblock %}

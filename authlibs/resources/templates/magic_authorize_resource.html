@@ -1,0 +1,43 @@
+{% extends "layout_bootstrap.html" %}
+{% block widebody %}
+<div class="container" style="margin-top: 20px; margin-bottom: 40px;">
+    <div class="sectionhead" style="border-bottom: 2px solid #334155; padding-bottom: 15px; margin-bottom: 30px;">
+        <h3 style="font-weight: 600; color: #38bdf8;">Magic Authorize: {{ resource.name }}</h3>
+        <p class="text-muted" style="color: #94a3b8 !important;">Select members below who were denied access in the last 3 hours to quickly authorize them.</p>
+    </div>
+    
+    {% if not denied_members %}
+        <div class="alert alert-success" style="background-color: #064e3b; border-color: #065f46; color: #d1fae5;">
+            No users were denied access to {{ resource.name }} in the last 3 hours.
+        </div>
+        <div class="mt-4">
+            <a href="{{ url_for('resources.magic_authorize') }}" class="btn btn-secondary" style="background-color: #334155; border-color: #475569;">Back to Resources</a>
+        </div>
+    {% else %}
+        <form action="{{ url_for('resources.magic_authorize_action', resource_id=resource.id) }}" method="POST">
+            <div class="card" style="background-color: #1e293b; border-color: #334155;">
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for m in denied_members %}
+                        <li class="list-group-item d-flex align-items-center" style="background-color: transparent; border-color: #334155; color: #f8fafc;">
+                            <div class="custom-control custom-checkbox" style="transform: scale(1.2); margin-right: 15px;">
+                                <input type="checkbox" class="custom-control-input" id="check_{{ m.id }}" name="member_ids" value="{{ m.id }}" checked>
+                                <label class="custom-control-label" for="check_{{ m.id }}" style="cursor: pointer;"></label>
+                            </div>
+                            <div>
+                                <strong>{{ m.firstname }} {{ m.lastname }}</strong> 
+                                <span class="text-muted" style="color: #94a3b8 !important; margin-left: 10px;">({{ m.member }})</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="card-footer" style="background-color: #0f172a; border-top: 1px solid #334155;">
+                    <button type="submit" class="btn btn-success" style="background-color: #10b981; border-color: #059669; font-weight: 600;">Authorize Checked Users</button>
+                    <a href="{{ url_for('resources.magic_authorize') }}" class="btn btn-secondary ml-2" style="background-color: #334155; border-color: #475569;">Cancel</a>
+                </div>
+            </div>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

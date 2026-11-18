@@ -8,6 +8,8 @@
 	<table class="table table-lg table-striped">
         <tr>
             <th>Location</th>
+            <th>Aruco</th>
+            <th></th>
             <th></th>
         </tr>
 	{% for loc in locations %}
@@ -15,7 +17,11 @@
 		<td>
 			<a href="{{ url_for("prostore.locations",delete=loc.ProLocation.location) }}"><span class="glyphicon glyphicon-trash" /></a> &nbsp;
 		{{ loc.ProLocation.location }}</td>
+		<td>{% if loc.ProLocation.aruco %}{{ loc.ProLocation.aruco }}{% endif %}</td>
 		<td>{{ loc.loctypestr }}</td>
+		<td>
+			<button class="btn btn-sm btn-primary" onclick="printLocationLabel({{ loc.ProLocation.id }})">Print Label</button>
+		</td>
 	  </tr>
 	{% endfor %}
 	</table>
@@ -36,6 +42,7 @@
 
 <div class="input-group">
   <input type="text" name="addloc_name" class="form-control" placeholder="Location Name" aria-label="Location Name" aria-describedby="basic-addon2">
+  <input type="text" name="addloc_aruco" class="form-control" placeholder="Code:( 500-999)" aria-label="Aruco" aria-describedby="basic-addon2">
   <select name="input_loctype" class="custom-select" id="inputGroupSelect04">
     <option value="0" selected>Single Bin</option>
     <option value="1">Multiple Bins</option>
@@ -48,5 +55,24 @@
 
 </form>
 </div>
+</div>
 {% endif %} <!-- Add New Node -->
+<script type="text/javascript">
+function printLocationLabel(loc_id) {
+    fetch('{{ url_for("prostore.print_location_label", loc_id=0) }}'.replace('0', loc_id))
+    .then(response => response.json())
+    .then(data => {
+        if (data.result === 'ok') {
+            console.log("Print successful:", data);
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    })
+    .catch(error => {
+        console.error("Error printing:", error);
+        alert("Error printing location label.");
+    });
+}
+</script>
 {% endblock %}

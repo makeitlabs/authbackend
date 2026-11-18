@@ -4,6 +4,7 @@ import random
 import string
 import datetime
 from authlibs import accesslib
+from authlibs.slackutils import send_slack_message
 from ..slackutils import add_user_to_channel
 
 blueprint = Blueprint("training", __name__, template_folder='templates', static_folder="static",url_prefix="/training")
@@ -136,7 +137,7 @@ def verify_training(train,user=current_user):
             
             
         # ...or they don't meet days/hours requirements...
-        if r2 and (train.hours > 0):
+        if r2 and ((train.hours is not None) and (train.hours > 0)):
           q = UsageLog.query.filter(UsageLog.resource_id==r2.id)
           q = q.filter(UsageLog.time_logged >= datetime.datetime.now()-datetime.timedelta(days=365*2))
           q = q.filter(UsageLog.member_id == user.id)
@@ -158,7 +159,7 @@ def verify_training(train,user=current_user):
           if total_hours < train.hours:
             ar['desc'] = 'Must meet expereince prerequisites on '+r2.description
             ar['status'] = 'cannot'
-        if r2 and (train.days > 0):
+        if r2 and (train.days is not None) and ((train.days > 0)):
           # Check how long they have been authorized for
           q = Logs.query.filter(Logs.resource_id==r2.id)
           q = q.filter(Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id)
@@ -401,10 +402,15 @@ def training_delete(trainid):
 @login_required
 def get_endorsements(resid):
   res=[]
-  e = Resource.query.filter(Resource.id==int(resid)).one()
-  if e.permissions:
+  try:
+    rid = int(resid)
+  except ValueError:
+    return (json_dump([]), 400, {'Content-type': 'application/json', 'Content-Language': 'en'})
+  e = Resource.query.filter(Resource.id==rid).one_or_none()
+  if e and e.permissions:
     res = e.permissions.strip().split()
-    return json_dump(res, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  return (json_dump(res,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+
 
   
   
@@ -458,9 +464,18 @@ def quiz(quizid):
           db.session.add(ac)
           flash("Congratulations! You are authorized!","success")
           authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=train.resource_id,message="Self-Auth",member_id=current_user.id,commit=0)
+          try:
+              if (res.slack_admin_chan is not None) and (res.slack_admin_chan.strip() != ""):
+                  send_slack_message(res.slack_admin_chan,f":moneybag: {current_user.firstname} {current_user.lastname} self-authorized on {res.name}")
+          except BaseException as e:
+              logger.error(f"Failed to send slack message {e}")
+              pass
           
         if res.slack_chan and res.slack_chan.strip() != "":
-          add_user_to_channel(r.slack_chan,current_user)
+          try:
+            add_user_to_channel(res.slack_chan,current_user)
+          except:
+            pass
 
 
       # Add Endorsements (if we need to)

@@ -7,7 +7,8 @@ import random,string
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from authlibs.db_models import db, ApiKey,  Role, UserRoles, Member, Resource, AccessByMember
 from authlibs.payments import cli_updatepayments
-from authlibs.membership import cli_syncmemberpayments
+from authlibs.membership import cli_syncmemberpayments,cli_creatememberfoldertest,cli_createmembertest,cli_testgooglecreate
+from authlibs.resources.resources import cli_queryresourceinvoice,cli_refundinvoice
 from authlibs.slackutils import cli_slacktest
 from authlibs.ubersearch import cli_ubersearch
 from authlibs.autoplot.autoplot import cli_autoplot
@@ -19,6 +20,7 @@ import getpass
 from .prostore import prostore
 from .waivers.waivers import cli_waivers_connect, cli_waivers, cli_fix_waiver_types, cli_econtacts
 from .members.notices import cli_member_notices
+from .prostore.prostore import cli_randobinz
 
 import logging
 logger = logging.getLogger(__name__)
@@ -138,6 +140,18 @@ commands = {
 		'usage':"memberpaysync [--test] [--force] [--help]  -- Reconcile payment and member data",
 		'cmd':cli_syncmemberpayments
 	},
+	"creatememberfoldertest":{
+		'usage':"creatememberfoldertest",
+		'cmd':cli_creatememberfoldertest
+	},
+	"createmembertest":{
+		'usage':"createmembertest",
+		'cmd':cli_createmembertest
+	},
+	"testgooglecreate":{
+		'usage':"testgooglecreate [firstname] [lastname] [alt_email] [--test] [--help]  -- Test Google account creation + forwarding",
+		'cmd':cli_testgooglecreate
+	},
 	"grant":{
 		'usage':"grant {memberid} {priv} -- Grant a Backend GUI Privlage to user",
 		'cmd':grant
@@ -194,9 +208,21 @@ commands = {
 		'usage':"notices -- Process member account notifications",
 		'cmd':cli_member_notices
 	},
+	"queryresourceinvoice":{
+		'usage':"cli_queryresourceinvoice <id> --  Query invoice no",
+		'cmd':cli_queryresourceinvoice
+	},
+	"refundinvoice":{
+		'usage':"cli_refundinvoice <id> --  Refund Invoice",
+		'cmd':cli_refundinvoice
+	},
 	"slacktest":{
 		'usage':"slacktest -- Send slack test",
 		'cmd':cli_slacktest
+	},
+	"randobinz":{
+		'usage':"randobinz  -- Delete all and create random bin choices DANGEROUS!!",
+		'cmd':cli_randobinz
 	},
 	"ubersearch":{
 		'usage':"ubersearch {searchstr} -- Try ubersearch",
