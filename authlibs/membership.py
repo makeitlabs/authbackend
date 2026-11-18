@@ -137,6 +137,26 @@ def matchMissingMembers(missing):
                 q = q.filter(Member.stripe_name.ilike(s.name)) # TODO BKG FIX - Depricate - use first and last names only
                 try:
                     mm = q.one_or_none()
+                    if not mm and s.email:
+                        # Fallback: match by email + normalized name/member ID (handles
+                        # whitespace, punctuation, or legacy stripe_name differences)
+                        target_uid = utilities.sanitize_userid(s.name).lower()
+                        target_name = utilities.sanitize_name(s.name).lower()
+                        candidates = []
+                        for cand in Member.query.filter(Member.alt_email.ilike(s.email)).all():
+                            cand_uid = utilities.sanitize_userid(cand.member).lower()
+                            cand_stripe = utilities.sanitize_name(cand.stripe_name).lower()
+                            cand_full = utilities.sanitize_name(
+                                "%s %s" % (cand.firstname or "", cand.lastname or "")
+                            ).lower()
+                            if (target_uid and cand_uid == target_uid) or (
+                                target_name and (cand_stripe == target_name or cand_full == target_name)
+                            ):
+                                candidates.append(cand)
+                        if len(candidates) == 1:
+                            mm = candidates[0]
+                        elif len(candidates) > 1:
+                            raise ValueError("Multiple normalized matches")
                     if mm:
                         logger.debug("email/name MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
                         if getattr(s, 'group', None) and s.group and (not mm.group or mm.group.strip() == ""):
